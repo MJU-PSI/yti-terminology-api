@@ -1,7 +1,7 @@
 package fi.csc.termed.search;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,8 +17,8 @@ public class ReceiveNotificationController {
         this.elasticSearchService = elasticSearchService;
     }
 
-    @RequestMapping(value = "/notify")
-    public void notify(@RequestParam Notification notification) throws IOException, InterruptedException {
+    @RequestMapping("/notify")
+    public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
         this.elasticSearchService.updateIndex(notification);
     }
 }
