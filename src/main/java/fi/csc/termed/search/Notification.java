@@ -6,6 +6,7 @@ public class Notification {
 
 class Identifier {
     String id;
+    Type type;
 }
 
 class Type {
