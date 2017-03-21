@@ -58,7 +58,7 @@ public class ElasticSearchService {
     private String indexMappingType = "concept";
 
     @Value("${search.index.deleteOnAppRestart}")
-    private boolean deleteOnAppRestart = true;
+    private boolean deleteOnAppRestart = false;
 
     @Value("${search.index.document.importUrl}")
     private String importUrl = "http://termed.csc.fi/api/ext.json?max=-1&typeId=Concept&select.properties=prefLabel&select.referrers=&select.references=prefLabelXl&select.audit=true";
@@ -67,7 +67,7 @@ public class ElasticSearchService {
     private String apiUser = "admin";
 
     @Value("${api.pw}")
-    private String apiPw = "XXX";
+    private String apiPw = "admin";
 
     public ElasticSearchService() {
 
