@@ -41,7 +41,7 @@ public class NotificationController {
     @PreDestroy
     private void unRegisterNotificationUrl() {
         if(hookId != null) {
-            log.info("Deleting change listener from termed API");
+            log.info("Deleting change listener from termed API having id: " + hookId);
             if(termedApiService.deleteChangeListener(hookId)) {
                 log.info("Deleted change listener successfully");
             } else {

@@ -98,7 +98,7 @@ public class TermedApiService {
 				while ((line = rd.readLine()) != null) {
 					result.append(line);
 				}
-				return result.toString();
+				return result.toString().replace("<string>", "").replace("</string>", "");
 			} else {
 				log.error("Response code: " + resp.getStatusLine().getStatusCode());
 				return null;
