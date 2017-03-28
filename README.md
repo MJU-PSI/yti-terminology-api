@@ -14,6 +14,10 @@ Run with: `./gradlew bootRun`
 
 Termed search should respond at port `8001`.
 
+## Stopping
+
+Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
+
 ## Build (executable) war
 
 Run with: `./gradlew build`
