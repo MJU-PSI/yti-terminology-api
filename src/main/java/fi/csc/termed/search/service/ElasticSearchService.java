@@ -45,6 +45,7 @@ public class ElasticSearchService {
     @Value("${search.index.deleteIndexOnAppRestart}")
     private boolean deleteIndexOnAppRestart;
 
+    private Application application;
     private RestClient esRestClient;
     private TermedApiService termedApiService;
     private JsonParserService jsonParserService;
@@ -52,7 +53,8 @@ public class ElasticSearchService {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    public ElasticSearchService(TermedApiService termedApiService, JsonParserService jsonParserService) {
+    public ElasticSearchService(Application application, TermedApiService termedApiService, JsonParserService jsonParserService) {
+        this.application = application;
         this.termedApiService = termedApiService;
         this.jsonParserService = jsonParserService;
     }
@@ -72,7 +74,7 @@ public class ElasticSearchService {
                         if(!addOrUpdateDocumentToIndex(id, doc)) {
                             log.error("Failed to index document: " + doc);
                             log.info("Exiting");
-                            Application.context.close();
+                            application.context.close();
                             System.exit(1);
                         }
                     });

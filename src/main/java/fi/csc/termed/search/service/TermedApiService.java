@@ -73,7 +73,7 @@ public class TermedApiService {
 	@Autowired
 	public TermedApiService(JsonParserService jsonParserService) {
 		this.jsonParserService = jsonParserService;
-		this.apiClient = getApiHttpClient();
+		this.apiClient = HttpClientBuilder.create().build();
 	}
 
 	private String getAuthHeader() {
@@ -165,49 +165,4 @@ public class TermedApiService {
 		return indexDocs;
 	}
 
-	private HttpClient getApiHttpClient() {
-		HttpClientBuilder b = HttpClientBuilder.create();
-
-		// setup a Trust Strategy that allows all certificates.
-		//
-		SSLContext sslContext = null;
-		try {
-			sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-				public boolean isTrusted(X509Certificate[] arg0, String arg1) {
-					return true;
-				}
-			}).build();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
-		b.setSSLContext(sslContext);
-
-		// don't check Hostnames, either.
-		//      -- use SSLConnectionSocketFactory.getDefaultHostnameVerifier(), if you don't want to weaken
-		HostnameVerifier hostnameVerifier = SSLConnectionSocketFactory.getDefaultHostnameVerifier();
-
-		// here's the special part:
-		//      -- need to create an SSL Socket Factory, to use our weakened "trust strategy";
-		//      -- and create a Registry, to register it.
-		//
-		SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, hostnameVerifier);
-		Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
-				.register("http", PlainConnectionSocketFactory.getSocketFactory())
-				.register("https", sslSocketFactory)
-				.build();
-
-		// now, we create connection-manager using our Registry.
-		//      -- allows multi-threaded use
-		PoolingHttpClientConnectionManager connMgr = new PoolingHttpClientConnectionManager( socketFactoryRegistry);
-		b.setConnectionManager( connMgr);
-
-		// finally, build the HttpClient;
-		//      -- done!
-
-		return b.build();
-	}
 }
