@@ -6,6 +6,8 @@ Termed search handles updating of elastic search index.
 
 ## Install dependencies
 
+Use Java 8u121 or later
+
 Run with `./gradlew assemble` to download all dependencies.
 
 ## Running
