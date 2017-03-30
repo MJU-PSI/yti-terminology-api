@@ -71,7 +71,7 @@ public class TermedApiService {
 	}
 
 	public boolean deleteChangeListener(String hookId) {
-		HttpDelete deleteReq = new HttpDelete(API_HOST_URL + API_DELETE_LISTENER_URL_CONTEXT + hookId);
+		HttpDelete deleteReq = new HttpDelete(API_HOST_URL + MessageFormat.format(API_DELETE_LISTENER_URL_CONTEXT, hookId));
 		deleteReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(deleteReq);

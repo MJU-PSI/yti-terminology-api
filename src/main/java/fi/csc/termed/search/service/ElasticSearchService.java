@@ -21,14 +21,14 @@ import java.util.Collections;
 @Service
 public class ElasticSearchService {
 
-    @Value("${search.host.scheme}")
-    private String SEARCH_HOST_HTTP_SCHEME;
-
     @Value("${search.host.url}")
     private String SEARCH_HOST_URL;
 
     @Value("${search.host.port}")
     private int SEARCH_HOST_PORT;
+
+    @Value("${search.host.scheme}")
+    private String SEARCH_HOST_SCHEME;
 
     @Value("${search.index.file}")
     private String CREATE_INDEX_FILENAME;
@@ -61,7 +61,7 @@ public class ElasticSearchService {
 
     public void initIndex() {
         this.esRestClient = RestClient.builder(
-                new HttpHost(SEARCH_HOST_URL, SEARCH_HOST_PORT, SEARCH_HOST_HTTP_SCHEME)).build();
+                new HttpHost(SEARCH_HOST_URL, SEARCH_HOST_PORT, SEARCH_HOST_SCHEME)).build();
 
         if(DELETE_INDEX_ON_APP_RESTART) {
             deleteIndex();
@@ -138,6 +138,7 @@ public class ElasticSearchService {
             }
         } catch (IOException e) {
             log.info("Error checking if elasticsearch index exists: " + INDEX_NAME);
+            return true;
         }
         log.info("Elasticsearch index exists: " + INDEX_NAME);
         return true;
