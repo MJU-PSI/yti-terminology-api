@@ -1,6 +1,6 @@
 package fi.csc.termed.search.controller;
 
-import fi.csc.termed.search.Notification;
+import fi.csc.termed.search.domain.Notification;
 import fi.csc.termed.search.service.ElasticSearchService;
 import fi.csc.termed.search.service.TermedApiService;
 import org.slf4j.Logger;
@@ -33,9 +33,15 @@ public class NotificationController {
 
     @RequestMapping("/notify")
     public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
-        log.warn("Message received via /notify");
-        log.warn(notification.toString());
-        this.elasticSearchService.updateIndex(notification);
+        log.debug("Notification received");
+
+        switch(notification.getBody().getNode().getType().getId()) {
+            case Term:
+                break;
+            case Concept:
+                this.elasticSearchService.updateIndex(notification);
+                break;
+        }
     }
 
     @PreDestroy

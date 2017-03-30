@@ -1,7 +1,7 @@
 package fi.csc.termed.search.service;
 
 import fi.csc.termed.search.Application;
-import fi.csc.termed.search.Notification;
+import fi.csc.termed.search.domain.Notification;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
@@ -22,28 +22,28 @@ import java.util.Collections;
 public class ElasticSearchService {
 
     @Value("${search.host.scheme}")
-    private String searchHostScheme;
+    private String SEARCH_HOST_HTTP_SCHEME;
 
     @Value("${search.host.url}")
-    private String searchHostUrl;
+    private String SEARCH_HOST_URL;
 
     @Value("${search.host.port}")
-    private int searchHostPort;
+    private int SEARCH_HOST_PORT;
 
     @Value("${search.index.file}")
-    private String createIndexFilename;
+    private String CREATE_INDEX_FILENAME;
 
     @Value("${search.index.mapping.file}")
-    private String createMappingsFilename;
+    private String CREATE_MAPPINGS_FILENAME;
 
     @Value("${search.index.name}")
-    private String indexName;
+    private String INDEX_NAME;
 
     @Value("${search.index.mapping.type}")
-    private String indexMappingType;
+    private String INDEX_MAPPING_TYPE;
 
     @Value("${search.index.deleteIndexOnAppRestart}")
-    private boolean deleteIndexOnAppRestart;
+    private boolean DELETE_INDEX_ON_APP_RESTART;
 
     private Application application;
     private RestClient esRestClient;
@@ -61,16 +61,16 @@ public class ElasticSearchService {
 
     public void initIndex() {
         this.esRestClient = RestClient.builder(
-                new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
+                new HttpHost(SEARCH_HOST_URL, SEARCH_HOST_PORT, SEARCH_HOST_HTTP_SCHEME)).build();
 
-        if(deleteIndexOnAppRestart) {
+        if(DELETE_INDEX_ON_APP_RESTART) {
             deleteIndex();
         }
 
         if(!indexExists()) {
             if(createIndex()) {
                 if(createMapping()) {
-                    this.termedApiService.fetchConceptDocuments().forEach((id, doc) -> {
+                    this.termedApiService.fetchAllNodes().forEach((id, doc) -> {
                         if(!addOrUpdateDocumentToIndex(id, doc)) {
                             log.error("Failed to index document: " + doc);
                             log.info("Exiting");
@@ -84,63 +84,87 @@ public class ElasticSearchService {
     }
 
     public void updateIndex(Notification notification) {
-        // TODO: Extract info about operation and id, fetch data from termed api and then call addOrUpdateDocumentToIndex or deleteDocumentFromIndex
-        log.info("Notification received:\n");
-        log.info(notification.toString());
+        String nodeId = notification.getBody().getNode().getId();
+        String graphId = notification.getBody().getNode().getType().getGraph().getId();
+
+        switch (notification.getType()) {
+            case NodeSavedEvent:
+
+                // TODO: REMOVE THIS AFTER TERMED-API UPDATES API INDEX SYNCHRONOUSLY
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                // TODO: END
+
+                String nodeData = termedApiService.fetchNode(graphId, nodeId);
+                if(nodeData != null) {
+                    log.debug(nodeData);
+                    log.debug(nodeId);
+                    addOrUpdateDocumentToIndex(nodeId, nodeData);
+                }
+                break;
+            case NodeDeletedEvent:
+                if(!deleteDocumentFromIndex(nodeId)) {
+                    log.error("Unable to delete document from index or nodeId is not supplied: " + nodeId);
+                }
+                break;
+        }
     }
 
 
     private void deleteIndex() {
-        log.info("Deleting elasticsearch index: " + indexName);
+        log.info("Deleting elasticsearch index: " + INDEX_NAME);
         try {
-            Response resp = esRestClient.performRequest("DELETE", "/" + indexName);
+            Response resp = esRestClient.performRequest("DELETE", "/" + INDEX_NAME);
             if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                log.info("Elasticsearch index deleted: " + indexName);
+                log.info("Elasticsearch index deleted: " + INDEX_NAME);
             } else {
                 log.info("Elasticsearch index not deleted. Maybe because it did not exist?");
             }
         } catch (IOException e) {
-            log.info("Error deleting elasticsearch index: " + indexName);
+            log.info("Error deleting elasticsearch index: " + INDEX_NAME);
         }
     }
 
     private boolean indexExists() {
-        log.info("Checking if elasticsearch index exists: " + indexName);
+        log.info("Checking if elasticsearch index exists: " + INDEX_NAME);
         try {
-            Response resp = esRestClient.performRequest("HEAD", "/" + indexName);
+            Response resp = esRestClient.performRequest("HEAD", "/" + INDEX_NAME);
             if(resp.getStatusLine().getStatusCode() == 404) {
-                log.info("Elasticsearch index does not exist: " + indexName);
+                log.info("Elasticsearch index does not exist: " + INDEX_NAME);
                 return false;
             }
         } catch (IOException e) {
-            log.info("Error checking if elasticsearch index exists: " + indexName);
+            log.info("Error checking if elasticsearch index exists: " + INDEX_NAME);
         }
-        log.info("Elasticsearch index exists: " + indexName);
+        log.info("Elasticsearch index exists: " + INDEX_NAME);
         return true;
     }
 
     private boolean createIndex() {
-        HttpEntity entity = new NStringEntity(jsonParserService.getJsonFileAsString(createIndexFilename), ContentType.APPLICATION_JSON);
+        HttpEntity entity = new NStringEntity(jsonParserService.getJsonFileAsString(CREATE_INDEX_FILENAME), ContentType.APPLICATION_JSON);
         try {
-            log.info("Trying to create elasticsearch index: " + indexName);
-            esRestClient.performRequest("PUT", "/" + indexName, Collections.singletonMap("pretty", "true"), entity);
-            log.info("elasticsearch index successfully created: " + indexName);
+            log.info("Trying to create elasticsearch index: " + INDEX_NAME);
+            esRestClient.performRequest("PUT", "/" + INDEX_NAME, Collections.singletonMap("pretty", "true"), entity);
+            log.info("elasticsearch index successfully created: " + INDEX_NAME);
             return true;
         } catch (IOException e) {
-            log.error("Unable to create elasticsearch index: " + indexName);
+            log.error("Unable to create elasticsearch index: " + INDEX_NAME);
         }
         return false;
     }
 
     private boolean createMapping() {
-        HttpEntity entity = new NStringEntity(jsonParserService.getJsonFileAsString(createMappingsFilename), ContentType.APPLICATION_JSON);
+        HttpEntity entity = new NStringEntity(jsonParserService.getJsonFileAsString(CREATE_MAPPINGS_FILENAME), ContentType.APPLICATION_JSON);
         try {
-            log.info("Trying to create elasticsearch index mapping type: " + indexMappingType);
-            esRestClient.performRequest("PUT", "/" + indexName + "/_mapping/" + indexMappingType, Collections.singletonMap("pretty", "true"), entity);
-            log.info("elasticsearch index mapping type successfully created: " + indexMappingType);
+            log.info("Trying to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
+            esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, Collections.singletonMap("pretty", "true"), entity);
+            log.info("elasticsearch index mapping type successfully created: " + INDEX_MAPPING_TYPE);
             return true;
         } catch (IOException e) {
-            log.error("Unable to create elasticsearch index mapping type: " + indexMappingType);
+            log.error("Unable to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
         }
         return false;
     }
@@ -148,7 +172,7 @@ public class ElasticSearchService {
     private boolean addOrUpdateDocumentToIndex(String documentId, String document) {
         HttpEntity entity = new NStringEntity(document, ContentType.APPLICATION_JSON);
         try {
-            Response resp = esRestClient.performRequest("PUT", "/" + indexName + "/" + indexMappingType + "/" + documentId, Collections.singletonMap("pretty", "true"), entity);
+            Response resp = esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId, Collections.singletonMap("pretty", "true"), entity);
             if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
                 log.info("Successfully added/updated document to elasticsearch index: " + documentId);
                 return true;
@@ -160,14 +184,18 @@ public class ElasticSearchService {
     }
 
     private boolean deleteDocumentFromIndex(String documentId) {
-        try {
-            Response resp = esRestClient.performRequest("DELETE", "/" + indexName + "/" + indexMappingType + "/" + documentId);
-            if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                log.info("Successfully deleted document from elasticsearch index: " + documentId);
-                return true;
+        if(documentId != null) {
+            try {
+                Response resp = esRestClient.performRequest("DELETE", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId);
+                if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+                    log.info("Successfully deleted document from elasticsearch index: " + documentId);
+                    return true;
+                } else {
+                    log.error("Unable to delete document from elasticsearch index: " + documentId);
+                }
+            } catch (IOException e) {
+                log.error("Unable to delete document from elasticsearch index: " + documentId);
             }
-        } catch (IOException e) {
-            log.error("Unable to delete document from elasticsearch index: " + documentId);
         }
         return false;
     }

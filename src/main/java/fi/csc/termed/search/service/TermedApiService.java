@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,14 +42,17 @@ public class TermedApiService {
 	@Value("${api.host.url}")
 	private String API_HOST_URL;
 
-	@Value("${search.index.document.importUrl}")
-	private String importUrl;
+	@Value("${api.node.get.all.urlContext}")
+	private String GET_ALL_NODES_URL_CONTEXT;
+
+	@Value("${api.node.get.one.urlContext}")
+	private String GET_ONE_NODE_URL_CONTEXT;
 
 	@Value("${api.eventHook.register.urlContext}")
-	private String apiRegisterListenerUrl;
+	private String API_REGISTER_LISTENER_URL_CONTEXT;
 
 	@Value("${api.eventHook.delete.urlContext}")
-	private String apiDeleteListenerUrl;
+	private String API_DELETE_LISTENER_URL_CONTEXT;
 
 	private HttpClient apiClient;
 
@@ -67,7 +71,7 @@ public class TermedApiService {
 	}
 
 	public boolean deleteChangeListener(String hookId) {
-		HttpDelete deleteReq = new HttpDelete(API_HOST_URL + apiDeleteListenerUrl + hookId);
+		HttpDelete deleteReq = new HttpDelete(API_HOST_URL + API_DELETE_LISTENER_URL_CONTEXT + hookId);
 		deleteReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(deleteReq);
@@ -85,7 +89,7 @@ public class TermedApiService {
 	}
 
 	public String registerChangeListener() {
-		HttpPost registerReq = new HttpPost(API_HOST_URL + apiRegisterListenerUrl);
+		HttpPost registerReq = new HttpPost(API_HOST_URL + API_REGISTER_LISTENER_URL_CONTEXT);
 		registerReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(registerReq);
@@ -111,13 +115,11 @@ public class TermedApiService {
 		}
 	}
 
-	public Map<String, String> fetchConceptDocuments() {
+	public Map<String, String> fetchAllNodes() {
 		Map<String, String> indexDocs = new HashMap<>();
-		HttpGet getConceptsReq = new HttpGet(API_HOST_URL + importUrl);
+		HttpGet getConceptsReq = new HttpGet(API_HOST_URL + GET_ALL_NODES_URL_CONTEXT);
 		try {
-			String encAuth = Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
-			String authHeader = "Basic " + new String(encAuth);
-			getConceptsReq.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+			getConceptsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 			HttpResponse resp = apiClient.execute(getConceptsReq);
 			if (resp.getStatusLine().getStatusCode() == 200) {
 				String respStr = EntityUtils.toString(resp.getEntity());
@@ -132,23 +134,48 @@ public class TermedApiService {
 						fetched++;
 					}
 				}
-				log.info("Fetched " + fetched + " document from termed API");
+				log.info("Fetched " + fetched + " nodes from termed API");
 			} else {
-				log.warn("Fetching documents for index failed with code: " + resp.getStatusLine().getStatusCode());
+				log.warn("Fetching nodes failed with code: " + resp.getStatusLine().getStatusCode());
 				return null;
 			}
 		} catch (IOException e) {
-			log.error("Batch document import failed");
+			log.error("Fetching nodes failed");
 			e.printStackTrace();
 			return null;
 		} catch (ParseException e) {
-			log.error("Batch document import failed");
+			log.error("Fetching nodes failed");
 			e.printStackTrace();
 			return null;
 		} finally {
 			getConceptsReq.releaseConnection();
 		}
 		return indexDocs;
+	}
+
+	public String fetchNode(String graphId, String nodeId) {
+		if(graphId != null && nodeId != null) {
+			HttpGet getConceptReq = new HttpGet(API_HOST_URL + MessageFormat.format(GET_ONE_NODE_URL_CONTEXT, graphId, nodeId));
+			try {
+				getConceptReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
+				HttpResponse resp = apiClient.execute(getConceptReq);
+				if (resp.getStatusLine().getStatusCode() == 200) {
+					return EntityUtils.toString(resp.getEntity());
+				} else {
+					log.warn("Fetching node failed with code: " + resp.getStatusLine().getStatusCode());
+					log.warn("URL: " + getConceptReq.getURI().toString());
+					return null;
+				}
+			} catch (IOException e) {
+				log.error("Fetching node failed");
+				e.printStackTrace();
+				return null;
+			} finally {
+				getConceptReq.releaseConnection();
+			}
+		}
+		log.error("GraphId or NodeId not supplied for fetching node data from termed API");
+		return null;
 	}
 
 }
