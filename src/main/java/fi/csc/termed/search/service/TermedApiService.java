@@ -1,5 +1,8 @@
 package fi.csc.termed.search.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -8,9 +11,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by jmlehtin on 28/3/2017.
@@ -42,11 +39,11 @@ public class TermedApiService {
 	@Value("${api.host.url}")
 	private String API_HOST_URL;
 
-	@Value("${api.node.get.all.urlContext}")
-	private String GET_ALL_NODES_URL_CONTEXT;
+	@Value("${api.concept.get.all.urlContext}")
+	private String GET_ALL_CONCEPTS_URL_CONTEXT;
 
-	@Value("${api.node.get.one.urlContext}")
-	private String GET_ONE_NODE_URL_CONTEXT;
+	@Value("${api.concept.get.one.urlContext}")
+	private String GET_ONE_CONCEPT_URL_CONTEXT;
 
 	@Value("${api.eventHook.register.urlContext}")
 	private String API_REGISTER_LISTENER_URL_CONTEXT;
@@ -115,66 +112,67 @@ public class TermedApiService {
 		}
 	}
 
-	public Map<String, String> fetchAllNodes() {
-		Map<String, String> indexDocs = new HashMap<>();
-		HttpGet getConceptsReq = new HttpGet(API_HOST_URL + GET_ALL_NODES_URL_CONTEXT);
+	public List<JsonObject> fetchAllConcepts() {
+		List<JsonObject> allConcepts = new ArrayList<>();
+		HttpGet getConceptsReq = new HttpGet(API_HOST_URL + GET_ALL_CONCEPTS_URL_CONTEXT);
 		try {
 			getConceptsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 			HttpResponse resp = apiClient.execute(getConceptsReq);
 			if (resp.getStatusLine().getStatusCode() == 200) {
-				String respStr = EntityUtils.toString(resp.getEntity());
-				JSONArray docs = (JSONArray) jsonParserService.getJsonParser().parse(respStr);
-
-				Iterator it = docs.iterator();
+				JsonArray docs = jsonParserService.getJsonParser().parse(EntityUtils.toString(resp.getEntity())).getAsJsonArray();
+				Iterator<JsonElement> it = docs.iterator();
 				int fetched = 0;
 				while (it.hasNext()) {
-					JSONObject doc = (JSONObject) it.next();
-					if(doc != null && doc.get("id") != null) {
-						indexDocs.put(String.valueOf(doc.get("id")), doc.toJSONString());
+					JsonElement docElem = it.next();
+					if(docElem.isJsonObject()) {
+						allConcepts.add(docElem.getAsJsonObject());
 						fetched++;
 					}
 				}
-				log.info("Fetched " + fetched + " nodes from termed API");
+				log.info("Fetched " + fetched + " concepts from termed API");
 			} else {
-				log.warn("Fetching nodes failed with code: " + resp.getStatusLine().getStatusCode());
+				log.warn("Fetching concepts failed with code: " + resp.getStatusLine().getStatusCode());
 				return null;
 			}
 		} catch (IOException e) {
-			log.error("Fetching nodes failed");
-			e.printStackTrace();
-			return null;
-		} catch (ParseException e) {
-			log.error("Fetching nodes failed");
+			log.error("Fetching concepts failed");
 			e.printStackTrace();
 			return null;
 		} finally {
 			getConceptsReq.releaseConnection();
 		}
-		return indexDocs;
+		return allConcepts;
 	}
 
-	public String fetchNode(String graphId, String nodeId) {
-		if(graphId != null && nodeId != null) {
-			HttpGet getConceptReq = new HttpGet(API_HOST_URL + MessageFormat.format(GET_ONE_NODE_URL_CONTEXT, graphId, nodeId));
+	public JsonObject fetchConcept(String graphId, String conceptId) {
+		if(graphId != null && conceptId != null) {
+			HttpGet getConceptReq = new HttpGet(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, graphId, conceptId));
 			try {
 				getConceptReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 				HttpResponse resp = apiClient.execute(getConceptReq);
 				if (resp.getStatusLine().getStatusCode() == 200) {
-					return EntityUtils.toString(resp.getEntity());
+					String respStr = EntityUtils.toString(resp.getEntity());
+					JsonObject concept = jsonParserService.getJsonParser().parse(respStr).getAsJsonObject();
+					if(concept != null && concept.get("id") != null) {
+						return concept;
+					} else {
+						log.error("Unable to parse concept JSON or concept id missing");
+						return null;
+					}
 				} else {
-					log.warn("Fetching node failed with code: " + resp.getStatusLine().getStatusCode());
+					log.warn("Fetching concept failed with code: " + resp.getStatusLine().getStatusCode());
 					log.warn("URL: " + getConceptReq.getURI().toString());
 					return null;
 				}
 			} catch (IOException e) {
-				log.error("Fetching node failed");
+				log.error("Fetching concept failed");
 				e.printStackTrace();
 				return null;
 			} finally {
 				getConceptReq.releaseConnection();
 			}
 		}
-		log.error("GraphId or NodeId not supplied for fetching node data from termed API");
+		log.error("GraphId or conceptId not supplied for fetching concept data from termed API");
 		return null;
 	}
 

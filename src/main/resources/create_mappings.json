@@ -2,96 +2,68 @@
   "dynamic": false,
   "properties": {
     "id": {
+      "type": "keyword",
+      "index": false
+    },
+    "graphId": {
+      "type": "keyword",
+      "index": false
+    },
+    "modified": {
+      "type": "date",
+      "index": false
+    },
+    "broader": {
       "type": "text",
-      "fields": {
-        "keyword": {
-          "type": "keyword",
-          "ignore_above": 256
+      "index": false
+    },
+    "definition": {
+      "properties": {
+        "fi": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "sv": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "en": {
+          "type": "text",
+          "analyzer": "termed"
         }
       }
     },
-    "properties": {
+    "label": {
       "properties": {
-        "prefLabel": {
-          "type": "nested",
-          "properties": {
-            "lang": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "value": {
-              "type": "text",
-              "analyzer": "termed",
-            }
-          }
+        "fi": {
+          "type": "text",
+          "analyzer": "termed"
         },
-        "note": {
-          "type": "nested",
-          "properties": {
-            "lang": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "value": {
-              "type": "text"
-            }
-          }
+        "sv": {
+          "type": "text",
+          "analyzer": "termed"
         },
-        "definition": {
-          "type": "nested",
-          "properties": {
-            "lang": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "value": {
-              "type": "text"
-            }
-          }
+        "en": {
+          "type": "text",
+          "analyzer": "termed"
         }
       }
     },
-    "references": {
+    "altLabel": {
       "properties": {
-        "prefLabelXl": {
-          "type": "nested",
-          "properties": {
-            "properties": {
-              "properties": {
-                "prefLabel": {
-                  "properties": {
-                    "lang": {
-                      "type": "keyword",
-                      "ignore_above": 256
-                    },
-                    "value": {
-                      "type": "text",
-                      "analyzer": "termed"
-                    }
-                  }
-                }
-              }
-            }
-          }
+        "fi": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "sv": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "en": {
+          "type": "text",
+          "analyzer": "termed"
         }
       }
-    },
-    "type": {
-      "properties": {
-        "graph": {
-          "properties": {
-            "id": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 256
-                }
-              }
-            }
-          }
-        },
-      }
-    },
+    }
   }
 }

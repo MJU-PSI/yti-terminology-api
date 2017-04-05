@@ -1,5 +1,6 @@
 package fi.csc.termed.search.service;
 
+import com.google.gson.JsonObject;
 import fi.csc.termed.search.Application;
 import fi.csc.termed.search.domain.Notification;
 import org.apache.http.HttpEntity;
@@ -70,12 +71,19 @@ public class ElasticSearchService {
         if(!indexExists()) {
             if(createIndex()) {
                 if(createMapping()) {
-                    this.termedApiService.fetchAllNodes().forEach((id, doc) -> {
-                        if(!addOrUpdateDocumentToIndex(id, doc)) {
-                            log.error("Failed to index document: " + doc);
-                            log.info("Exiting");
-                            application.context.close();
-                            System.exit(1);
+                    this.termedApiService.fetchAllConcepts().forEach(conceptJsonObj -> {
+                        if(conceptJsonObj.get("id") != null) {
+                            String conceptId = conceptJsonObj.get("id").getAsString();
+                            JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj);
+
+                            if(indexConcept != null) {
+                                if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                                    log.error("Failed to index document: " + indexConcept.toString());
+                                    log.info("Exiting");
+                                    application.context.close();
+                                    System.exit(1);
+                                }
+                            }
                         }
                     });
                 }
@@ -84,7 +92,7 @@ public class ElasticSearchService {
     }
 
     public void updateIndex(Notification notification) {
-        String nodeId = notification.getBody().getNode().getId();
+        String conceptId = notification.getBody().getNode().getId();
         String graphId = notification.getBody().getNode().getType().getGraph().getId();
 
         switch (notification.getType()) {
@@ -98,16 +106,19 @@ public class ElasticSearchService {
                 }
                 // TODO: END
 
-                String nodeData = termedApiService.fetchNode(graphId, nodeId);
-                if(nodeData != null) {
-                    log.debug(nodeData);
-                    log.debug(nodeId);
-                    addOrUpdateDocumentToIndex(nodeId, nodeData);
+                JsonObject conceptJsonObj = termedApiService.fetchConcept(graphId, conceptId);
+                if(conceptJsonObj != null && conceptJsonObj.get("id") != null) {
+                    JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj);
+                    if(indexConcept != null) {
+                        if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                            log.error("Failed to (re)index document: " + indexConcept.toString());
+                        }
+                    }
                 }
                 break;
             case NodeDeletedEvent:
-                if(!deleteDocumentFromIndex(nodeId)) {
-                    log.error("Unable to delete document from index or nodeId is not supplied: " + nodeId);
+                if(!deleteDocumentFromIndex(conceptId)) {
+                    log.error("Unable to delete document from index or conceptId is not supplied: " + conceptId);
                 }
                 break;
         }
@@ -125,6 +136,7 @@ public class ElasticSearchService {
             }
         } catch (IOException e) {
             log.info("Error deleting elasticsearch index: " + INDEX_NAME);
+            e.printStackTrace();
         }
     }
 
@@ -153,6 +165,7 @@ public class ElasticSearchService {
             return true;
         } catch (IOException e) {
             log.error("Unable to create elasticsearch index: " + INDEX_NAME);
+            e.printStackTrace();
         }
         return false;
     }
@@ -166,6 +179,7 @@ public class ElasticSearchService {
             return true;
         } catch (IOException e) {
             log.error("Unable to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
+            e.printStackTrace();
         }
         return false;
     }
@@ -180,6 +194,7 @@ public class ElasticSearchService {
             }
         } catch (IOException e) {
             log.error("Unable to add or update document to elasticsearch index: " + documentId);
+            e.printStackTrace();
         }
         return false;
     }
@@ -196,6 +211,7 @@ public class ElasticSearchService {
                 }
             } catch (IOException e) {
                 log.error("Unable to delete document from elasticsearch index: " + documentId);
+                e.printStackTrace();
             }
         }
         return false;
@@ -208,6 +224,7 @@ public class ElasticSearchService {
             this.esRestClient.close();
         } catch(IOException e) {
             log.error("Unable to close rest client");
+            e.printStackTrace();
         }
     }
 }
