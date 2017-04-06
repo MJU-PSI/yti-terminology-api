@@ -29,8 +29,6 @@ and run:
 ./gradlew bootRun -Dspring.profiles.active=test
 ```
 
-
-
 ## Stopping
 
 Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
@@ -38,17 +36,3 @@ Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
 ## Build (executable) war
 
 Run with: `./gradlew build`
-
-## Using profile-specific properties
-
-To use different configurations based on Spring profile, such as *dev*, add a new property
-file:
-```
-/src/main/resources/application-dev.properties
-```
-
-and run:
-```
-./gradlew bootRun -Dspring.profiles.active=dev
-```
-
