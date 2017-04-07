@@ -131,7 +131,6 @@ public class JsonParserService {
 					}
 				}
 			}
-			log.error(output.toString());
 			return output;
 		}
 		log.warn("Unable to transform JSON from termed API to JSON required by elasticsearch for " + conceptJsonObj.get("id").getAsString());

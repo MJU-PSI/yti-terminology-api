@@ -37,15 +37,30 @@
       "properties": {
         "fi": {
           "type": "text",
-          "analyzer": "termed"
+          "analyzer": "termed",
+          "fields": {
+            "exact": {
+              "type": "keyword"
+            }
+          }
         },
         "sv": {
           "type": "text",
-          "analyzer": "termed"
+          "analyzer": "termed",
+          "fields": {
+            "exact": {
+              "type": "keyword"
+            }
+          }
         },
         "en": {
           "type": "text",
-          "analyzer": "termed"
+          "analyzer": "termed",
+          "fields": {
+            "exact": {
+              "type": "keyword"
+            }
+          }
         }
       }
     },

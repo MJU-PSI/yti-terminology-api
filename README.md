@@ -18,15 +18,15 @@ Termed search should respond at port `8001`.
 
 ### Using profile-specific properties
 
-To use different configurations based on Spring profile, such as *test*, add a new property
-file:
+To use different configurations based on Spring profile, such as *prod*, add a new property
+file if it does not exist:
 ```
-/src/main/resources/application-test.properties
+/src/main/resources/application-prod.properties
 ```
 
 and run:
 ```
-./gradlew bootRun -Dspring.profiles.active=test
+./gradlew bootRun -Dspring.profiles.active=prod
 ```
 
 ## Stopping
@@ -35,4 +35,4 @@ Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
 
 ## Build (executable) war
 
-Run with: `./gradlew build`
+Run with: `./gradlew build -Dspring.profiles.active=prod`
