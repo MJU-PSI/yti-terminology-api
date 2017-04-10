@@ -45,6 +45,9 @@ public class TermedApiService {
 	@Value("${api.concept.get.one.urlContext}")
 	private String GET_ONE_CONCEPT_URL_CONTEXT;
 
+	@Value("${api.vocabulary.get.one.urlContext}")
+	private String GET_ONE_VOCABULARY_URL_CONTEXT;
+
 	@Value("${api.eventHook.register.urlContext}")
 	private String API_REGISTER_LISTENER_URL_CONTEXT;
 
@@ -54,6 +57,8 @@ public class TermedApiService {
 	private HttpClient apiClient;
 
 	private JsonParserService jsonParserService;
+
+	private static Map<String, JsonElement> vocabularyCache = new HashMap<>();
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -113,11 +118,36 @@ public class TermedApiService {
 	}
 
 	public List<JsonObject> fetchAllConcepts() {
-		List<JsonObject> allConcepts = new ArrayList<>();
-		HttpGet getConceptsReq = new HttpGet(API_HOST_URL + GET_ALL_CONCEPTS_URL_CONTEXT);
+		return fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_CONCEPTS_URL_CONTEXT);
+	}
+
+	public JsonObject fetchConcept(String graphId, String conceptId) {
+		if(graphId != null && conceptId != null) {
+			return fetchJsonObjectFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, graphId, conceptId));
+		}
+		log.error("GraphId or conceptId not supplied for fetching concept data from termed API");
+		return null;
+	}
+
+	private JsonObject fetchVocabulary(String graphId) {
+		if(graphId != null) {
+			List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.TerminologicalVocabulary.name()));
+			if(retObj == null) {
+				log.info("Vocabulary " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
+				retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.Vocabulary.name()));
+			}
+			return retObj.get(0);
+		}
+		log.error("GraphId not supplied for fetching vocabulary data from termed API");
+		return null;
+	}
+
+	private List<JsonObject> fetchJsonObjectsInArrayFromUrl(String url) {
+		List<JsonObject> allObjects = new ArrayList<>();
+		HttpGet getObjectsReq = new HttpGet(url);
 		try {
-			getConceptsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-			HttpResponse resp = apiClient.execute(getConceptsReq);
+			getObjectsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
+			HttpResponse resp = apiClient.execute(getObjectsReq);
 			if (resp.getStatusLine().getStatusCode() == 200) {
 				JsonArray docs = jsonParserService.getJsonParser().parse(EntityUtils.toString(resp.getEntity())).getAsJsonArray();
 				Iterator<JsonElement> it = docs.iterator();
@@ -125,55 +155,85 @@ public class TermedApiService {
 				while (it.hasNext()) {
 					JsonElement docElem = it.next();
 					if(docElem.isJsonObject()) {
-						allConcepts.add(docElem.getAsJsonObject());
+						allObjects.add(docElem.getAsJsonObject());
 						fetched++;
 					}
 				}
-				log.info("Fetched " + fetched + " concepts from termed API");
+				log.info("Fetched " + fetched + " objects from termed API from url " + url);
 			} else {
-				log.warn("Fetching concepts failed with code: " + resp.getStatusLine().getStatusCode());
+				log.warn("Fetching objects failed with code: " + resp.getStatusLine().getStatusCode());
 				return null;
 			}
 		} catch (IOException e) {
-			log.error("Fetching concepts failed");
+			log.error("Fetching objects failed");
 			e.printStackTrace();
 			return null;
 		} finally {
-			getConceptsReq.releaseConnection();
+			getObjectsReq.releaseConnection();
 		}
-		return allConcepts;
+		return allObjects;
 	}
 
-	public JsonObject fetchConcept(String graphId, String conceptId) {
-		if(graphId != null && conceptId != null) {
-			HttpGet getConceptReq = new HttpGet(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, graphId, conceptId));
+	private JsonObject fetchJsonObjectFromUrl(String url) {
+		if(url != null) {
+			HttpGet getRequest = new HttpGet(url);
 			try {
-				getConceptReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-				HttpResponse resp = apiClient.execute(getConceptReq);
+				getRequest.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
+				HttpResponse resp = apiClient.execute(getRequest);
 				if (resp.getStatusLine().getStatusCode() == 200) {
 					String respStr = EntityUtils.toString(resp.getEntity());
-					JsonObject concept = jsonParserService.getJsonParser().parse(respStr).getAsJsonObject();
-					if(concept != null && concept.get("id") != null) {
-						return concept;
+					JsonObject obj = jsonParserService.getJsonParser().parse(respStr).getAsJsonObject();
+					if(obj != null) {
+						return obj;
 					} else {
-						log.error("Unable to parse concept JSON or concept id missing");
+						log.error("Unable to parse response JSON from " + url);
 						return null;
 					}
 				} else {
-					log.warn("Fetching concept failed with code: " + resp.getStatusLine().getStatusCode());
-					log.warn("URL: " + getConceptReq.getURI().toString());
+					log.warn("Fetching JSON from " + url + " failed with code: " + resp.getStatusLine().getStatusCode());
 					return null;
 				}
 			} catch (IOException e) {
-				log.error("Fetching concept failed");
+				log.error("Fetching JSON failed");
 				e.printStackTrace();
 				return null;
 			} finally {
-				getConceptReq.releaseConnection();
+				getRequest.releaseConnection();
 			}
 		}
-		log.error("GraphId or conceptId not supplied for fetching concept data from termed API");
 		return null;
+	}
+
+	public JsonElement fetchVocabularyForConcept(String vocabularyId) {
+		if(vocabularyCache.get(vocabularyId) == null) {
+			JsonObject vocOutputObj = new JsonObject();
+			JsonObject vocJsonObj = fetchVocabulary(vocabularyId);
+
+			if (vocJsonObj != null && jsonParserService.isValidVocabularyJsonForIndex(vocJsonObj)) {
+				vocOutputObj.addProperty("id", vocabularyId);
+				JsonObject labelObj = new JsonObject();
+				vocOutputObj.add("label", labelObj);
+
+				jsonParserService.setLabelsFromJson(vocJsonObj, labelObj);
+				vocabularyCache.put(vocabularyId, vocOutputObj);
+			} else {
+				log.error("Unable to create vocabulary JSON");
+			}
+		}
+		return vocabularyCache.get(vocabularyId);
+	}
+
+	public void invalidateVocabularyCache() {
+		TermedApiService.vocabularyCache.clear();
+	}
+
+	public void invalidateVocabularyCache(String graphId) {
+		TermedApiService.vocabularyCache.remove(graphId);
+	}
+
+	public enum VocabularyType {
+		TerminologicalVocabulary,
+		Vocabulary
 	}
 
 }

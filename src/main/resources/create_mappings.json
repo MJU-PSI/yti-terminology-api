@@ -5,10 +5,6 @@
       "type": "keyword",
       "index": false
     },
-    "graphId": {
-      "type": "keyword",
-      "index": false
-    },
     "modified": {
       "type": "date",
       "index": false
@@ -17,19 +13,31 @@
       "type": "text",
       "index": false
     },
-    "definition": {
+    "status": {
+      "type": "keyword",
+      "index": false
+    },
+    "vocabulary": {
       "properties": {
-        "fi": {
-          "type": "text",
-          "analyzer": "termed"
+        "id": {
+          "type": "keyword",
+          "index": false
         },
-        "sv": {
-          "type": "text",
-          "analyzer": "termed"
-        },
-        "en": {
-          "type": "text",
-          "analyzer": "termed"
+        "label": {
+          "properties": {
+            "fi": {
+              "type": "keyword",
+              "index": false
+            },
+            "sv": {
+              "type": "keyword",
+              "index": false
+            },
+            "en": {
+              "type": "keyword",
+              "index": false
+            }
+          }
         }
       }
     },
@@ -65,6 +73,22 @@
       }
     },
     "altLabel": {
+      "properties": {
+        "fi": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "sv": {
+          "type": "text",
+          "analyzer": "termed"
+        },
+        "en": {
+          "type": "text",
+          "analyzer": "termed"
+        }
+      }
+    },
+    "definition": {
       "properties": {
         "fi": {
           "type": "text",

@@ -34,6 +34,7 @@ public class NotificationController {
     @RequestMapping("/notify")
     public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
         log.debug("Notification received");
+        log.error(notification.getBody().getNode().getType().getId().toString());
 
         switch(notification.getBody().getNode().getType().getId()) {
             case Term:

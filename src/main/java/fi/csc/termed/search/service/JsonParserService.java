@@ -15,18 +15,15 @@ import java.io.IOException;
 @Service
 public class JsonParserService {
 
-	public JsonParser getJsonParser() {
-		return jsonParser;
-	}
-
 	private JsonParser jsonParser;
-
-	Gson gson = new Gson();
-
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	public JsonParserService() {
 		this.jsonParser = new JsonParser();
+	}
+
+	public JsonParser getJsonParser() {
+		return jsonParser;
 	}
 
 	public String getJsonFileAsString(String filename) {
@@ -44,8 +41,12 @@ public class JsonParserService {
 		}
 	}
 
-	public JsonObject transformApiConceptToIndexConcept(JsonObject conceptJsonObj) {
-		if(isValidJsonForIndex(conceptJsonObj)) {
+	public JsonObject transformApiConceptToIndexConcept(JsonObject conceptJsonObj, JsonElement vocabularyJsonObj) {
+		if(vocabularyJsonObj == null) {
+			log.error("Unable to transform API concept to index document due to missing vocabulary object");
+			return null;
+		}
+		if(isValidConceptJsonForIndex(conceptJsonObj)) {
 			JsonObject output = new JsonObject();
 			JsonArray outputBroaderArray = new JsonArray();
 			JsonObject outputDefinitionObj = new JsonObject();
@@ -57,7 +58,6 @@ public class JsonParserService {
 			output.add("altLabel", outputAltLabelObj);
 
 			output.addProperty("id", conceptJsonObj.get("id").getAsString());
-			output.addProperty("graphId", conceptJsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id").getAsString());
 
 			if(!isEmptyAsString(conceptJsonObj.get("lastModifiedDate"))) {
 				output.addProperty("modified", conceptJsonObj.get("lastModifiedDate").getAsString());
@@ -78,6 +78,8 @@ public class JsonParserService {
 				output.addProperty("status", conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("status").get(0).getAsJsonObject().get("value").getAsString());
 			}
 
+			output.add("vocabulary", vocabularyJsonObj);
+
 			if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("definition"))) {
 
@@ -91,7 +93,7 @@ public class JsonParserService {
 				}
 			}
 
-			boolean labelExists = setLabelFromConceptJson(conceptJsonObj, outputLabelObj);
+			boolean labelExists = setLabelsFromJson(conceptJsonObj, outputLabelObj);
 
 			if(	!labelExists &&
 				!isEmptyAsObject(conceptJsonObj.get("references")) &&
@@ -100,7 +102,7 @@ public class JsonParserService {
 				JsonArray prefLabelXlArray = conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl");
 				for(JsonElement prefLabelXlElem : prefLabelXlArray) {
 					if(!isEmptyAsObject(prefLabelXlElem)) {
-						setLabelFromConceptJson(prefLabelXlElem.getAsJsonObject(), outputLabelObj);
+						setLabelsFromJson(prefLabelXlElem.getAsJsonObject(), outputLabelObj);
 					}
 				}
 			}
@@ -137,12 +139,12 @@ public class JsonParserService {
 		return null;
 	}
 
-	private boolean setLabelFromConceptJson(JsonObject conceptObj, JsonObject outputObj) {
+	public boolean setLabelsFromJson(JsonObject inputObj, JsonObject outputObj) {
 		boolean prefLabelAdded = false;
-		if(	!isEmptyAsObject(conceptObj.get("properties")) &&
-			!isEmptyAsArray(conceptObj.getAsJsonObject("properties").get("prefLabel"))) {
+		if(	!isEmptyAsObject(inputObj.get("properties")) &&
+			!isEmptyAsArray(inputObj.getAsJsonObject("properties").get("prefLabel"))) {
 
-			JsonArray prefLabelArray = conceptObj.getAsJsonObject("properties").getAsJsonArray("prefLabel");
+			JsonArray prefLabelArray = inputObj.getAsJsonObject("properties").getAsJsonArray("prefLabel");
 			for(JsonElement prefLabelElem : prefLabelArray) {
 				if(!isEmptyAsObject(prefLabelElem)) {
 					JsonObject prefLabelObj = prefLabelElem.getAsJsonObject();
@@ -156,15 +158,13 @@ public class JsonParserService {
 		return prefLabelAdded;
 	}
 
-	private boolean isValidJsonForIndex(JsonObject conceptJsonObj) {
+	private boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
 
 		if(isEmptyAsString(conceptJsonObj.get("id"))) {
 			return false;
 		}
 
-		if(	isEmptyAsObject(conceptJsonObj.get("type")) ||
-			isEmptyAsObject(conceptJsonObj.getAsJsonObject("type").get("graph")) ||
-			isEmptyAsString(conceptJsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id"))) {
+		if(!hasValidGraphId(conceptJsonObj)) {
 			return false;
 		}
 
@@ -190,7 +190,42 @@ public class JsonParserService {
 		return false;
 	}
 
-	private boolean isEmptyAsString(JsonElement el) {
+	public boolean isValidVocabularyJsonForIndex(JsonObject vocabularyJsonObj) {
+		if(isEmptyAsString(vocabularyJsonObj.get("id"))) {
+			return false;
+		}
+
+		if(!hasValidGraphId(vocabularyJsonObj)) {
+			return false;
+		}
+
+		if(	isEmptyAsObject(vocabularyJsonObj.get("properties")) ||
+			isEmptyAsArray(vocabularyJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
+			isEmptyAsObject(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+			isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+			isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))) {
+			return false;
+		}
+		return true;
+	}
+
+	private boolean hasValidGraphId(JsonObject jsonObj) {
+		if(	isEmptyAsObject(jsonObj.get("type")) ||
+				isEmptyAsObject(jsonObj.getAsJsonObject("type").get("graph")) ||
+				isEmptyAsString(jsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id"))) {
+			return false;
+		}
+		return true;
+	}
+
+	public String getVocabularyIdForConcept(JsonObject conceptJsonObj) {
+		if(hasValidGraphId(conceptJsonObj)) {
+			return conceptJsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id").getAsString();
+		}
+		return null;
+	}
+
+	public boolean isEmptyAsString(JsonElement el) {
 		return el == null || !el.isJsonPrimitive() || "".equals(el.getAsString());
 	}
 

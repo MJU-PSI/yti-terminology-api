@@ -1,5 +1,6 @@
 package fi.csc.termed.search.service;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fi.csc.termed.search.Application;
 import fi.csc.termed.search.domain.Notification;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.*;
 
 @Service
 public class ElasticSearchService {
@@ -53,6 +54,8 @@ public class ElasticSearchService {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+    private static Map<String, List<String>> vocabularyConceptCache = new HashMap<>();
+
     @Autowired
     public ElasticSearchService(Application application, TermedApiService termedApiService, JsonParserService jsonParserService) {
         this.application = application;
@@ -71,13 +74,20 @@ public class ElasticSearchService {
         if(!indexExists()) {
             if(createIndex()) {
                 if(createMapping()) {
-                    this.termedApiService.fetchAllConcepts().forEach(conceptJsonObj -> {
+                    termedApiService.fetchAllConcepts().forEach(conceptJsonObj -> {
                         if(conceptJsonObj.get("id") != null) {
                             String conceptId = conceptJsonObj.get("id").getAsString();
-                            JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj);
+                            String vocabularyId = jsonParserService.getVocabularyIdForConcept(conceptJsonObj);
+                            JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId);
+                            JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyObj);
 
                             if(indexConcept != null) {
-                                if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                                if (addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                                    if(vocabularyConceptCache.get(vocabularyId) == null) {
+                                        vocabularyConceptCache.put(vocabularyId, new ArrayList<>());
+                                    }
+                                    vocabularyConceptCache.get(vocabularyId).add(conceptId);
+                                } else {
                                     log.error("Failed to index document: " + indexConcept.toString());
                                     log.info("Exiting");
                                     application.context.close();
@@ -86,6 +96,8 @@ public class ElasticSearchService {
                             }
                         }
                     });
+                    // After batch import do not anymore use cached vocabulary data
+                    termedApiService.invalidateVocabularyCache();
                 }
             }
         }
@@ -107,8 +119,10 @@ public class ElasticSearchService {
                 // TODO: END
 
                 JsonObject conceptJsonObj = termedApiService.fetchConcept(graphId, conceptId);
-                if(conceptJsonObj != null && conceptJsonObj.get("id") != null) {
-                    JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj);
+                String vocabularyId = jsonParserService.getVocabularyIdForConcept(conceptJsonObj);
+                JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId);
+                if(conceptJsonObj != null) {
+                    JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyObj);
                     if(indexConcept != null) {
                         if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
                             log.error("Failed to (re)index document: " + indexConcept.toString());
