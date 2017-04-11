@@ -48,6 +48,9 @@ public class TermedApiService {
 	@Value("${api.vocabulary.get.one.urlContext}")
 	private String GET_ONE_VOCABULARY_URL_CONTEXT;
 
+	@Value("${api.vocabulary.concept.get.all.urlContext}")
+	private String GET_ALL_CONCEPTS_IN_VOCABULARY_URL_CONTEXT;
+
 	@Value("${api.eventHook.register.urlContext}")
 	private String API_REGISTER_LISTENER_URL_CONTEXT;
 
@@ -121,20 +124,24 @@ public class TermedApiService {
 		return fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_CONCEPTS_URL_CONTEXT);
 	}
 
-	public JsonObject fetchConcept(String graphId, String conceptId) {
-		if(graphId != null && conceptId != null) {
-			return fetchJsonObjectFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, graphId, conceptId));
+	public List<JsonObject> fetchAllConceptsInVocabulary(String vocabularyId) {
+		return fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ALL_CONCEPTS_IN_VOCABULARY_URL_CONTEXT, vocabularyId));
+	}
+
+	public JsonObject fetchConcept(String vocabularyId, String conceptId) {
+		if(vocabularyId != null && conceptId != null) {
+			return fetchJsonObjectFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, vocabularyId, conceptId));
 		}
-		log.error("GraphId or conceptId not supplied for fetching concept data from termed API");
+		log.error("VocabularyId or conceptId not supplied for fetching concept data from termed API");
 		return null;
 	}
 
-	private JsonObject fetchVocabulary(String graphId) {
-		if(graphId != null) {
-			List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.TerminologicalVocabulary.name()));
+	private JsonObject fetchVocabulary(String vocabularyId) {
+		if(vocabularyId != null) {
+			List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, vocabularyId, VocabularyType.TerminologicalVocabulary.name()));
 			if(retObj == null) {
-				log.info("Vocabulary " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
-				retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.Vocabulary.name()));
+				log.info("Vocabulary " + vocabularyId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
+				retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, vocabularyId, VocabularyType.Vocabulary.name()));
 			}
 			return retObj.get(0);
 		}
@@ -204,31 +211,45 @@ public class TermedApiService {
 		return null;
 	}
 
-	public JsonElement fetchVocabularyForConcept(String vocabularyId) {
-		if(vocabularyCache.get(vocabularyId) == null) {
-			JsonObject vocOutputObj = new JsonObject();
-			JsonObject vocJsonObj = fetchVocabulary(vocabularyId);
-
-			if (vocJsonObj != null && jsonParserService.isValidVocabularyJsonForIndex(vocJsonObj)) {
-				vocOutputObj.addProperty("id", vocabularyId);
-				JsonObject labelObj = new JsonObject();
-				vocOutputObj.add("label", labelObj);
-
-				jsonParserService.setLabelsFromJson(vocJsonObj, labelObj);
-				vocabularyCache.put(vocabularyId, vocOutputObj);
+	public JsonElement fetchVocabularyForConcept(String vocabularyId, boolean useCache) {
+		if(vocabularyId != null) {
+			if(useCache) {
+				if(vocabularyCache.get(vocabularyId) == null) {
+					JsonElement vocObjForIndex = transformVocabularyForIndexing(vocabularyId);
+					vocabularyCache.put(vocabularyId, vocObjForIndex);
+				}
+				return vocabularyCache.get(vocabularyId);
 			} else {
-				log.error("Unable to create vocabulary JSON");
+				return transformVocabularyForIndexing(vocabularyId);
 			}
+		} else {
+			log.error("Unable to fetch vocabulary for concept");
 		}
-		return vocabularyCache.get(vocabularyId);
+		return null;
+	}
+
+	private JsonElement transformVocabularyForIndexing(String vocabularyId) {
+		JsonObject vocOutputObj = new JsonObject();
+		JsonObject vocJsonObj = fetchVocabulary(vocabularyId);
+
+		if (vocJsonObj != null && jsonParserService.isValidVocabularyJsonForIndex(vocJsonObj)) {
+			vocOutputObj.addProperty("id", vocabularyId);
+			JsonObject labelObj = new JsonObject();
+			vocOutputObj.add("label", labelObj);
+
+			if(jsonParserService.setLabelsFromJson(vocJsonObj, labelObj)) {
+				return vocOutputObj;
+			} else {
+				log.error("Unable to transform vocabulary JSON for indexing");
+			}
+		} else {
+			log.error("Unable to create vocabulary JSON");
+		}
+		return null;
 	}
 
 	public void invalidateVocabularyCache() {
 		TermedApiService.vocabularyCache.clear();
-	}
-
-	public void invalidateVocabularyCache(String graphId) {
-		TermedApiService.vocabularyCache.remove(graphId);
 	}
 
 	public enum VocabularyType {

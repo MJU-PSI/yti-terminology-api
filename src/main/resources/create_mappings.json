@@ -20,8 +20,7 @@
     "vocabulary": {
       "properties": {
         "id": {
-          "type": "keyword",
-          "index": false
+          "type": "text"
         },
         "label": {
           "properties": {

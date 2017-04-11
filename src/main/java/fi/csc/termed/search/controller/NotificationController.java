@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.PreDestroy;
-import java.io.*;
+import java.io.IOException;
 
 @RestController
 public class NotificationController {
@@ -34,14 +34,19 @@ public class NotificationController {
     @RequestMapping("/notify")
     public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
         log.debug("Notification received");
-        log.error(notification.getBody().getNode().getType().getId().toString());
 
-        switch(notification.getBody().getNode().getType().getId()) {
-            case Term:
-                break;
-            case Concept:
-                this.elasticSearchService.updateIndex(notification);
-                break;
+        synchronized(this) {
+            switch(notification.getBody().getNode().getType().getId()) {
+                case Term:
+                    break;
+                case Concept:
+                    this.elasticSearchService.updateIndexAfterConceptEvent(notification);
+                    break;
+                case TerminologicalVocabulary:
+                case Vocabulary:
+                    this.elasticSearchService.updateIndexAfterVocabularyEvent(notification);
+                    break;
+            }
         }
     }
 

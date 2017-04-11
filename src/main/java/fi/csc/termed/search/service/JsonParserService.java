@@ -159,8 +159,7 @@ public class JsonParserService {
 	}
 
 	private boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
-
-		if(isEmptyAsString(conceptJsonObj.get("id"))) {
+		if(!hasValidId((conceptJsonObj))) {
 			return false;
 		}
 
@@ -191,7 +190,7 @@ public class JsonParserService {
 	}
 
 	public boolean isValidVocabularyJsonForIndex(JsonObject vocabularyJsonObj) {
-		if(isEmptyAsString(vocabularyJsonObj.get("id"))) {
+		if(!hasValidId((vocabularyJsonObj))) {
 			return false;
 		}
 
@@ -207,6 +206,20 @@ public class JsonParserService {
 			return false;
 		}
 		return true;
+	}
+
+	private boolean hasValidId(JsonObject jsonObj) {
+		if(isEmptyAsString(jsonObj.get("id"))) {
+			return false;
+		}
+		return true;
+	}
+
+	public String getConceptIdForConcept(JsonObject conceptJsonObj) {
+		if(hasValidId(conceptJsonObj)) {
+			return conceptJsonObj.get("id").getAsString();
+		}
+		return null;
 	}
 
 	private boolean hasValidGraphId(JsonObject jsonObj) {

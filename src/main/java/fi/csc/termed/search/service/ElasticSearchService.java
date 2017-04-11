@@ -17,8 +17,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.*;
+import java.io.InputStreamReader;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ElasticSearchService {
@@ -54,8 +58,6 @@ public class ElasticSearchService {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private static Map<String, List<String>> vocabularyConceptCache = new HashMap<>();
-
     @Autowired
     public ElasticSearchService(Application application, TermedApiService termedApiService, JsonParserService jsonParserService) {
         this.application = application;
@@ -70,64 +72,34 @@ public class ElasticSearchService {
         if(DELETE_INDEX_ON_APP_RESTART) {
             deleteIndex();
         }
-
         if(!indexExists()) {
             if(createIndex()) {
                 if(createMapping()) {
-                    termedApiService.fetchAllConcepts().forEach(conceptJsonObj -> {
-                        if(conceptJsonObj.get("id") != null) {
-                            String conceptId = conceptJsonObj.get("id").getAsString();
-                            String vocabularyId = jsonParserService.getVocabularyIdForConcept(conceptJsonObj);
-                            JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId);
-                            JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyObj);
-
-                            if(indexConcept != null) {
-                                if (addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
-                                    if(vocabularyConceptCache.get(vocabularyId) == null) {
-                                        vocabularyConceptCache.put(vocabularyId, new ArrayList<>());
-                                    }
-                                    vocabularyConceptCache.get(vocabularyId).add(conceptId);
-                                } else {
-                                    log.error("Failed to index document: " + indexConcept.toString());
-                                    log.info("Exiting");
-                                    application.context.close();
-                                    System.exit(1);
-                                }
-                            }
-                        }
-                    });
-                    // After batch import do not anymore use cached vocabulary data
-                    termedApiService.invalidateVocabularyCache();
+                    indexListOfConcepts(termedApiService.fetchAllConcepts());
                 }
             }
         }
     }
 
-    public void updateIndex(Notification notification) {
+    public void updateIndexAfterConceptEvent(Notification notification) {
         String conceptId = notification.getBody().getNode().getId();
-        String graphId = notification.getBody().getNode().getType().getGraph().getId();
 
         switch (notification.getType()) {
             case NodeSavedEvent:
+                String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
 
                 // TODO: REMOVE THIS AFTER TERMED-API UPDATES API INDEX SYNCHRONOUSLY
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 // TODO: END
 
-                JsonObject conceptJsonObj = termedApiService.fetchConcept(graphId, conceptId);
-                String vocabularyId = jsonParserService.getVocabularyIdForConcept(conceptJsonObj);
-                JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId);
-                if(conceptJsonObj != null) {
-                    JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyObj);
-                    if(indexConcept != null) {
-                        if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
-                            log.error("Failed to (re)index document: " + indexConcept.toString());
-                        }
-                    }
+                JsonObject conceptJsonObj = termedApiService.fetchConcept(vocabularyId, conceptId);
+                JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId, false);
+                if(!indexOneConcept(conceptJsonObj, vocabularyObj)) {
+                    log.error("Failed to (re)index document: " + conceptId);
                 }
                 break;
             case NodeDeletedEvent:
@@ -136,6 +108,70 @@ public class ElasticSearchService {
                 }
                 break;
         }
+    }
+
+    public void updateIndexAfterVocabularyEvent(Notification notification) {
+        String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
+        if(vocabularyId != null) {
+            deleteDocumentsFromIndexByVocabularyId(vocabularyId);
+
+            switch (notification.getType()) {
+                case NodeSavedEvent:
+                    // TODO: REMOVE THIS AFTER TERMED-API UPDATES API INDEX SYNCHRONOUSLY
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    // TODO: END
+
+                    List<JsonObject> conceptJsonObjects = termedApiService.fetchAllConceptsInVocabulary(vocabularyId);
+                    indexListOfConcepts(conceptJsonObjects);
+                    break;
+            }
+        } else {
+            log.error("Unable to update index after vocabulary event");
+        }
+    }
+
+    private boolean indexOneConcept(JsonObject conceptJsonObj, JsonElement vocabularyJsonObj) {
+        if (conceptJsonObj.get("id") != null) {
+            String conceptId = conceptJsonObj.get("id").getAsString();
+            JsonObject indexConcept = jsonParserService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyJsonObj);
+
+            if (indexConcept != null) {
+                if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                    log.error("Failed to index document: " + indexConcept.toString());
+                }
+                return true;
+            } else {
+                log.error("Failed to index document: " + indexConcept.toString());
+            }
+        } else {
+            log.error("Failed to index document");
+        }
+        return false;
+    }
+
+    private void indexListOfConcepts(List<JsonObject> conceptJsonObjects) {
+        if(conceptJsonObjects != null) {
+            conceptJsonObjects.forEach(conceptJsonObj -> {
+                JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(jsonParserService.getVocabularyIdForConcept(conceptJsonObj), true);
+                indexOneConcept(conceptJsonObj, vocabularyObj);
+            });
+            termedApiService.invalidateVocabularyCache();
+            log.info("Finished indexing documents");
+        } else {
+            log.warn("Nothing to index");
+        }
+    }
+
+    private void batchDeleteFromIndex(List<String> conceptIds) {
+        conceptIds.forEach(conceptId -> {
+            if(!deleteDocumentFromIndex(conceptId)) {
+                log.error("Failed to delete concept from index. " + conceptId);
+            }
+        });
     }
 
 
@@ -225,6 +261,27 @@ public class ElasticSearchService {
                 }
             } catch (IOException e) {
                 log.error("Unable to delete document from elasticsearch index: " + documentId);
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    private boolean deleteDocumentsFromIndexByVocabularyId(String vocabularyId) {
+        if(vocabularyId != null) {
+            try {
+                HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + vocabularyId + "\"}}}", ContentType.APPLICATION_JSON);
+                Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
+                if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
+                    log.info(reader.lines().collect(Collectors.joining("\n")));
+                    log.info("Successfully deleted documents from elasticsearch index from vocabulary: " + vocabularyId);
+                    return true;
+                } else {
+                    log.error("Unable to delete documents from elasticsearch index");
+                }
+            } catch (IOException e) {
+                log.error("Unable to delete documents from elasticsearch index");
                 e.printStackTrace();
             }
         }

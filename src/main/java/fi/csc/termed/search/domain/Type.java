@@ -23,6 +23,8 @@ public class Type {
 
     public enum TypeId {
         Term,
-        Concept
+        Concept,
+        TerminologicalVocabulary,
+        Vocabulary
     }
 }
