@@ -21,6 +21,8 @@ public class NotificationController {
 
     private static String hookId = null;
 
+    private Object lock = new Object();
+
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -35,7 +37,7 @@ public class NotificationController {
     public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
         log.debug("Notification received");
 
-        synchronized(this) {
+        synchronized(this.lock) {
             switch(notification.getBody().getNode().getType().getId()) {
                 case Term:
                     break;

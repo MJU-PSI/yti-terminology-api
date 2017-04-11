@@ -87,15 +87,6 @@ public class ElasticSearchService {
         switch (notification.getType()) {
             case NodeSavedEvent:
                 String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
-
-                // TODO: REMOVE THIS AFTER TERMED-API UPDATES API INDEX SYNCHRONOUSLY
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                // TODO: END
-
                 JsonObject conceptJsonObj = termedApiService.fetchConcept(vocabularyId, conceptId);
                 JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId, false);
                 if(!indexOneConcept(conceptJsonObj, vocabularyObj)) {
@@ -117,16 +108,7 @@ public class ElasticSearchService {
 
             switch (notification.getType()) {
                 case NodeSavedEvent:
-                    // TODO: REMOVE THIS AFTER TERMED-API UPDATES API INDEX SYNCHRONOUSLY
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    // TODO: END
-
-                    List<JsonObject> conceptJsonObjects = termedApiService.fetchAllConceptsInVocabulary(vocabularyId);
-                    indexListOfConcepts(conceptJsonObjects);
+                    indexListOfConcepts(termedApiService.fetchAllConceptsInVocabulary(vocabularyId));
                     break;
             }
         } else {
