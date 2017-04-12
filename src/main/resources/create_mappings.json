@@ -17,6 +17,10 @@
       "type": "keyword",
       "index": false
     },
+    "hasNarrower": {
+      "type": "boolean",
+      "index": false
+    },
     "vocabulary": {
       "properties": {
         "id": {

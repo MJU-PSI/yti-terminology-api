@@ -78,6 +78,13 @@ public class JsonParserService {
 				output.addProperty("status", conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("status").get(0).getAsJsonObject().get("value").getAsString());
 			}
 
+			if(	!isEmptyAsObject(conceptJsonObj.get("referrers")) &&
+				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("referrers").get("broader"))) {
+				output.addProperty("hasNarrower", "true");
+			} else {
+				output.addProperty("hasNarrower", "false");
+			}
+
 			output.add("vocabulary", vocabularyJsonObj);
 
 			if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&

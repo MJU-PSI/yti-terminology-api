@@ -1,23 +1,11 @@
 package fi.csc.termed.search.domain;
 
-import java.util.Date;
-
-
 public class Notification {
 
-    private Date date;
     private EventType type;
     private Body body;
 
     public Notification() {}
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
 
     public EventType getType() {
         return type;

@@ -1,9 +1,12 @@
 package fi.csc.termed.search.domain;
 
+import java.util.Date;
+
 public class Body {
 
+    private String user;
+    private Date date;
     private Node node;
-    private String username;
 
     public Node getNode() {
         return node;
@@ -13,11 +16,19 @@ public class Body {
         this.node = node;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUser() {
+        return user;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 }
