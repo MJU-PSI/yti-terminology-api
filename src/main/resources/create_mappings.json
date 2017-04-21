@@ -13,12 +13,15 @@
       "type": "text",
       "index": false
     },
-    "status": {
-      "type": "keyword",
+    "narrower": {
+      "type": "text",
       "index": false
     },
     "hasNarrower": {
-      "type": "boolean",
+      "type": "boolean"
+    },
+    "status": {
+      "type": "keyword",
       "index": false
     },
     "vocabulary": {

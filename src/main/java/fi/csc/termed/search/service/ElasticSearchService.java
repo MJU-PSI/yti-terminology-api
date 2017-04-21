@@ -1,5 +1,6 @@
 package fi.csc.termed.search.service;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fi.csc.termed.search.Application;
@@ -20,7 +21,9 @@ import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -81,24 +84,110 @@ public class ElasticSearchService {
         }
     }
 
+    public JsonElement getDocumentFromIndex(String documentId) {
+        if(documentId != null) {
+            try {
+                Response resp = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId + "/_source");
+                if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
+                    return jsonParserService.getJsonParser().parse(reader);
+                }
+                return null;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
     public void updateIndexAfterConceptEvent(Notification notification) {
         String conceptId = notification.getBody().getNode().getId();
+        List<String> docBroaderIds = getDocumentRefIds(conceptId, "broader");
+        List<String> docNarrowerIds = getDocumentRefIds(conceptId, "narrower");
+        String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
+        JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId, false);
 
         switch (notification.getType()) {
             case NodeSavedEvent:
-                String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
                 JsonObject conceptJsonObj = termedApiService.fetchConcept(vocabularyId, conceptId);
-                JsonElement vocabularyObj = termedApiService.fetchVocabularyForConcept(vocabularyId, false);
-                if(!indexOneConcept(conceptJsonObj, vocabularyObj)) {
-                    log.error("Failed to (re)index document: " + conceptId);
+
+                // First reindex the saved concept
+                if(indexOneConcept(conceptJsonObj, vocabularyObj)) {
+
+                    // Next reindex broader concepts in case the saved concept's broader concept list changed
+                    // Basically each broader concept's hasNarrower index value needs to be revised
+
+                    // First compare API's broader concepts and compare against the corresponding documents in index
+                    // Case: A concept becomes some concept's child (index doc does not contain the new broader concept)
+                    List<String> conceptBroaderIds = jsonParserService.getBroaderIdsFromConcept(conceptJsonObj);
+                    List<String> removedBroaderRefIds = indexAllConceptRefs(vocabularyId, vocabularyObj, conceptBroaderIds);
+                    docBroaderIds.removeAll(removedBroaderRefIds);
+                    // Then the other way around: Compare index documents against API's broader concepts
+                    // Case: A concept is removed from being some concept's child
+                    batchUpdateToIndex(vocabularyId, vocabularyObj, docBroaderIds);
+
+                    // Narrower and same logic as above
+
+                    List<String> conceptNarrowerIds = jsonParserService.getNarrowerIdsFromConcept(conceptJsonObj);
+                    List<String> removedNarrowerRefIds = indexAllConceptRefs(vocabularyId, vocabularyObj, conceptNarrowerIds);
+                    docNarrowerIds.removeAll(removedNarrowerRefIds);
+                    batchUpdateToIndex(vocabularyId, vocabularyObj, docNarrowerIds);
                 }
+
                 break;
             case NodeDeletedEvent:
                 if(!deleteDocumentFromIndex(conceptId)) {
                     log.error("Unable to delete document from index or conceptId is not supplied: " + conceptId);
                 }
+
+                batchUpdateToIndex(vocabularyId, vocabularyObj, docBroaderIds);
+                batchUpdateToIndex(vocabularyId, vocabularyObj, docNarrowerIds);
+
                 break;
         }
+    }
+
+    private void batchUpdateToIndex(String vocabularyId, JsonElement vocabularyObj, List<String> ids) {
+        for (String id : ids) {
+            JsonObject conceptJsonObj = termedApiService.fetchConcept(vocabularyId, id);
+            if (conceptJsonObj != null) {
+                if (!indexOneConcept(conceptJsonObj, vocabularyObj)) {
+                    log.error("Failed to (re)index document: " + id);
+                }
+            }
+        }
+    }
+
+    private List<String> indexAllConceptRefs(String vocabularyId, JsonElement vocabularyObj , List<String> conceptRefIds) {
+        List<String> removedIds = new ArrayList<>();
+        for(String refId : conceptRefIds) {
+            JsonObject refConceptJsonObj = termedApiService.fetchConcept(vocabularyId, refId);
+            if(refConceptJsonObj != null) {
+                if(indexOneConcept(refConceptJsonObj, vocabularyObj)) {
+                    removedIds.add(refId);
+                } else {
+                    log.error("Failed to (re)index document: " + refId);
+                }
+            }
+        }
+        return removedIds;
+    }
+
+    private List<String> getDocumentRefIds(String conceptId, String type) {
+        List<String> output = new ArrayList<>();
+        JsonElement documentJsonElem = getDocumentFromIndex(conceptId);
+        if(documentJsonElem != null && documentJsonElem.isJsonObject() && documentJsonElem.getAsJsonObject().get(type).isJsonArray()) {
+            JsonArray docBroaderArray = documentJsonElem.getAsJsonObject().getAsJsonArray(type);
+            Iterator<JsonElement> it = docBroaderArray.iterator();
+            if (it.hasNext()) {
+                JsonElement el = it.next();
+                if(el.isJsonPrimitive()) {
+                    output.add(el.getAsString());
+                }
+
+            }
+        }
+        return output;
     }
 
     public void updateIndexAfterVocabularyEvent(Notification notification) {

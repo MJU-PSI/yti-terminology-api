@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by jmlehtin on 28/3/2017.
@@ -49,10 +51,12 @@ public class JsonParserService {
 		if(isValidConceptJsonForIndex(conceptJsonObj)) {
 			JsonObject output = new JsonObject();
 			JsonArray outputBroaderArray = new JsonArray();
+			JsonArray outputNarrowerArray = new JsonArray();
 			JsonObject outputDefinitionObj = new JsonObject();
 			JsonObject outputLabelObj = new JsonObject();
 			JsonObject outputAltLabelObj = new JsonObject();
 			output.add("broader", outputBroaderArray);
+			output.add("narrower", outputNarrowerArray);
 			output.add("definition", outputDefinitionObj);
 			output.add("label", outputLabelObj);
 			output.add("altLabel", outputAltLabelObj);
@@ -63,8 +67,8 @@ public class JsonParserService {
 				output.addProperty("modified", conceptJsonObj.get("lastModifiedDate").getAsString());
 			}
 
-			if(!isEmptyAsObject(conceptJsonObj.get("references")) && !isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("broader"))) {
-				JsonArray broaderArray = conceptJsonObj.getAsJsonObject("references").getAsJsonArray("broader");
+			JsonArray broaderArray = getBroaderArray(conceptJsonObj);
+			if(broaderArray != null) {
 				for(JsonElement broaderElem : broaderArray) {
 					if(!isEmptyAsObject(broaderElem) && !isEmptyAsString(broaderElem.getAsJsonObject().get("id"))) {
 						outputBroaderArray.add(broaderElem.getAsJsonObject().get("id").getAsString());
@@ -72,17 +76,25 @@ public class JsonParserService {
 				}
 			}
 
+			JsonArray narrowerArray = getNarrowerArray(conceptJsonObj);
+			if(narrowerArray != null) {
+				for(JsonElement narrowerElem : narrowerArray) {
+					if(!isEmptyAsObject(narrowerElem) && !isEmptyAsString(narrowerElem.getAsJsonObject().get("id"))) {
+						outputNarrowerArray.add(narrowerElem.getAsJsonObject().get("id").getAsString());
+					}
+				}
+			}
+
+			if(outputNarrowerArray.size() > 0) {
+				output.addProperty("hasNarrower", "true");
+			} else {
+				output.addProperty("hasNarrower", "false");
+			}
+
 			if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("status"))) {
 
 				output.addProperty("status", conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("status").get(0).getAsJsonObject().get("value").getAsString());
-			}
-
-			if(	!isEmptyAsObject(conceptJsonObj.get("referrers")) &&
-				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("referrers").get("broader"))) {
-				output.addProperty("hasNarrower", "true");
-			} else {
-				output.addProperty("hasNarrower", "false");
 			}
 
 			output.add("vocabulary", vocabularyJsonObj);
@@ -213,6 +225,46 @@ public class JsonParserService {
 			return false;
 		}
 		return true;
+	}
+
+	public List<String> getBroaderIdsFromConcept(JsonObject conceptJsonObj) {
+		List<String> output = new ArrayList<>();
+		JsonArray broaderArray = getBroaderArray(conceptJsonObj);
+		if(broaderArray != null) {
+			for (JsonElement broaderElem : broaderArray) {
+				if (!isEmptyAsObject(broaderElem) && !isEmptyAsString(broaderElem.getAsJsonObject().get("id"))) {
+					output.add(broaderElem.getAsJsonObject().get("id").getAsString());
+				}
+			}
+		}
+		return output;
+	}
+
+	private JsonArray getBroaderArray(JsonObject conceptJsonObj) {
+		if (!isEmptyAsObject(conceptJsonObj.get("references")) && !isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("broader"))) {
+			return conceptJsonObj.getAsJsonObject("references").getAsJsonArray("broader");
+		}
+		return null;
+	}
+
+	public List<String> getNarrowerIdsFromConcept(JsonObject conceptJsonObj) {
+		List<String> output = new ArrayList<>();
+		JsonArray broaderArray = getNarrowerArray(conceptJsonObj);
+		if(broaderArray != null) {
+			for (JsonElement broaderElem : broaderArray) {
+				if (!isEmptyAsObject(broaderElem) && !isEmptyAsString(broaderElem.getAsJsonObject().get("id"))) {
+					output.add(broaderElem.getAsJsonObject().get("id").getAsString());
+				}
+			}
+		}
+		return output;
+	}
+
+	private JsonArray getNarrowerArray(JsonObject conceptJsonObj) {
+		if (!isEmptyAsObject(conceptJsonObj.get("referrers")) && !isEmptyAsArray(conceptJsonObj.getAsJsonObject("referrers").get("broader"))) {
+			return conceptJsonObj.getAsJsonObject("referrers").getAsJsonArray("broader");
+		}
+		return null;
 	}
 
 	private boolean hasValidId(JsonObject jsonObj) {
