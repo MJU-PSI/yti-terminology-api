@@ -4,15 +4,16 @@ import com.google.gson.*;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * Created by jmlehtin on 27/4/2017.
  */
-public abstract class JsonTools {
+public final class JsonTools {
 
-	protected String getJsonFileAsString(String filename) {
+	public static String getJsonFileAsString(String filename) {
 		try {
 			JsonParser parser = new JsonParser();
 			return parser.parse(new FileReader(JsonTools.class.getClassLoader().getResource(filename).getFile())).toString();
@@ -28,23 +29,26 @@ public abstract class JsonTools {
 		}
 	}
 
-	protected boolean isEmptyAsString(JsonElement el) {
+	protected static boolean isEmptyAsString(JsonElement el) {
 		return el == null || !el.isJsonPrimitive() || "".equals(el.getAsString());
 	}
 
-	protected boolean isEmptyAsArray(JsonElement el) {
+	protected static boolean isEmptyAsArray(JsonElement el) {
 		return el == null || !el.isJsonArray() || el.getAsJsonArray().size() == 0;
 	}
 
-	protected boolean isEmptyAsObject(JsonElement el) {
+	protected static boolean isEmptyAsObject(JsonElement el) {
 		return el == null || !el.isJsonObject();
 	}
 
-	public List<String> getIdsFromObjectsInArray(List<JsonObject> jsonObjects) {
-		return jsonObjects.stream().map(obj -> obj.get("id").getAsString()).collect(Collectors.toList());
+	public static List<String> getIdsFromArrayJsonObjects(List<JsonObject> jsonObjects) {
+		if(jsonObjects != null) {
+			return jsonObjects.stream().map(obj -> obj.get("id").getAsString()).collect(Collectors.toList());
+		}
+		return new ArrayList<>();
 	}
 
-	protected boolean hasValidGraphId(JsonObject jsonObj) {
+	protected static boolean hasValidGraphId(JsonObject jsonObj) {
 		if(	isEmptyAsObject(jsonObj.get("type")) ||
 				isEmptyAsObject(jsonObj.getAsJsonObject("type").get("graph")) ||
 				isEmptyAsString(jsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id"))) {
@@ -53,28 +57,28 @@ public abstract class JsonTools {
 		return true;
 	}
 
-	protected String getVocabularyIdForConcept(JsonObject conceptJsonObj) {
+	protected static String getVocabularyIdForConcept(JsonObject conceptJsonObj) {
 		if(hasValidGraphId(conceptJsonObj)) {
 			return conceptJsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id").getAsString();
 		}
 		return null;
 	}
 
-	protected boolean hasValidId(JsonObject jsonObj) {
+	protected static boolean hasValidId(JsonObject jsonObj) {
 		if(isEmptyAsString(jsonObj.get("id"))) {
 			return false;
 		}
 		return true;
 	}
 
-	protected String getConceptIdForConcept(JsonObject conceptJsonObj) {
+	protected static String getConceptIdForConcept(JsonObject conceptJsonObj) {
 		if(hasValidId(conceptJsonObj)) {
 			return conceptJsonObj.get("id").getAsString();
 		}
 		return null;
 	}
 	
-	protected void setDefinition(JsonObject conceptJsonObj, JsonObject output) {
+	protected static void setDefinition(JsonObject conceptJsonObj, JsonObject output) {
 		if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("definition"))) {
 
@@ -89,7 +93,7 @@ public abstract class JsonTools {
 		}
 	}
 
-	public boolean setLabelsFromJson(JsonObject inputObj, JsonObject outputObj) {
+	public static boolean setLabelsFromJson(JsonObject inputObj, JsonObject outputObj) {
 		boolean prefLabelAdded = false;
 		if(	!isEmptyAsObject(inputObj.get("properties")) &&
 				!isEmptyAsArray(inputObj.getAsJsonObject("properties").get("prefLabel"))) {
@@ -108,7 +112,7 @@ public abstract class JsonTools {
 		return prefLabelAdded;
 	}
 
-	protected void setAltLabelsFromPrefLabelArray(JsonArray prefLabelArray, JsonObject altLabelOutputObj) {
+	protected static void setAltLabelsFromPrefLabelArray(JsonArray prefLabelArray, JsonObject altLabelOutputObj) {
 		for (JsonElement prefLabelInAltLabel : prefLabelArray) {
 			if (!isEmptyAsObject(prefLabelInAltLabel)) {
 				if (!isEmptyAsString(prefLabelInAltLabel.getAsJsonObject().get("lang")) && !isEmptyAsString(prefLabelInAltLabel.getAsJsonObject().get("value"))) {

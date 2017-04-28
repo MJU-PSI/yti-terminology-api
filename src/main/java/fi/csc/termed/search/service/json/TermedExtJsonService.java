@@ -9,31 +9,16 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import static fi.csc.termed.search.service.json.JsonTools.*;
 
 /**
  * Created by jmlehtin on 28/3/2017.
  */
 
 @Service
-public class TermedExtJsonService extends JsonTools  {
+public class TermedExtJsonService  {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
-
-	public String getJsonFileAsString(String filename) {
-		try {
-			JsonParser parser = new JsonParser();
-			return parser.parse(new FileReader(getClass().getClassLoader().getResource(filename).getFile())).toString();
-		} catch (IOException e) {
-			log.error("Unable to read file: " + filename);
-			return null;
-		} catch (JsonIOException e) {
-			log.error("Unable to read file as JSON: " + filename);
-			return null;
-		} catch (JsonSyntaxException e) {
-			log.error("Unable to parse file as JSON: " + filename);
-			return null;
-		}
-	}
 
 	public JsonObject transformApiConceptToIndexConcept(JsonObject conceptJsonObj, JsonElement vocabularyJsonObj) {
 		if(vocabularyJsonObj == null) {

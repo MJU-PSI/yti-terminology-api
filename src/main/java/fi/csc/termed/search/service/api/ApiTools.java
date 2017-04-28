@@ -33,6 +33,7 @@ public abstract class ApiTools {
 
 	private HttpClient apiClient;
 	private JsonParser gsonParser;
+
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	public ApiTools() {

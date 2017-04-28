@@ -10,13 +10,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import static fi.csc.termed.search.service.json.JsonTools.*;
 
 /**
  * Created by jmlehtin on 28/3/2017.
  */
 
 @Service
-public class TermedJsonService extends JsonTools  {
+public class TermedJsonService  {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 

@@ -2,6 +2,7 @@ package fi.csc.termed.search.service.api;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import fi.csc.termed.search.service.json.JsonTools;
 import fi.csc.termed.search.service.json.TermedExtJsonService;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -12,9 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by jmlehtin on 28/3/2017.
@@ -42,8 +41,6 @@ public class TermedExtApiService extends ApiTools {
 
 	private TermedExtJsonService termedExtJsonService;
 
-	private static Map<String, JsonElement> vocabularyCache = new HashMap<>();
-
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	@Autowired
@@ -69,7 +66,7 @@ public class TermedExtApiService extends ApiTools {
 			JsonObject labelObj = new JsonObject();
 			vocOutputObj.add("label", labelObj);
 
-			if(termedExtJsonService.setLabelsFromJson(vocJsonObj, labelObj)) {
+			if(JsonTools.setLabelsFromJson(vocJsonObj, labelObj)) {
 				return vocOutputObj;
 			} else {
 				log.error("Unable to transform vocabulary JSON for indexing");
@@ -92,7 +89,5 @@ public class TermedExtApiService extends ApiTools {
 		log.error("GraphId not supplied for fetching vocabulary data from termed API");
 		return null;
 	}
-
-
 
 }

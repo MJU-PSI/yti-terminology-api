@@ -3,6 +3,7 @@ package fi.csc.termed.search.service.api;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import fi.csc.termed.search.service.json.JsonTools;
 import fi.csc.termed.search.service.json.TermedExtJsonService;
 import fi.csc.termed.search.service.json.TermedJsonService;
 import org.apache.http.HttpHeaders;
@@ -21,10 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Created by jmlehtin on 28/3/2017.
@@ -107,18 +105,17 @@ public class TermedApiService extends ApiTools {
 				return result.toString().replace("<string>", "").replace("</string>", "");
 			} else {
 				log.error("Response code: " + resp.getStatusLine().getStatusCode());
-				return null;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			return null;
 		} finally {
 			registerReq.releaseConnection();
 		}
+		return null;
 	}
 
 	public List<String> fetchAllAvailableVocabularyIds() {
-		return termedJsonService.getIdsFromObjectsInArray(fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_VOCABULARIES_URL_CONTEXT));
+		return JsonTools.getIdsFromArrayJsonObjects(fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_VOCABULARIES_URL_CONTEXT));
 	}
 
 	public Optional<JsonObject> getOneVocabulary(String vocabularyId, List<JsonObject> nodes) {
@@ -127,7 +124,12 @@ public class TermedApiService extends ApiTools {
 	}
 
 	public List<JsonObject> fetchAllNodesInVocabulary(String vocabularyId) {
-		return fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ALL_NODES_IN_VOCABULARY_URL_CONTEXT, vocabularyId));
+		List<JsonObject> allNodes = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ALL_NODES_IN_VOCABULARY_URL_CONTEXT, vocabularyId));
+		if(allNodes != null) {
+			return new ArrayList<>();
+		}
+		return allNodes;
+
 	}
 
 	public Map<String, JsonObject> getAllConceptsFromNodes(List<JsonObject> nodes) {
@@ -152,7 +154,7 @@ public class TermedApiService extends ApiTools {
 			JsonObject labelObj = new JsonObject();
 			vocOutputObj.add("label", labelObj);
 
-			if(termedExtJsonService.setLabelsFromJson(vocabularyJsonObj, labelObj)) {
+			if(JsonTools.setLabelsFromJson(vocabularyJsonObj, labelObj)) {
 				return vocOutputObj;
 			} else {
 				log.error("Unable to transform vocabulary JSON for indexing");

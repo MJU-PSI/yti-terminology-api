@@ -8,6 +8,7 @@ import fi.csc.termed.search.Application;
 import fi.csc.termed.search.domain.Notification;
 import fi.csc.termed.search.service.api.TermedApiService;
 import fi.csc.termed.search.service.api.TermedExtApiService;
+import fi.csc.termed.search.service.json.JsonTools;
 import fi.csc.termed.search.service.json.TermedExtJsonService;
 import fi.csc.termed.search.service.json.TermedJsonService;
 import org.apache.http.HttpEntity;
@@ -103,7 +104,6 @@ public class ElasticSearchService {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
                     return gsonParser.parse(reader);
                 }
-                return null;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -239,12 +239,14 @@ public class ElasticSearchService {
         Map<String, JsonObject> vocabularyConcepts = termedApiService.getAllConceptsFromNodes(allNodesInVocabulary);
         Map<String, JsonObject> vocabularyTerms = termedApiService.getAllTermsFromNodes(allNodesInVocabulary);
         Optional<JsonObject> vocabularyObj = termedApiService.getOneVocabulary(vocabularyId, allNodesInVocabulary);
-        if(vocabularyConcepts != null && vocabularyConcepts.size() > 0) {
-            List<JsonObject> indexConcepts = termedJsonService.transformApiConceptsToIndexConcepts(termedApiService.transformVocabularyForIndexing(vocabularyObj.get()), vocabularyConcepts, vocabularyTerms);
-            indexConcepts.forEach(concept -> addOrUpdateDocumentToIndex(concept.get("id").getAsString(), concept.toString()));
-            log.info("Finished indexing documents");
-        } else {
-            log.warn("Nothing to index");
+        if(vocabularyObj.isPresent()) {
+            if (vocabularyConcepts != null && vocabularyConcepts.size() > 0) {
+                List<JsonObject> indexConcepts = termedJsonService.transformApiConceptsToIndexConcepts(termedApiService.transformVocabularyForIndexing(vocabularyObj.get()), vocabularyConcepts, vocabularyTerms);
+                indexConcepts.forEach(concept -> addOrUpdateDocumentToIndex(concept.get("id").getAsString(), concept.toString()));
+                log.info("Finished indexing documents");
+            } else {
+                log.warn("Nothing to index");
+            }
         }
     }
 
@@ -280,7 +282,7 @@ public class ElasticSearchService {
     }
 
     private boolean createIndex() {
-        HttpEntity entity = new NStringEntity(termedExtJsonService.getJsonFileAsString(CREATE_INDEX_FILENAME), ContentType.APPLICATION_JSON);
+        HttpEntity entity = new NStringEntity(JsonTools.getJsonFileAsString(CREATE_INDEX_FILENAME), ContentType.APPLICATION_JSON);
         try {
             log.info("Trying to create elasticsearch index: " + INDEX_NAME);
             esRestClient.performRequest("PUT", "/" + INDEX_NAME, Collections.singletonMap("pretty", "true"), entity);
@@ -294,7 +296,7 @@ public class ElasticSearchService {
     }
 
     private boolean createMapping() {
-        HttpEntity entity = new NStringEntity(termedExtJsonService.getJsonFileAsString(CREATE_MAPPINGS_FILENAME), ContentType.APPLICATION_JSON);
+        HttpEntity entity = new NStringEntity(JsonTools.getJsonFileAsString(CREATE_MAPPINGS_FILENAME), ContentType.APPLICATION_JSON);
         try {
             log.info("Trying to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
             esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, Collections.singletonMap("pretty", "true"), entity);
