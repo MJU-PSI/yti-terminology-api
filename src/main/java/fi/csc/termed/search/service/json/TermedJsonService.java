@@ -3,6 +3,7 @@ package fi.csc.termed.search.service.json;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import fi.csc.termed.search.service.api.ApiTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -172,9 +173,10 @@ public class TermedJsonService  {
 		return false;
 	}
 
-	public boolean isTerminologicalVocabularyNode(JsonObject jsonObj) {
+	public boolean isVocabularyNode(JsonObject jsonObj) {
 		if(hasValidGraphId(jsonObj)) {
-			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("TerminologicalVocabulary");
+			String typeId = jsonObj.get("type").getAsJsonObject().get("id").getAsString();
+			return typeId.equals(ApiTools.VocabularyType.TerminologicalVocabulary.name()) || typeId.equals(ApiTools.VocabularyType.Vocabulary.name());
 		}
 		return false;
 	}

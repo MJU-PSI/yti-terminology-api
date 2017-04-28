@@ -121,7 +121,7 @@ public class TermedApiService extends ApiTools {
 
 	public Optional<JsonObject> getOneVocabulary(String vocabularyId, List<JsonObject> nodes) {
 		return nodes.stream().
-				filter(obj -> obj.get("id") != null && termedJsonService.isTerminologicalVocabularyNode(obj) && obj.get("type").getAsJsonObject().get("graph").getAsJsonObject().get("id").getAsString().equals(vocabularyId)).findFirst();
+				filter(obj -> obj.get("id") != null && termedJsonService.isVocabularyNode(obj) && obj.get("type").getAsJsonObject().get("graph").getAsJsonObject().get("id").getAsString().equals(vocabularyId)).findFirst();
 	}
 
 	public List<JsonObject> fetchAllNodesInVocabulary(String vocabularyId) {
