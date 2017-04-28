@@ -61,7 +61,7 @@ public class TermedExtApiService extends ApiTools {
 		JsonObject vocOutputObj = new JsonObject();
 		JsonObject vocJsonObj = fetchVocabulary(vocabularyId);
 
-		if (vocJsonObj != null && termedExtJsonService.isValidVocabularyJsonForIndex(vocJsonObj)) {
+		if (vocJsonObj != null && JsonTools.isValidVocabularyJsonForIndex(vocJsonObj)) {
 			vocOutputObj.addProperty("id", vocabularyId);
 			JsonObject labelObj = new JsonObject();
 			vocOutputObj.add("label", labelObj);

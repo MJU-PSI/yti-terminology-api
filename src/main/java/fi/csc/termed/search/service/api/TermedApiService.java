@@ -115,17 +115,18 @@ public class TermedApiService extends ApiTools {
 	}
 
 	public List<String> fetchAllAvailableVocabularyIds() {
+		log.info("Fetching all vocabulary IDs..");
 		return JsonTools.getIdsFromArrayJsonObjects(fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_VOCABULARIES_URL_CONTEXT));
 	}
 
 	public Optional<JsonObject> getOneVocabulary(String vocabularyId, List<JsonObject> nodes) {
 		return nodes.stream().
-				filter(obj -> obj.get("id") != null && termedJsonService.isVocabularyNode(obj) && obj.get("type").getAsJsonObject().get("graph").getAsJsonObject().get("id").getAsString().equals(vocabularyId)).findFirst();
+				filter(obj -> obj.get("id") != null && termedJsonService.isTerminologicalVocabularyNode(obj) && obj.get("type").getAsJsonObject().get("graph").getAsJsonObject().get("id").getAsString().equals(vocabularyId)).findFirst();
 	}
 
 	public List<JsonObject> fetchAllNodesInVocabulary(String vocabularyId) {
 		List<JsonObject> allNodes = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ALL_NODES_IN_VOCABULARY_URL_CONTEXT, vocabularyId));
-		if(allNodes != null) {
+		if(allNodes == null) {
 			return new ArrayList<>();
 		}
 		return allNodes;
@@ -149,7 +150,7 @@ public class TermedApiService extends ApiTools {
 	public JsonElement transformVocabularyForIndexing(JsonObject vocabularyJsonObj) {
 		JsonObject vocOutputObj = new JsonObject();
 
-		if (vocabularyJsonObj != null && termedExtJsonService.isValidVocabularyJsonForIndex(vocabularyJsonObj)) {
+		if (vocabularyJsonObj != null && JsonTools.isValidVocabularyJsonForIndex(vocabularyJsonObj)) {
 			vocOutputObj.addProperty("id", vocabularyJsonObj.get("type").getAsJsonObject().get("graph").getAsJsonObject().get("id").getAsString());
 			JsonObject labelObj = new JsonObject();
 			vocOutputObj.add("label", labelObj);

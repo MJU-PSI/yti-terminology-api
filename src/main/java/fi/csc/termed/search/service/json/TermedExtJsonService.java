@@ -145,24 +145,7 @@ public class TermedExtJsonService  {
 		return false;
 	}
 
-	public boolean isValidVocabularyJsonForIndex(JsonObject vocabularyJsonObj) {
-		if(!hasValidId((vocabularyJsonObj))) {
-			return false;
-		}
 
-		if(!hasValidGraphId(vocabularyJsonObj)) {
-			return false;
-		}
-
-		if(	isEmptyAsObject(vocabularyJsonObj.get("properties")) ||
-			isEmptyAsArray(vocabularyJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
-			isEmptyAsObject(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
-			isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
-			isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))) {
-			return false;
-		}
-		return true;
-	}
 
 	public List<String> getBroaderIdsFromConcept(JsonObject conceptJsonObj) {
 		List<String> output = new ArrayList<>();

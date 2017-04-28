@@ -89,7 +89,7 @@ public class ElasticSearchService {
                 if(createMapping()) {
                     List<String> vocabularyIds = termedApiService.fetchAllAvailableVocabularyIds();
                     for(String vocId : vocabularyIds) {
-                        indexListOfConceptsInVocabulary(vocId, termedApiService.fetchAllNodesInVocabulary(vocId));
+                        indexListOfConceptsInVocabulary(vocId);
                     }
                 }
             }
@@ -208,7 +208,7 @@ public class ElasticSearchService {
 
             switch (notification.getType()) {
                 case NodeSavedEvent:
-                    indexListOfConceptsInVocabulary(vocabularyId, termedApiService.fetchAllNodesInVocabulary(vocabularyId));
+                    indexListOfConceptsInVocabulary(vocabularyId);
                     break;
             }
         } else {
@@ -235,19 +235,21 @@ public class ElasticSearchService {
         return false;
     }
 
-    private void indexListOfConceptsInVocabulary(String vocabularyId, List<JsonObject> allNodesInVocabulary) {
-        Map<String, JsonObject> vocabularyConcepts = termedApiService.getAllConceptsFromNodes(allNodesInVocabulary);
-        Map<String, JsonObject> vocabularyTerms = termedApiService.getAllTermsFromNodes(allNodesInVocabulary);
+    private void indexListOfConceptsInVocabulary(String vocabularyId) {
+        log.info("Trying to index concepts of vocabulary " + vocabularyId);
+        List<JsonObject> allNodesInVocabulary = termedApiService.fetchAllNodesInVocabulary(vocabularyId);
         Optional<JsonObject> vocabularyObj = termedApiService.getOneVocabulary(vocabularyId, allNodesInVocabulary);
         if(vocabularyObj.isPresent()) {
+            Map<String, JsonObject> vocabularyConcepts = termedApiService.getAllConceptsFromNodes(allNodesInVocabulary);
+            Map<String, JsonObject> vocabularyTerms = termedApiService.getAllTermsFromNodes(allNodesInVocabulary);
             if (vocabularyConcepts != null && vocabularyConcepts.size() > 0) {
                 List<JsonObject> indexConcepts = termedJsonService.transformApiConceptsToIndexConcepts(termedApiService.transformVocabularyForIndexing(vocabularyObj.get()), vocabularyConcepts, vocabularyTerms);
                 indexConcepts.forEach(concept -> addOrUpdateDocumentToIndex(concept.get("id").getAsString(), concept.toString()));
-                log.info("Finished indexing documents");
             } else {
-                log.warn("Nothing to index");
+                log.warn("Nothing to index in the vocabulary");
             }
         }
+        log.info("Finished indexing documents");
     }
 
     private void deleteIndex() {

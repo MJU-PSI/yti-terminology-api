@@ -57,13 +57,6 @@ public final class JsonTools {
 		return true;
 	}
 
-	protected static String getVocabularyIdForConcept(JsonObject conceptJsonObj) {
-		if(hasValidGraphId(conceptJsonObj)) {
-			return conceptJsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id").getAsString();
-		}
-		return null;
-	}
-
 	protected static boolean hasValidId(JsonObject jsonObj) {
 		if(isEmptyAsString(jsonObj.get("id"))) {
 			return false;
@@ -71,13 +64,25 @@ public final class JsonTools {
 		return true;
 	}
 
-	protected static String getConceptIdForConcept(JsonObject conceptJsonObj) {
-		if(hasValidId(conceptJsonObj)) {
-			return conceptJsonObj.get("id").getAsString();
+	public static boolean isValidVocabularyJsonForIndex(JsonObject vocabularyJsonObj) {
+		if(!hasValidId((vocabularyJsonObj))) {
+			return false;
 		}
-		return null;
+
+		if(!hasValidGraphId(vocabularyJsonObj)) {
+			return false;
+		}
+
+		if(	isEmptyAsObject(vocabularyJsonObj.get("properties")) ||
+				isEmptyAsArray(vocabularyJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
+				isEmptyAsObject(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+				isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+				isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))) {
+			return false;
+		}
+		return true;
 	}
-	
+
 	protected static void setDefinition(JsonObject conceptJsonObj, JsonObject output) {
 		if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("definition"))) {

@@ -166,24 +166,28 @@ public class TermedJsonService  {
 	}
 
 	public boolean isConceptNode(JsonObject jsonObj) {
-		if(jsonObj.get("type") != null && jsonObj.get("type").getAsJsonObject().get("id") != null) {
+		if(hasTypeId(jsonObj)) {
 			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Concept");
 		}
 		return false;
 	}
 
-	public boolean isVocabularyNode(JsonObject jsonObj) {
-		if(jsonObj.get("type") != null && jsonObj.get("type").getAsJsonObject().get("id") != null && hasValidGraphId(jsonObj)) {
+	public boolean isTerminologicalVocabularyNode(JsonObject jsonObj) {
+		if(hasValidGraphId(jsonObj)) {
 			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("TerminologicalVocabulary");
 		}
 		return false;
 	}
 
 	public boolean isTermNode(JsonObject jsonObj) {
-		if(jsonObj.get("type") != null && jsonObj.get("type").getAsJsonObject().get("id") != null) {
+		if(hasTypeId(jsonObj)) {
 			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Term");
 		}
 		return false;
+	}
+
+	private boolean hasTypeId(JsonObject jsonObj) {
+		return jsonObj.get("type") != null && jsonObj.get("type").getAsJsonObject().get("id") != null;
 	}
 
 }
