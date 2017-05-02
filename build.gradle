@@ -12,8 +12,10 @@ apply plugin: 'idea'
 apply plugin: 'war'
 apply plugin: 'org.springframework.boot'
 
-war {
-    baseName = 'iow-termed-search'
+jar {
+    manifest {
+        attributes 'Main-Class': 'fi.csc.termed.search.Application'
+    }
 }
 
 repositories {

@@ -87,12 +87,16 @@ public class ElasticSearchService {
         if(!indexExists()) {
             if(createIndex()) {
                 if(createMapping()) {
-                    List<String> vocabularyIds = termedApiService.fetchAllAvailableVocabularyIds();
-                    for(String vocId : vocabularyIds) {
-                        indexListOfConceptsInVocabulary(vocId);
-                    }
+                   doFullIndexing();
                 }
             }
+        }
+    }
+
+    public void doFullIndexing() {
+        List<String> vocabularyIds = termedApiService.fetchAllAvailableVocabularyIds();
+        for(String vocId : vocabularyIds) {
+            indexListOfConceptsInVocabulary(vocId);
         }
     }
 
@@ -252,7 +256,7 @@ public class ElasticSearchService {
         log.info("Finished indexing documents");
     }
 
-    private void deleteIndex() {
+    public void deleteIndex() {
         log.info("Deleting elasticsearch index: " + INDEX_NAME);
         try {
             Response resp = esRestClient.performRequest("DELETE", "/" + INDEX_NAME);
@@ -326,14 +330,6 @@ public class ElasticSearchService {
         return false;
     }
 
-    private void batchDeleteFromIndex(List<String> conceptIds) {
-        conceptIds.forEach(conceptId -> {
-            if(!deleteDocumentFromIndex(conceptId)) {
-                log.error("Failed to delete concept from index. " + conceptId);
-            }
-        });
-    }
-
     private boolean deleteDocumentFromIndex(String documentId) {
         if(documentId != null) {
             try {
@@ -369,6 +365,25 @@ public class ElasticSearchService {
                 log.error("Unable to delete documents from elasticsearch index");
                 e.printStackTrace();
             }
+        }
+        return false;
+    }
+
+    public boolean deleteAllDocumentsFromIndex() {
+        try {
+            HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
+            Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
+            if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
+                log.info(reader.lines().collect(Collectors.joining("\n")));
+                log.info("Successfully deleted all documents from elasticsearch index");
+                return true;
+            } else {
+                log.error("Unable to delete documents from elasticsearch index");
+            }
+        } catch (IOException e) {
+            log.error("Unable to delete documents from elasticsearch index");
+            e.printStackTrace();
         }
         return false;
     }

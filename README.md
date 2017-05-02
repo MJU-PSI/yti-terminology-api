@@ -2,7 +2,7 @@
 
 Termed is a web-based vocabulary and metadata editor.
 
-Termed search handles updating of elastic search index.
+Termed search handles updating of elastic search index. Complete reindexing is done periodically.
 
 ## Install dependencies
 
@@ -33,6 +33,8 @@ and run:
 
 Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
 
-## Build (executable) war
+## Build (executable) jar
 
-Run with: `./gradlew build -Dspring.profiles.active=prod`
+Run with: `./gradlew jar -Dspring.profiles.active=prod`
+
+The jar file is created into folder ./build/libs
