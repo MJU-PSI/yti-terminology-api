@@ -10,8 +10,7 @@
       "index": false
     },
     "broader": {
-      "type": "text",
-      "index": false
+      "type": "text"
     },
     "narrower": {
       "type": "text",
@@ -21,13 +20,12 @@
       "type": "boolean"
     },
     "status": {
-      "type": "keyword",
-      "index": false
+      "type": "keyword"
     },
     "vocabulary": {
       "properties": {
         "id": {
-          "type": "text"
+          "type": "keyword"
         },
         "label": {
           "properties": {
