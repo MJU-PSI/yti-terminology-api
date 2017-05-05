@@ -10,10 +10,10 @@
       "index": false
     },
     "broader": {
-      "type": "text"
+      "type": "keyword"
     },
     "narrower": {
-      "type": "text",
+      "type": "keyword",
       "index": false
     },
     "hasNarrower": {
