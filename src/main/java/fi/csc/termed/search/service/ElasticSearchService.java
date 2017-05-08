@@ -96,7 +96,7 @@ public class ElasticSearchService {
     public void doFullIndexing() {
         List<String> vocabularyIds = termedApiService.fetchAllAvailableVocabularyIds();
         for(String vocId : vocabularyIds) {
-            indexListOfConceptsInVocabulary(vocId);
+            indexListOfConceptsInVocabulary(vocId, false);
         }
     }
 
@@ -127,7 +127,7 @@ public class ElasticSearchService {
                 JsonObject conceptJsonObj = termedExtApiService.fetchConcept(vocabularyId, conceptId);
 
                 // First reindex the saved concept
-                if(indexOneConcept(conceptJsonObj, vocabularyObj)) {
+                if(indexOneConcept(conceptJsonObj, vocabularyObj, true)) {
 
                     // Next reindex broader concepts in case the saved concept's broader concept list changed
                     // Basically each broader concept's hasNarrower index value needs to be revised
@@ -139,14 +139,14 @@ public class ElasticSearchService {
                     docBroaderIds.removeAll(removedBroaderRefIds);
                     // Then the other way around: Compare index documents against API's broader concepts
                     // Case: A concept is removed from being some concept's child
-                    batchUpdateToIndex(vocabularyId, vocabularyObj, docBroaderIds);
+                    indexAllConceptRefs(vocabularyId, vocabularyObj, docBroaderIds);
 
                     // Narrower and same logic as above
 
                     List<String> conceptNarrowerIds = termedExtJsonService.getNarrowerIdsFromConcept(conceptJsonObj);
                     List<String> removedNarrowerRefIds = indexAllConceptRefs(vocabularyId, vocabularyObj, conceptNarrowerIds);
                     docNarrowerIds.removeAll(removedNarrowerRefIds);
-                    batchUpdateToIndex(vocabularyId, vocabularyObj, docNarrowerIds);
+                    indexAllConceptRefs(vocabularyId, vocabularyObj, docNarrowerIds);
                 }
 
                 break;
@@ -155,30 +155,22 @@ public class ElasticSearchService {
                     log.error("Unable to delete document from index or conceptId is not supplied: " + conceptId);
                 }
 
-                batchUpdateToIndex(vocabularyId, vocabularyObj, docBroaderIds);
-                batchUpdateToIndex(vocabularyId, vocabularyObj, docNarrowerIds);
+                indexAllConceptRefs(vocabularyId, vocabularyObj, docBroaderIds);
+                indexAllConceptRefs(vocabularyId, vocabularyObj, docNarrowerIds);
 
                 break;
         }
     }
 
-    private void batchUpdateToIndex(String vocabularyId, JsonElement vocabularyObj, List<String> ids) {
-        for (String id : ids) {
-            JsonObject conceptJsonObj = termedExtApiService.fetchConcept(vocabularyId, id);
-            if (conceptJsonObj != null) {
-                if (!indexOneConcept(conceptJsonObj, vocabularyObj)) {
-                    log.error("Failed to (re)index document: " + id);
-                }
-            }
-        }
-    }
-
-    private List<String> indexAllConceptRefs(String vocabularyId, JsonElement vocabularyObj , List<String> conceptRefIds) {
+    /**
+     * @return removed concept ids
+     */
+    private List<String> indexAllConceptRefs(String vocabularyId, JsonElement vocabularyObj , List<String> ids) {
         List<String> removedIds = new ArrayList<>();
-        for(String refId : conceptRefIds) {
+        for(String refId : ids) {
             JsonObject refConceptJsonObj = termedExtApiService.fetchConcept(vocabularyId, refId);
             if(refConceptJsonObj != null) {
-                if(indexOneConcept(refConceptJsonObj, vocabularyObj)) {
+                if(indexOneConcept(refConceptJsonObj, vocabularyObj, true)) {
                     removedIds.add(refId);
                 } else {
                     log.error("Failed to (re)index document: " + refId);
@@ -212,7 +204,7 @@ public class ElasticSearchService {
 
             switch (notification.getType()) {
                 case NodeSavedEvent:
-                    indexListOfConceptsInVocabulary(vocabularyId);
+                    indexListOfConceptsInVocabulary(vocabularyId, false);
                     break;
             }
         } else {
@@ -220,13 +212,13 @@ public class ElasticSearchService {
         }
     }
 
-    private boolean indexOneConcept(JsonObject conceptJsonObj, JsonElement vocabularyJsonObj) {
+    private boolean indexOneConcept(JsonObject conceptJsonObj, JsonElement vocabularyJsonObj, boolean waitForRefresh) {
         if (conceptJsonObj.get("id") != null) {
             String conceptId = conceptJsonObj.get("id").getAsString();
             JsonObject indexConcept = termedExtJsonService.transformApiConceptToIndexConcept(conceptJsonObj, vocabularyJsonObj);
 
             if (indexConcept != null) {
-                if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString())) {
+                if (!addOrUpdateDocumentToIndex(conceptId, indexConcept.toString(), waitForRefresh)) {
                     log.error("Failed to index document: " + indexConcept.toString());
                 }
                 return true;
@@ -239,7 +231,7 @@ public class ElasticSearchService {
         return false;
     }
 
-    private void indexListOfConceptsInVocabulary(String vocabularyId) {
+    private void indexListOfConceptsInVocabulary(String vocabularyId, boolean waitForRefresh) {
         log.info("Trying to index concepts of vocabulary " + vocabularyId);
         List<JsonObject> allNodesInVocabulary = termedApiService.fetchAllNodesInVocabulary(vocabularyId);
         Optional<JsonObject> vocabularyObj = termedApiService.getOneVocabulary(vocabularyId, allNodesInVocabulary);
@@ -248,7 +240,7 @@ public class ElasticSearchService {
             Map<String, JsonObject> vocabularyTerms = termedApiService.getAllTermsFromNodes(allNodesInVocabulary);
             if (vocabularyConcepts != null && vocabularyConcepts.size() > 0) {
                 List<JsonObject> indexConcepts = termedJsonService.transformApiConceptsToIndexConcepts(termedApiService.transformVocabularyForIndexing(vocabularyObj.get()), vocabularyConcepts, vocabularyTerms);
-                indexConcepts.forEach(concept -> addOrUpdateDocumentToIndex(concept.get("id").getAsString(), concept.toString()));
+                indexConcepts.forEach(concept -> addOrUpdateDocumentToIndex(concept.get("id").getAsString(), concept.toString(), waitForRefresh));
             } else {
                 log.warn("Nothing to index in the vocabulary");
             }
@@ -315,10 +307,18 @@ public class ElasticSearchService {
         return false;
     }
 
-    private boolean addOrUpdateDocumentToIndex(String documentId, String document) {
+    private boolean addOrUpdateDocumentToIndex(String documentId, String document, boolean waitForRefresh) {
         HttpEntity entity = new NStringEntity(document, ContentType.APPLICATION_JSON);
+        Map<String, String> params = new HashMap<>();
+
+        params.put("pretty", "true");
+
+        if (waitForRefresh) {
+            params.put("refresh", "wait_for");
+        }
+
         try {
-            Response resp = esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId, Collections.singletonMap("pretty", "true"), entity);
+            Response resp = esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId, params, entity);
             if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
                 log.info("Successfully added/updated document to elasticsearch index: " + documentId);
                 return true;
