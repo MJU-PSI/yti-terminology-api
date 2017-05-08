@@ -44,8 +44,7 @@
   ],
   "properties": {
     "id": {
-      "type": "keyword",
-      "index": false
+      "type": "keyword"
     },
     "modified": {
       "type": "date",
