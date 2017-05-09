@@ -82,6 +82,16 @@ public class TermedJsonService  {
 					}
 				}
 
+				// FIXME: copy paste with TermedExtJsonService
+				JsonObject lowercaseLabel = new JsonObject();
+				output.add("sortByLabel", lowercaseLabel);
+
+				for (Map.Entry<String, JsonElement> labelEntry : outputLabelObj.entrySet()) {
+					JsonElement value = labelEntry.getValue();
+					JsonElement label = value.isJsonArray() ? value.getAsJsonArray().get(0) : value;
+					lowercaseLabel.addProperty(labelEntry.getKey(), label.getAsString().toLowerCase());
+				}
+
 				if (!isEmptyAsObject(conceptJsonObj.get("references")) &&
 						!isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("altLabelXl"))) {
 

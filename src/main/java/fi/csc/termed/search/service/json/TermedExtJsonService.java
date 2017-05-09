@@ -5,10 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import static fi.csc.termed.search.service.json.JsonTools.*;
 
 /**
@@ -86,6 +86,16 @@ public class TermedExtJsonService  {
 						setLabelsFromJson(prefLabelXlElem.getAsJsonObject(), outputLabelObj);
 					}
 				}
+			}
+
+			// FIXME: copy paste with TermedJsonService
+			JsonObject lowercaseLabel = new JsonObject();
+			output.add("sortByLabel", lowercaseLabel);
+
+			for (Map.Entry<String, JsonElement> labelEntry : outputLabelObj.entrySet()) {
+				JsonElement value = labelEntry.getValue();
+				JsonElement label = value.isJsonArray() ? value.getAsJsonArray().get(0) : value;
+				lowercaseLabel.addProperty(labelEntry.getKey(), label.getAsString().toLowerCase());
 			}
 
 			if(!isEmptyAsObject(conceptJsonObj.get("references")) &&

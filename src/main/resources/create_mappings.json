@@ -5,12 +5,15 @@
         "path_match":   "label.*",
         "mapping": {
           "type": "text",
-          "analyzer": "termed",
-          "fields": {
-            "exact": {
-              "type": "keyword"
-            }
-          }
+          "analyzer": "termed"
+        }
+      }
+    },
+    {
+      "sortByLabel": {
+        "path_match": "sortByLabel.*",
+        "mapping": {
+          "type": "keyword"
         }
       }
     },
