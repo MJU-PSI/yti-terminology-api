@@ -56,11 +56,7 @@ public class TermedJsonService  {
 				getBroaderIds(conceptJsonObj).forEach(bId -> outputBroaderArray.add(bId));
 				getNarrowerIds(conceptJsonObj).forEach(nId -> outputNarrowerArray.add(nId));
 
-				if (outputNarrowerArray.size() > 0) {
-					output.addProperty("hasNarrower", "true");
-				} else {
-					output.addProperty("hasNarrower", "false");
-				}
+				output.addProperty("hasNarrower",outputNarrowerArray.size() > 0);
 
 				if (!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 						!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("status"))) {
