@@ -8,7 +8,6 @@ import fi.csc.termed.search.Application;
 import fi.csc.termed.search.domain.Notification;
 import fi.csc.termed.search.service.api.TermedApiService;
 import fi.csc.termed.search.service.api.TermedExtApiService;
-import fi.csc.termed.search.service.json.JsonTools;
 import fi.csc.termed.search.service.json.TermedExtJsonService;
 import fi.csc.termed.search.service.json.TermedJsonService;
 import org.apache.http.HttpEntity;
@@ -21,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
@@ -69,7 +69,11 @@ public class ElasticSearchService {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    public ElasticSearchService(Application application, TermedApiService termedApiService, TermedExtApiService termedExtApiService, TermedJsonService termedJsonService, TermedExtJsonService termedExtJsonService) {
+    public ElasticSearchService(Application application,
+                                TermedApiService termedApiService,
+                                TermedExtApiService termedExtApiService,
+                                TermedJsonService termedJsonService,
+                                TermedExtJsonService termedExtJsonService) {
         this.application = application;
         this.termedApiService = termedApiService;
         this.termedExtApiService = termedExtApiService;
@@ -257,8 +261,8 @@ public class ElasticSearchService {
     }
 
     private boolean createIndex() {
-        HttpEntity entity = new NStringEntity(JsonTools.getJsonFileAsString(CREATE_INDEX_FILENAME), ContentType.APPLICATION_JSON);
         try {
+            HttpEntity entity = createHttpEntity(CREATE_INDEX_FILENAME);
             log.info("Trying to create elasticsearch index: " + INDEX_NAME);
             esRestClient.performRequest("PUT", "/" + INDEX_NAME, Collections.singletonMap("pretty", "true"), entity);
             log.info("elasticsearch index successfully created: " + INDEX_NAME);
@@ -271,8 +275,8 @@ public class ElasticSearchService {
     }
 
     private boolean createMapping() {
-        HttpEntity entity = new NStringEntity(JsonTools.getJsonFileAsString(CREATE_MAPPINGS_FILENAME), ContentType.APPLICATION_JSON);
         try {
+            HttpEntity entity = createHttpEntity(CREATE_MAPPINGS_FILENAME);
             log.info("Trying to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
             esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, Collections.singletonMap("pretty", "true"), entity);
             log.info("elasticsearch index mapping type successfully created: " + INDEX_MAPPING_TYPE);
@@ -360,6 +364,13 @@ public class ElasticSearchService {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private static HttpEntity createHttpEntity(String classPathResourceJsonFile) throws IOException {
+        ClassPathResource resource = new ClassPathResource(classPathResourceJsonFile);
+        InputStreamReader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+        String resourceJsonAsString = new JsonParser().parse(reader).toString();
+        return new NStringEntity(resourceJsonAsString, ContentType.APPLICATION_JSON);
     }
 
     @PreDestroy

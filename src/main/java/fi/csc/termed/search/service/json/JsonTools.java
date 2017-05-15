@@ -2,8 +2,6 @@ package fi.csc.termed.search.service.json;
 
 import com.google.gson.*;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,22 +10,6 @@ import java.util.stream.Collectors;
  * Created by jmlehtin on 27/4/2017.
  */
 public final class JsonTools {
-
-	public static String getJsonFileAsString(String filename) {
-		try {
-			JsonParser parser = new JsonParser();
-			return parser.parse(new FileReader(JsonTools.class.getClassLoader().getResource(filename).getFile())).toString();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		} catch (JsonIOException e) {
-			e.printStackTrace();
-			return null;
-		} catch (JsonSyntaxException e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
 
 	protected static boolean isEmptyAsString(JsonElement el) {
 		return el == null || !el.isJsonPrimitive() || "".equals(el.getAsString());
