@@ -58,7 +58,6 @@ public class ElasticSearchService {
     @Value("${search.index.deleteIndexOnAppRestart}")
     private boolean DELETE_INDEX_ON_APP_RESTART;
 
-    private Application application;
     private RestClient esRestClient;
     private TermedExtApiService termedExtApiService;
     private TermedApiService termedApiService;
@@ -69,12 +68,10 @@ public class ElasticSearchService {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    public ElasticSearchService(Application application,
-                                TermedApiService termedApiService,
+    public ElasticSearchService(TermedApiService termedApiService,
                                 TermedExtApiService termedExtApiService,
                                 TermedJsonService termedJsonService,
                                 TermedExtJsonService termedExtJsonService) {
-        this.application = application;
         this.termedApiService = termedApiService;
         this.termedExtApiService = termedExtApiService;
         this.termedJsonService = termedJsonService;
