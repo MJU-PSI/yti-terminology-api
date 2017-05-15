@@ -22,10 +22,6 @@ import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.*;
 
-/**
- * Created by jmlehtin on 28/3/2017.
- */
-
 @Service
 public class TermedApiService extends ApiTools {
 
@@ -50,9 +46,9 @@ public class TermedApiService extends ApiTools {
 	@Value("${api.eventHook.delete.urlContext}")
 	private String API_DELETE_LISTENER_URL_CONTEXT;
 
-	private HttpClient apiClient;
+	private final HttpClient apiClient;
 
-	private TermedJsonService termedJsonService;
+	private final  TermedJsonService termedJsonService;
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -89,8 +85,8 @@ public class TermedApiService extends ApiTools {
 				BufferedReader rd = new BufferedReader(
 						new InputStreamReader(resp.getEntity().getContent()));
 
-				StringBuffer result = new StringBuffer();
-				String line = "";
+				StringBuilder result = new StringBuilder();
+				String line;
 				while ((line = rd.readLine()) != null) {
 					result.append(line);
 				}

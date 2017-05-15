@@ -58,11 +58,11 @@ public class ElasticSearchService {
     private boolean DELETE_INDEX_ON_APP_RESTART;
 
     private RestClient esRestClient;
-    private TermedExtApiService termedExtApiService;
-    private TermedApiService termedApiService;
-    private TermedExtJsonService termedExtJsonService;
-    private TermedJsonService termedJsonService;
-    private JsonParser gsonParser;
+    private final TermedExtApiService termedExtApiService;
+    private final TermedApiService termedApiService;
+    private final TermedExtJsonService termedExtJsonService;
+    private final TermedJsonService termedJsonService;
+    private final JsonParser gsonParser;
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -101,7 +101,7 @@ public class ElasticSearchService {
         }
     }
 
-    public JsonElement getDocumentFromIndex(String documentId) {
+    private JsonElement getDocumentFromIndex(String documentId) {
         if(documentId != null) {
             try {
                 Response resp = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId + "/_source");
@@ -322,7 +322,7 @@ public class ElasticSearchService {
         }
     }
 
-    private boolean deleteDocumentsFromIndexByVocabularyId(String vocabularyId) {
+    private void deleteDocumentsFromIndexByVocabularyId(String vocabularyId) {
         if(vocabularyId != null) {
             try {
                 HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + vocabularyId + "\"}}}", ContentType.APPLICATION_JSON);
@@ -331,7 +331,6 @@ public class ElasticSearchService {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
                     log.info(reader.lines().collect(Collectors.joining("\n")));
                     log.info("Successfully deleted documents from elasticsearch index from vocabulary: " + vocabularyId);
-                    return true;
                 } else {
                     log.error("Unable to delete documents from elasticsearch index");
                 }
@@ -340,10 +339,9 @@ public class ElasticSearchService {
                 e.printStackTrace();
             }
         }
-        return false;
     }
 
-    public boolean deleteAllDocumentsFromIndex() {
+    public void deleteAllDocumentsFromIndex() {
         try {
             HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
             Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
@@ -351,7 +349,6 @@ public class ElasticSearchService {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
                 log.info(reader.lines().collect(Collectors.joining("\n")));
                 log.info("Successfully deleted all documents from elasticsearch index");
-                return true;
             } else {
                 log.error("Unable to delete documents from elasticsearch index");
             }
@@ -359,7 +356,6 @@ public class ElasticSearchService {
             log.error("Unable to delete documents from elasticsearch index");
             e.printStackTrace();
         }
-        return false;
     }
 
     private static HttpEntity createHttpEntity(String classPathResourceJsonFile) throws IOException {

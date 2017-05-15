@@ -13,10 +13,6 @@ import java.util.List;
 import java.util.Map;
 import static fi.csc.termed.search.service.json.JsonTools.*;
 
-/**
- * Created by jmlehtin on 28/3/2017.
- */
-
 @Service
 public class TermedJsonService  {
 
@@ -53,8 +49,8 @@ public class TermedJsonService  {
 				}
 
 
-				getBroaderIds(conceptJsonObj).forEach(bId -> outputBroaderArray.add(bId));
-				getNarrowerIds(conceptJsonObj).forEach(nId -> outputNarrowerArray.add(nId));
+				getBroaderIds(conceptJsonObj).forEach(outputBroaderArray::add);
+				getNarrowerIds(conceptJsonObj).forEach(outputNarrowerArray::add);
 
 				output.addProperty("hasNarrower",outputNarrowerArray.size() > 0);
 
@@ -145,38 +141,26 @@ public class TermedJsonService  {
 		return narrowerIds;
 	}
 
-	public boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
-		if(!hasValidId((conceptJsonObj))) {
-			return false;
-		}
+	private boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
 
-		if(!hasValidGraphId(conceptJsonObj)) {
-			return false;
-		}
+		boolean hasPrefLabel =
+				isEmptyAsObject(conceptJsonObj.get("properties")) ||
+						isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
+						isEmptyAsObject(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"));
 
-		if( (	isEmptyAsObject(conceptJsonObj.get("properties")) ||
-				isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
-				isEmptyAsObject(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))
-		)
-				||
-				(	isEmptyAsObject(conceptJsonObj.get("references")) ||
+		boolean hasPrefLabelXl =
+				isEmptyAsObject(conceptJsonObj.get("references")) ||
 						isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("prefLabelXl")) ||
 						isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0)) ||
-						isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().get("id"))
-				)
-			) {
-			return true;
-		}
-		return false;
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().get("id"));
+
+		return hasValidId(conceptJsonObj) && hasValidGraphId(conceptJsonObj) && (hasPrefLabel || hasPrefLabelXl);
 	}
 
 	public boolean isConceptNode(JsonObject jsonObj) {
-		if(hasTypeId(jsonObj)) {
-			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Concept");
-		}
-		return false;
+		return hasTypeId(jsonObj) && jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Concept");
 	}
 
 	public boolean isVocabularyNode(JsonObject jsonObj) {
@@ -188,14 +172,10 @@ public class TermedJsonService  {
 	}
 
 	public boolean isTermNode(JsonObject jsonObj) {
-		if(hasTypeId(jsonObj)) {
-			return jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Term");
-		}
-		return false;
+		return hasTypeId(jsonObj) && jsonObj.get("type").getAsJsonObject().get("id").getAsString().equals("Term");
 	}
 
 	private boolean hasTypeId(JsonObject jsonObj) {
 		return jsonObj.get("type") != null && jsonObj.get("type").getAsJsonObject().get("id") != null;
 	}
-
 }

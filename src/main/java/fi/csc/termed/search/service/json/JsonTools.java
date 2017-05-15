@@ -6,20 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Created by jmlehtin on 27/4/2017.
- */
 public final class JsonTools {
 
-	protected static boolean isEmptyAsString(JsonElement el) {
+	static boolean isEmptyAsString(JsonElement el) {
 		return el == null || !el.isJsonPrimitive() || "".equals(el.getAsString());
 	}
 
-	protected static boolean isEmptyAsArray(JsonElement el) {
+	static boolean isEmptyAsArray(JsonElement el) {
 		return el == null || !el.isJsonArray() || el.getAsJsonArray().size() == 0;
 	}
 
-	protected static boolean isEmptyAsObject(JsonElement el) {
+	static boolean isEmptyAsObject(JsonElement el) {
 		return el == null || !el.isJsonObject();
 	}
 
@@ -30,42 +27,29 @@ public final class JsonTools {
 		return new ArrayList<>();
 	}
 
-	protected static boolean hasValidGraphId(JsonObject jsonObj) {
-		if(	isEmptyAsObject(jsonObj.get("type")) ||
+	static boolean hasValidGraphId(JsonObject jsonObj) {
+		return !(isEmptyAsObject(jsonObj.get("type")) ||
 				isEmptyAsObject(jsonObj.getAsJsonObject("type").get("graph")) ||
-				isEmptyAsString(jsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id"))) {
-			return false;
-		}
-		return true;
+				isEmptyAsString(jsonObj.getAsJsonObject("type").getAsJsonObject("graph").get("id")));
 	}
 
-	protected static boolean hasValidId(JsonObject jsonObj) {
-		if(isEmptyAsString(jsonObj.get("id"))) {
-			return false;
-		}
-		return true;
+	static boolean hasValidId(JsonObject jsonObj) {
+		return !isEmptyAsString(jsonObj.get("id"));
 	}
 
 	public static boolean isValidVocabularyJsonForIndex(JsonObject vocabularyJsonObj) {
-		if(!hasValidId((vocabularyJsonObj))) {
-			return false;
-		}
 
-		if(!hasValidGraphId(vocabularyJsonObj)) {
-			return false;
-		}
+		boolean hasPrefLabel =
+				!(isEmptyAsObject(vocabularyJsonObj.get("properties")) ||
+						isEmptyAsArray(vocabularyJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
+						isEmptyAsObject(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+						isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+						isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value")));
 
-		if(	isEmptyAsObject(vocabularyJsonObj.get("properties")) ||
-				isEmptyAsArray(vocabularyJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
-				isEmptyAsObject(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
-				isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
-				isEmptyAsString(vocabularyJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))) {
-			return false;
-		}
-		return true;
+		return hasValidId(vocabularyJsonObj) && hasValidGraphId(vocabularyJsonObj) && hasPrefLabel;
 	}
 
-	protected static void setDefinition(JsonObject conceptJsonObj, JsonObject output) {
+	static void setDefinition(JsonObject conceptJsonObj, JsonObject output) {
 		if(	!isEmptyAsObject(conceptJsonObj.get("properties")) &&
 				!isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("definition"))) {
 
@@ -99,7 +83,7 @@ public final class JsonTools {
 		return prefLabelAdded;
 	}
 
-	protected static void setAltLabelsFromPrefLabelArray(JsonArray prefLabelArray, JsonObject altLabelOutputObj) {
+	static void setAltLabelsFromPrefLabelArray(JsonArray prefLabelArray, JsonObject altLabelOutputObj) {
 		for (JsonElement prefLabelInAltLabel : prefLabelArray) {
 			if (!isEmptyAsObject(prefLabelInAltLabel)) {
 				if (!isEmptyAsString(prefLabelInAltLabel.getAsJsonObject().get("lang")) && !isEmptyAsString(prefLabelInAltLabel.getAsJsonObject().get("value"))) {

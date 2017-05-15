@@ -20,9 +20,6 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * Created by jmlehtin on 27/4/2017.
- */
 public abstract class ApiTools {
 
 	@Value("${api.user}")
@@ -31,8 +28,8 @@ public abstract class ApiTools {
 	@Value("${api.pw}")
 	private String API_PW;
 
-	private HttpClient apiClient;
-	private JsonParser gsonParser;
+	private final HttpClient apiClient;
+	private final JsonParser gsonParser;
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -41,11 +38,11 @@ public abstract class ApiTools {
 		this.gsonParser = new JsonParser();
 	}
 
-	protected String getAuthHeader() {
-		return "Basic " + new String(Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes()));
+	String getAuthHeader() {
+		return "Basic " + Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
 	}
 
-	protected List<JsonObject> fetchJsonObjectsInArrayFromUrl(String url) {
+	List<JsonObject> fetchJsonObjectsInArrayFromUrl(String url) {
 		List<JsonObject> allObjects = new ArrayList<>();
 		HttpGet getObjectsReq = new HttpGet(url);
 		try {
@@ -77,7 +74,7 @@ public abstract class ApiTools {
 		return allObjects;
 	}
 
-	protected JsonObject fetchJsonObjectFromUrl(String url) {
+	JsonObject fetchJsonObjectFromUrl(String url) {
 		if(url != null) {
 			HttpGet getRequest = new HttpGet(url);
 			try {

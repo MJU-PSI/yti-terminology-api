@@ -7,16 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Created by jmlehtin on 28/4/2017.
- */
-
 @Component
 public class ReindexTask {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-	private ElasticSearchService esService;
+	private final ElasticSearchService esService;
 
 	@Autowired
 	public ReindexTask(ElasticSearchService esService) {

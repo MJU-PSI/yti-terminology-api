@@ -11,10 +11,6 @@ import org.springframework.stereotype.Service;
 import java.text.MessageFormat;
 import java.util.List;
 
-/**
- * Created by jmlehtin on 28/3/2017.
- */
-
 @Service
 public class TermedExtApiService extends ApiTools {
 

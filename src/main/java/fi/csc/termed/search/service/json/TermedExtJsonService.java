@@ -11,10 +11,6 @@ import java.util.Map;
 
 import static fi.csc.termed.search.service.json.JsonTools.*;
 
-/**
- * Created by jmlehtin on 28/3/2017.
- */
-
 @Service
 public class TermedExtJsonService  {
 
@@ -120,35 +116,27 @@ public class TermedExtJsonService  {
 		return null;
 	}
 
-	public boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
-		if(!hasValidId((conceptJsonObj))) {
-			return false;
-		}
+	private boolean isValidConceptJsonForIndex(JsonObject conceptJsonObj) {
 
-		if(!hasValidGraphId(conceptJsonObj)) {
-			return false;
-		}
+		boolean hasPrefLabel =
+				isEmptyAsObject(conceptJsonObj.get("properties")) ||
+						isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
+						isEmptyAsObject(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"));
 
-		if( (	isEmptyAsObject(conceptJsonObj.get("properties")) ||
-				isEmptyAsArray(conceptJsonObj.getAsJsonObject("properties").get("prefLabel")) ||
-				isEmptyAsObject(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))
-			)
-		||
-			(	isEmptyAsObject(conceptJsonObj.get("references")) ||
-				isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("prefLabelXl")) ||
-				isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0)) ||
-				isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().get("properties")) ||
-				isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").get("prefLabel")) ||
-				isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
-				isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"))
-			)
-		) {
-			return true;
-		}
-		return false;
+		boolean hasPrefLabelXl =
+				isEmptyAsObject(conceptJsonObj.get("references")) ||
+						isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").get("prefLabelXl")) ||
+						isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0)) ||
+						isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().get("properties")) ||
+						isEmptyAsArray(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").get("prefLabel")) ||
+						isEmptyAsObject(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0)) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("lang")) ||
+						isEmptyAsString(conceptJsonObj.getAsJsonObject("references").getAsJsonArray("prefLabelXl").get(0).getAsJsonObject().getAsJsonObject("properties").getAsJsonArray("prefLabel").get(0).getAsJsonObject().get("value"));
+
+
+		return hasValidId(conceptJsonObj) && hasValidGraphId(conceptJsonObj) && (hasPrefLabel || hasPrefLabelXl);
 	}
 
 

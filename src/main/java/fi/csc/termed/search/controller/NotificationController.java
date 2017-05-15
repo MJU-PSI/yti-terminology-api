@@ -17,7 +17,7 @@ import java.io.IOException;
 public class NotificationController {
 
     private final ElasticSearchService elasticSearchService;
-    private TermedApiService termedApiService;
+    private final TermedApiService termedApiService;
 
     private static String hookId = null;
 
