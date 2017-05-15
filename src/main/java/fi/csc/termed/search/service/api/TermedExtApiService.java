@@ -3,12 +3,8 @@ package fi.csc.termed.search.service.api;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fi.csc.termed.search.service.json.JsonTools;
-import fi.csc.termed.search.service.json.TermedExtJsonService;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -37,17 +33,7 @@ public class TermedExtApiService extends ApiTools {
 	@Value("${api.vocabulary.get.one.urlContext}")
 	private String GET_ONE_VOCABULARY_URL_CONTEXT;
 
-	private HttpClient apiClient;
-
-	private TermedExtJsonService termedExtJsonService;
-
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
-
-	@Autowired
-	public TermedExtApiService(TermedExtJsonService termedExtJsonService) {
-		this.termedExtJsonService = termedExtJsonService;
-		this.apiClient = HttpClientBuilder.create().build();
-	}
 
 	public JsonObject fetchConcept(String vocabularyId, String conceptId) {
 		if(vocabularyId != null && conceptId != null) {

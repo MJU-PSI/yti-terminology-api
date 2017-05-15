@@ -2,9 +2,7 @@ package fi.csc.termed.search.service.api;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import fi.csc.termed.search.service.json.JsonTools;
-import fi.csc.termed.search.service.json.TermedExtJsonService;
 import fi.csc.termed.search.service.json.TermedJsonService;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -54,20 +52,14 @@ public class TermedApiService extends ApiTools {
 
 	private HttpClient apiClient;
 
-	private TermedExtJsonService termedExtJsonService;
 	private TermedJsonService termedJsonService;
-	private JsonParser gsonParser;
-
-	private static Map<String, JsonElement> vocabularyCache = new HashMap<>();
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	@Autowired
-	public TermedApiService(TermedExtJsonService termedExtJsonService, TermedJsonService termedJsonService) {
-		this.termedExtJsonService = termedExtJsonService;
+	public TermedApiService(TermedJsonService termedJsonService) {
 		this.termedJsonService = termedJsonService;
 		this.apiClient = HttpClientBuilder.create().build();
-		this.gsonParser = new JsonParser();
 	}
 
 	public boolean deleteChangeListener(String hookId) {
