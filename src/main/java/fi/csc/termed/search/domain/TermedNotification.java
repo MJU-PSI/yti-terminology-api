@@ -2,7 +2,7 @@ package fi.csc.termed.search.domain;
 
 import java.util.Date;
 
-public class Notification {
+public class TermedNotification {
 
     public static class Graph {
 

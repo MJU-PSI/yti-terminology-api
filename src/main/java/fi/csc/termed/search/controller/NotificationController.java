@@ -1,6 +1,6 @@
 package fi.csc.termed.search.controller;
 
-import fi.csc.termed.search.domain.Notification;
+import fi.csc.termed.search.domain.TermedNotification;
 import fi.csc.termed.search.service.ElasticSearchService;
 import fi.csc.termed.search.service.api.TermedApiService;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ public class NotificationController {
     }
 
     @RequestMapping("/notify")
-    public void notify(@RequestBody Notification notification) throws IOException, InterruptedException {
+    public void notify(@RequestBody TermedNotification notification) throws IOException, InterruptedException {
         log.debug("Notification received");
 
         synchronized(this.lock) {

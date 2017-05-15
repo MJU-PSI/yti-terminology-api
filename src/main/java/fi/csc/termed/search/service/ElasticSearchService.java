@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import fi.csc.termed.search.domain.Notification;
+import fi.csc.termed.search.domain.TermedNotification;
 import fi.csc.termed.search.service.api.TermedApiService;
 import fi.csc.termed.search.service.api.TermedExtApiService;
 import fi.csc.termed.search.service.json.TermedExtJsonService;
@@ -125,7 +125,7 @@ public class ElasticSearchService {
                 .collect(Collectors.toList());
     }
 
-    public void updateIndexAfterConceptEvent(Notification notification) {
+    public void updateIndexAfterConceptEvent(TermedNotification notification) {
         String conceptId = notification.getBody().getNode().getId();
         String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
         JsonElement previousIndexedConcept = getDocumentFromIndex(conceptId);
@@ -193,7 +193,7 @@ public class ElasticSearchService {
         return output;
     }
 
-    public void updateIndexAfterVocabularyEvent(Notification notification) {
+    public void updateIndexAfterVocabularyEvent(TermedNotification notification) {
         String vocabularyId = notification.getBody().getNode().getType().getGraph().getId();
         if(vocabularyId != null) {
             deleteDocumentsFromIndexByVocabularyId(vocabularyId);
