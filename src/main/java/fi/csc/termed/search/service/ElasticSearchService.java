@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import fi.csc.termed.search.Application;
 import fi.csc.termed.search.domain.Notification;
 import fi.csc.termed.search.service.api.TermedApiService;
 import fi.csc.termed.search.service.api.TermedExtApiService;
