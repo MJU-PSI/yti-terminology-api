@@ -21,7 +21,7 @@ public class NotificationController {
 
     private static String hookId = null;
 
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
