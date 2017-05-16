@@ -1,4 +1,6 @@
-package fi.csc.termed.search.domain;
+package fi.csc.termed.search.dto;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Date;
 
@@ -8,6 +10,7 @@ public class TermedNotification {
 
         private String id;
 
+        @NotNull
         public String getId() {
             return id;
         }
@@ -53,6 +56,7 @@ public class TermedNotification {
         private String id;
         private Type type;
 
+        @NotNull
         public Type getType() {
             return type;
         }
@@ -61,6 +65,7 @@ public class TermedNotification {
             this.type = type;
         }
 
+        @NotNull
         public String getId() {
             return id;
         }
@@ -75,6 +80,7 @@ public class TermedNotification {
         private TypeId id;
         private Graph graph;
 
+        @NotNull
         public Graph getGraph() {
             return graph;
         }
@@ -83,6 +89,7 @@ public class TermedNotification {
             this.graph = graph;
         }
 
+        @NotNull
         public TypeId getId() {
             return id;
         }
@@ -109,6 +116,7 @@ public class TermedNotification {
     private EventType type;
     private Body body;
 
+    @NotNull
     public EventType getType() {
         return type;
     }
@@ -117,6 +125,7 @@ public class TermedNotification {
         this.type = type;
     }
 
+    @NotNull
     public Body getBody() {
         return body;
     }

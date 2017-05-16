@@ -1,8 +1,8 @@
 package fi.csc.termed.search.controller;
 
-import fi.csc.termed.search.domain.TermedNotification;
+import fi.csc.termed.search.dto.TermedNotification;
 import fi.csc.termed.search.service.ElasticSearchService;
-import fi.csc.termed.search.service.api.TermedApiService;
+import fi.csc.termed.search.service.TermedApiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
