@@ -60,6 +60,7 @@ public final class Concept {
 
         JsonObject properties = conceptJson.getAsJsonObject("properties");
         JsonObject references = conceptJson.getAsJsonObject("references");
+        JsonObject referrers = conceptJson.getAsJsonObject("referrers");
 
         Map<String, List<String>> label =
                 properties.has("prefLabel")
@@ -80,7 +81,7 @@ public final class Concept {
         String status = getSinglePropertyValue(properties, "status");
 
         List<String> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
-        List<String> narrowerIds = getReferenceIdsFromTermedReferences(references, "narrower");
+        List<String> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
 
         return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate);
     }

@@ -30,6 +30,8 @@ import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static fi.csc.termed.search.util.JsonUtils.asStream;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -110,7 +112,7 @@ public class TermedApiService {
                 .collect(toList());
 	}
 
-	@NotNull List<Concept> getAllConceptsForGraph(String graphId) {
+	@NotNull List<Concept> getAllConceptsForGraph(@NotNull String graphId) {
 
 	    AllNodesResult allNodesResult = this.fetchAllNodesInGraph(graphId);
 
@@ -122,11 +124,11 @@ public class TermedApiService {
                     .collect(toList());
         } else {
             log.warn("Vocabulary not found for graph: " + graphId);
-            return Collections.emptyList();
+            return emptyList();
         }
 	}
 
-    @NotNull List<Concept> getConcepts(String graphId, Collection<String> ids) {
+    @NotNull List<Concept> getConcepts(@NotNull String graphId, @NotNull Collection<String> ids) {
 
         Vocabulary vocabulary = getVocabulary(graphId);
 
@@ -136,11 +138,11 @@ public class TermedApiService {
                     .filter(Objects::nonNull)
                     .collect(toList());
         } else {
-            return Collections.emptyList();
+            return emptyList();
         }
     }
 
-    @Nullable Concept getConcept(String graphId, String conceptId) {
+    @Nullable Concept getConcept(@NotNull String graphId, @NotNull String conceptId) {
 
         Vocabulary vocabulary = getVocabulary(graphId);
 
@@ -151,31 +153,39 @@ public class TermedApiService {
         }
     }
 
-    private @Nullable Concept getConcept(String conceptId, Vocabulary vocabulary) {
+    private @Nullable Concept getConcept(@NotNull String conceptId, @NotNull Vocabulary vocabulary) {
 
         Parameters params = new Parameters();
+        params.add("select", "id");
+        params.add("select", "type");
+        params.add("select", "code");
+        params.add("select", "uri");
+        params.add("select", "createdBy");
+        params.add("select", "createdDate");
+        params.add("select", "lastModifiedBy");
+        params.add("select", "lastModifiedDate");
+        params.add("select", "properties.prefLabel");
+        params.add("select", "properties.definition");
+        params.add("select", "properties.status");
+        params.add("select", "references.prefLabelXl:2");
+        params.add("select", "references.altLabelXl:2");
+        params.add("select", "references.broader");
+        params.add("select", "referrers.broader");
+        params.add("where", "graph.id:" + vocabulary.getGraphId());
+        params.add("where", "id:" + conceptId);
         params.add("max", "-1");
-        params.add("graphId", vocabulary.getGraphId());
-        params.add("uri", "urn:uuid:" + conceptId);
-        params.add("select.properties", "prefLabel");
-        params.add("select.properties", "definition");
-        params.add("select.properties", "status");
-        params.add("select.references", "prefLabelXl");
-        params.add("select.references", "altLabelXl");
-        params.add("select.references", "broader");
-        params.add("select.audit", "true");
+        
+	    JsonObject result = single(fetchJsonObjectsInArrayFromUrl(createUrl("/node-trees", params)));
 
-	    JsonObject jsonObject = fetchJsonObjectFromUrl(createUrl("/ext.json", params));
-
-        if (jsonObject != null) {
-            return Concept.createFromExtJson(jsonObject, vocabulary);
+        if (result != null) {
+            return Concept.createFromExtJson(result, vocabulary);
         } else {
             log.warn("Concept not found: " + conceptId);
             return null;
         }
     }
 
-    private @Nullable Vocabulary getVocabulary(String graphId) {
+    private @Nullable Vocabulary getVocabulary(@NotNull String graphId) {
 
 	    JsonObject vocabularyNode = getVocabularyNode(graphId);
 
@@ -187,106 +197,77 @@ public class TermedApiService {
         }
     }
 
-    private @Nullable JsonObject getVocabularyNode(String graphId) {
+    private @Nullable JsonObject getVocabularyNode(@NotNull String graphId) {
 
-        Parameters terminologicalVocabularyParams = new Parameters();
-        terminologicalVocabularyParams.add("graphId", graphId);
-        terminologicalVocabularyParams.add("typeId", VocabularyType.TerminologicalVocabulary.name());
-        terminologicalVocabularyParams.add("select.referrers", "");
+        JsonObject json = getVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
 
-        Parameters vocabularyParams = new Parameters();
-        vocabularyParams.add("graphId", graphId);
-        vocabularyParams.add("typeId", VocabularyType.Vocabulary.name());
-        vocabularyParams.add("select.referrers", "");
-
-        if (graphId != null) {
-            List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(createUrl("/ext.json", terminologicalVocabularyParams));
-            if(retObj.size() == 0) {
-                log.info("Vocabulary for graph " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
-                retObj = fetchJsonObjectsInArrayFromUrl(createUrl("/ext.json", vocabularyParams));
-            }
-            return retObj.get(0);
+        if (json != null) {
+            return json;
+        } else {
+            log.info("Vocabulary for graph " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
+            return getVocabularyNode(graphId, VocabularyType.Vocabulary);
         }
-        log.warn("Graph id not supplied for fetching vocabulary data from termed API");
-        return null;
+    }
+
+    private @Nullable JsonObject getVocabularyNode(@NotNull String graphId, @NotNull VocabularyType vocabularyType) {
+
+        Parameters params = new Parameters();
+        params.add("select", "id");
+        params.add("select", "type");
+        params.add("select", "properties.*");
+        params.add("where", "graph.id:" + graphId);
+        params.add("where", "type.id:" + vocabularyType.name());
+        params.add("max", "-1");
+
+        return single(fetchJsonObjectsInArrayFromUrl(createUrl("/node-trees", params)));
     }
 
     private @NotNull AllNodesResult fetchAllNodesInGraph(String graphId) {
         return new AllNodesResult(fetchJsonObjectsInArrayFromUrl(createUrl("/graphs/" + graphId + "/nodes", Parameters.single("max", "-1"))));
     }
 
-    private @NotNull List<JsonObject> fetchJsonObjectsInArrayFromUrl(String url) {
+    private @NotNull List<JsonObject> fetchJsonObjectsInArrayFromUrl(@NotNull String url) {
 
-        List<JsonObject> allObjects = new ArrayList<>();
-        HttpGet getObjectsReq = new HttpGet(url);
+	    HttpGet getObjectsReq = new HttpGet(url);
+
         try {
             getObjectsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
             HttpResponse resp = apiClient.execute(getObjectsReq);
             if (resp.getStatusLine().getStatusCode() == 200) {
                 JsonArray docs = jsonParser.parse(EntityUtils.toString(resp.getEntity())).getAsJsonArray();
-                Iterator<JsonElement> it = docs.iterator();
-                int fetched = 0;
-                while (it.hasNext()) {
-                    JsonElement docElem = it.next();
-                    if(docElem.isJsonObject()) {
-                        allObjects.add(docElem.getAsJsonObject());
-                        fetched++;
-                    }
-                }
-                log.info("Fetched " + fetched + " objects from termed API from url " + url);
+                List<JsonObject> result = asStream(docs).map(JsonElement::getAsJsonObject).collect(toList());
+                log.info("Fetched " + result.size() + " objects from termed API from url " + url);
+                return result;
             } else {
                 log.warn("Fetching objects failed with code: " + resp.getStatusLine().getStatusCode());
-                return allObjects;
+                return emptyList();
             }
         } catch (IOException e) {
             log.error("Fetching objects failed");
             e.printStackTrace();
-            return allObjects;
+            return emptyList();
         } finally {
             getObjectsReq.releaseConnection();
         }
-        return allObjects;
-    }
-
-    private @Nullable JsonObject fetchJsonObjectFromUrl(String url) {
-        if(url != null) {
-            HttpGet getRequest = new HttpGet(url);
-            try {
-                getRequest.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-                HttpResponse resp = apiClient.execute(getRequest);
-                if (resp.getStatusLine().getStatusCode() == 200) {
-                    String respStr = EntityUtils.toString(resp.getEntity());
-                    JsonObject obj = jsonParser.parse(respStr).getAsJsonObject();
-                    if(obj != null) {
-                        return obj;
-                    } else {
-                        log.error("Unable to parse response JSON from " + url);
-                        return null;
-                    }
-                } else {
-                    log.warn("Fetching JSON from " + url + " failed with code: " + resp.getStatusLine().getStatusCode());
-                    return null;
-                }
-            } catch (IOException e) {
-                log.error("Fetching JSON failed");
-                e.printStackTrace();
-                return null;
-            } finally {
-                getRequest.releaseConnection();
-            }
-        }
-        return null;
     }
 
     private @NotNull String getAuthHeader() {
         return "Basic " + Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
     }
 
-    private String createUrl(String path) {
+    private static @Nullable JsonObject single(@NotNull List<JsonObject> objects) {
+        if (objects.size() == 0) {
+            return null;
+        } else {
+            return objects.get(0);
+        }
+    }
+
+    private @NotNull String createUrl(@NotNull String path) {
         return createUrl(path, new Parameters());
     }
 
-    private String createUrl(String path, Parameters parameters) {
+    private @NotNull String createUrl(@NotNull String path, @NotNull Parameters parameters) {
         return API_URL + path + parameters.toString();
     }
 
@@ -294,13 +275,13 @@ public class TermedApiService {
         
 	    private final List<NameValuePair> parameters = new ArrayList<>();
 
-	    private static Parameters single(String name, String value) {
+	    private static @NotNull Parameters single(@NotNull String name, @NotNull String value) {
             Parameters result = new Parameters();
             result.add(name, value);
             return result;
         }
 	    
-        private void add(String name, String value) {
+        private void add(@NotNull String name, @NotNull String value) {
             this.parameters.add(new BasicNameValuePair(name, value));
         }
 
