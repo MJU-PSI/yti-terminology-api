@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 @Service
 public class ElasticSearchService {
@@ -80,9 +81,9 @@ public class ElasticSearchService {
         }
     }
 
-    private @Nullable Concept getConceptFromIndex(@NotNull String conceptId) {
+    private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
         try {
-            Response resp = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + conceptId + "/_source");
+            Response resp = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId + "/_source");
             if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
                 return Concept.createFromIndex(jsonParser.parse(reader).getAsJsonObject());
@@ -99,7 +100,8 @@ public class ElasticSearchService {
 
         String conceptId = notification.getBody().getNode().getId();
         String graphId = notification.getBody().getNode().getType().getGraph().getId();
-        Concept previousIndexedConcept = getConceptFromIndex(conceptId);
+        String documentId = Concept.formDocumentId(graphId, conceptId);
+        Concept previousIndexedConcept = getConceptFromIndex(documentId);
         List<String> previousBroader = previousIndexedConcept != null ? previousIndexedConcept.getBroaderIds() : emptyList();
         List<String> previousNarrower = previousIndexedConcept != null ? previousIndexedConcept.getNarrowerIds() : emptyList();
 
@@ -142,7 +144,7 @@ public class ElasticSearchService {
                 tryUpdateConceptIds.addAll(previousNarrower);
 
                 List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(graphId, tryUpdateConceptIds);
-                bulkUpdateAndDeleteDocumentsToIndex(possiblyUpdatedConcepts, Collections.singletonList(conceptId), true);
+                bulkUpdateAndDeleteDocumentsToIndex(possiblyUpdatedConcepts, singletonList(documentId), true);
                 break;
         }
     }
@@ -229,7 +231,7 @@ public class ElasticSearchService {
     }
 
     private @NotNull String createBulkIndexMetaAndSource(@NotNull Concept concept) {
-        return "{\"index\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + concept.getId() + "\"}}\n" + concept.toElasticSearchDocument() + "\n";
+        return "{\"index\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument() + "\n";
     }
 
     private @NotNull String createBulkDeleteMeta(@NotNull String documentId) {

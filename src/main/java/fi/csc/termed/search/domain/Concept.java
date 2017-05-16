@@ -147,8 +147,12 @@ public final class Concept {
         }
     }
 
-    public @NotNull String getId() {
-        return id;
+    public @NotNull String getDocumentId() {
+        return formDocumentId(vocabulary.getGraphId(), id);
+    }
+
+    public static @NotNull String formDocumentId(@NotNull String graphId, @NotNull String conceptId) {
+        return graphId + "/" + conceptId;
     }
 
     public @NotNull List<String> getBroaderIds() {
