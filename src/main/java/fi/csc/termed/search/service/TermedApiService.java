@@ -9,11 +9,13 @@ import fi.csc.termed.search.domain.Vocabulary;
 import fi.csc.termed.search.domain.VocabularyType;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,8 +27,8 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.text.MessageFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -39,26 +41,11 @@ public class TermedApiService {
 	@Value("${api.pw}")
 	private String API_PW;
 
-	@Value("${api.host.url}")
-	private String API_HOST_URL;
+	@Value("${api.url}")
+	private String API_URL;
 
-	@Value("${api.vocabulary.get.all.urlContext}")
-	private String GET_ALL_VOCABULARIES_URL_CONTEXT;
-
-    @Value("${api.vocabulary.get.one.urlContext}")
-    private String GET_ONE_VOCABULARY_URL_CONTEXT;
-
-	@Value("${api.vocabulary.nodes.get.all.urlContext}")
-	private String GET_ALL_NODES_IN_VOCABULARY_URL_CONTEXT;
-
-	@Value("${api.eventHook.register.urlContext}")
-	private String API_REGISTER_LISTENER_URL_CONTEXT;
-
-	@Value("${api.eventHook.delete.urlContext}")
-	private String API_DELETE_LISTENER_URL_CONTEXT;
-
-    @Value("${api.concept.get.one.urlContext}")
-    private String GET_ONE_CONCEPT_URL_CONTEXT;
+	@Value("${notify.hook.url}")
+	private String NOTIFY_HOOK_URL;
 
     private final HttpClient apiClient;
     private final JsonParser jsonParser;
@@ -71,7 +58,7 @@ public class TermedApiService {
 	}
 
 	public boolean deleteChangeListener(@NotNull String hookId) {
-		HttpDelete deleteReq = new HttpDelete(API_HOST_URL + MessageFormat.format(API_DELETE_LISTENER_URL_CONTEXT, hookId));
+		HttpDelete deleteReq = new HttpDelete(createUrl("/hooks/" + hookId));
 		deleteReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(deleteReq);
@@ -89,7 +76,7 @@ public class TermedApiService {
 	}
 
 	public @Nullable String registerChangeListener() {
-		HttpPost registerReq = new HttpPost(API_HOST_URL + API_REGISTER_LISTENER_URL_CONTEXT);
+		HttpPost registerReq = new HttpPost(createUrl("/hooks", Parameters.single("url", NOTIFY_HOOK_URL)));
 		registerReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(registerReq);
@@ -118,7 +105,7 @@ public class TermedApiService {
 
 	    log.info("Fetching all graph IDs..");
 
-		return fetchJsonObjectsInArrayFromUrl(API_HOST_URL + GET_ALL_VOCABULARIES_URL_CONTEXT).stream()
+		return fetchJsonObjectsInArrayFromUrl(createUrl("/graphs")).stream()
                 .map(x -> x.get("id").getAsString())
                 .collect(toList());
 	}
@@ -166,7 +153,19 @@ public class TermedApiService {
 
     private @Nullable Concept getConcept(String conceptId, Vocabulary vocabulary) {
 
-	    JsonObject jsonObject = fetchJsonObjectFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_CONCEPT_URL_CONTEXT, vocabulary.getGraphId(), conceptId));
+        Parameters params = new Parameters();
+        params.add("max", "-1");
+        params.add("graphId", vocabulary.getGraphId());
+        params.add("uri", "urn:uuid:" + conceptId);
+        params.add("select.properties", "prefLabel");
+        params.add("select.properties", "definition");
+        params.add("select.properties", "status");
+        params.add("select.references", "prefLabelXl");
+        params.add("select.references", "altLabelXl");
+        params.add("select.references", "broader");
+        params.add("select.audit", "true");
+
+	    JsonObject jsonObject = fetchJsonObjectFromUrl(createUrl("/ext.json", params));
 
         if (jsonObject != null) {
             return Concept.createFromExtJson(jsonObject, vocabulary);
@@ -189,11 +188,22 @@ public class TermedApiService {
     }
 
     private @Nullable JsonObject getVocabularyNode(String graphId) {
+
+        Parameters terminologicalVocabularyParams = new Parameters();
+        terminologicalVocabularyParams.add("graphId", graphId);
+        terminologicalVocabularyParams.add("typeId", VocabularyType.TerminologicalVocabulary.name());
+        terminologicalVocabularyParams.add("select.referrers", "");
+
+        Parameters vocabularyParams = new Parameters();
+        vocabularyParams.add("graphId", graphId);
+        vocabularyParams.add("typeId", VocabularyType.Vocabulary.name());
+        vocabularyParams.add("select.referrers", "");
+
         if (graphId != null) {
-            List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.TerminologicalVocabulary.name()));
+            List<JsonObject> retObj = fetchJsonObjectsInArrayFromUrl(createUrl("/ext.json", terminologicalVocabularyParams));
             if(retObj.size() == 0) {
                 log.info("Vocabulary for graph " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
-                retObj = fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ONE_VOCABULARY_URL_CONTEXT, graphId, VocabularyType.Vocabulary.name()));
+                retObj = fetchJsonObjectsInArrayFromUrl(createUrl("/ext.json", vocabularyParams));
             }
             return retObj.get(0);
         }
@@ -202,7 +212,7 @@ public class TermedApiService {
     }
 
     private @NotNull AllNodesResult fetchAllNodesInGraph(String graphId) {
-        return new AllNodesResult(fetchJsonObjectsInArrayFromUrl(API_HOST_URL + MessageFormat.format(GET_ALL_NODES_IN_VOCABULARY_URL_CONTEXT, graphId)));
+        return new AllNodesResult(fetchJsonObjectsInArrayFromUrl(createUrl("/graphs/" + graphId + "/nodes", Parameters.single("max", "-1"))));
     }
 
     private @NotNull List<JsonObject> fetchJsonObjectsInArrayFromUrl(String url) {
@@ -270,5 +280,44 @@ public class TermedApiService {
 
     private @NotNull String getAuthHeader() {
         return "Basic " + Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
+    }
+
+    private String createUrl(String path) {
+        return createUrl(path, new Parameters());
+    }
+
+    private String createUrl(String path, Parameters parameters) {
+        return API_URL + path + parameters.toString();
+    }
+
+    private static class Parameters {
+        
+	    private final List<NameValuePair> parameters = new ArrayList<>();
+
+	    private static Parameters single(String name, String value) {
+            Parameters result = new Parameters();
+            result.add(name, value);
+            return result;
+        }
+	    
+        private void add(String name, String value) {
+            this.parameters.add(new BasicNameValuePair(name, value));
+        }
+
+        @Override
+        public String toString() {
+
+            StringBuilder result = new StringBuilder();
+
+            if (!parameters.isEmpty()) {
+                result.append("?");
+                result.append(
+                        parameters.stream()
+                                .map(param -> param.getName() + "=" + param.getValue())
+                                .collect(Collectors.joining("&")));
+            }
+
+            return result.toString();
+        }
     }
 }
