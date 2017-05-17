@@ -46,9 +46,6 @@ public class TermedApiService {
 	@Value("${api.url}")
 	private String API_URL;
 
-	@Value("${notify.hook.url}")
-	private String NOTIFY_HOOK_URL;
-
     private final HttpClient apiClient;
     private final JsonParser jsonParser;
 
@@ -77,8 +74,8 @@ public class TermedApiService {
 		return true;
 	}
 
-	public @Nullable String registerChangeListener() {
-		HttpPost registerReq = new HttpPost(createUrl("/hooks", Parameters.single("url", NOTIFY_HOOK_URL)));
+	public @Nullable String registerChangeListener(String url) {
+		HttpPost registerReq = new HttpPost(createUrl("/hooks", Parameters.single("url", url)));
 		registerReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		try {
 			HttpResponse resp = apiClient.execute(registerReq);

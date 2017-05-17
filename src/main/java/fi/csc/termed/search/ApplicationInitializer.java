@@ -5,6 +5,7 @@ import fi.csc.termed.search.service.TermedApiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -20,6 +21,9 @@ public class ApplicationInitializer {
 
     private String hookId;
 
+    @Value("${notify.hook.url}")
+    private String NOTIFY_HOOK_URL;
+
     @Autowired
     public ApplicationInitializer(ElasticSearchService elasticSearchService, TermedApiService termedApiService) {
         this.elasticSearchService = elasticSearchService;
@@ -29,18 +33,23 @@ public class ApplicationInitializer {
     @PostConstruct
     public void onInit() {
         this.elasticSearchService.initIndex();
-        registerNotificationUrl();
+
+        if (!NOTIFY_HOOK_URL.isEmpty()) {
+            registerNotificationUrl(NOTIFY_HOOK_URL);
+        }
     }
 
     @PreDestroy
     public void onDestroy() {
-        this.unRegisterNotificationUrl();
+        if (!NOTIFY_HOOK_URL.isEmpty()) {
+            this.unRegisterNotificationUrl();
+        }
     }
 
-    private void registerNotificationUrl() {
+    private void registerNotificationUrl(String url) {
         log.info("Registering change listener to termed API");
 
-        hookId = termedApiService.registerChangeListener();
+        hookId = termedApiService.registerChangeListener(url);
 
         if (hookId != null) {
             log.info("Registered change listener to termed API with id: " + hookId);
