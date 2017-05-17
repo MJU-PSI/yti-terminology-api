@@ -1,0 +1,62 @@
+package fi.csc.termed.search;
+
+import fi.csc.termed.search.service.ElasticSearchService;
+import fi.csc.termed.search.service.TermedApiService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
+@Component
+public class ApplicationInitializer {
+
+    private final ElasticSearchService elasticSearchService;
+    private final TermedApiService termedApiService;
+
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private String hookId;
+
+    @Autowired
+    public ApplicationInitializer(ElasticSearchService elasticSearchService, TermedApiService termedApiService) {
+        this.elasticSearchService = elasticSearchService;
+        this.termedApiService = termedApiService;
+    }
+
+    @PostConstruct
+    public void onInit() {
+        this.elasticSearchService.initIndex();
+        registerNotificationUrl();
+    }
+
+    @PreDestroy
+    public void onDestroy() {
+        this.unRegisterNotificationUrl();
+    }
+
+    private void registerNotificationUrl() {
+        log.info("Registering change listener to termed API");
+
+        hookId = termedApiService.registerChangeListener();
+
+        if (hookId != null) {
+            log.info("Registered change listener to termed API with id: " + hookId);
+        } else {
+            log.warn("Unable to register change listener to termed API");
+        }
+    }
+
+    private void unRegisterNotificationUrl() {
+        if (hookId != null) {
+            log.info("Deleting change listener from termed API having id: " + hookId);
+            if (termedApiService.deleteChangeListener(hookId)) {
+                log.info("Deleted change listener successfully");
+            } else {
+                log.error("Unable to delete change listener from termed API using id: " + hookId);
+            }
+        }
+    }
+}
