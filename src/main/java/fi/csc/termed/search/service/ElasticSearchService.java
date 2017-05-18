@@ -73,12 +73,7 @@ public class ElasticSearchService {
     }
 
     public void doFullIndexing() {
-
-        List<String> vocabularyIds = termedApiService.fetchAllAvailableGraphIds();
-
-        for (String vocId : vocabularyIds) {
-            indexListOfConceptsInVocabulary(vocId);
-        }
+        termedApiService.fetchAllAvailableGraphIds().forEach(this::indexListOfConceptsInGraph);
     }
 
     private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
@@ -153,19 +148,19 @@ public class ElasticSearchService {
 
         String graphId = notification.getBody().getNode().getType().getGraph().getId();
 
-        deleteDocumentsFromIndexByVocabularyId(graphId);
+        deleteDocumentsFromIndexByGraphId(graphId);
 
         switch (notification.getType()) {
             case NodeSavedEvent:
-                indexListOfConceptsInVocabulary(graphId);
+                indexListOfConceptsInGraph(graphId);
                 break;
         }
     }
 
-    private void indexListOfConceptsInVocabulary(@NotNull String vocabularyId) {
-        log.info("Trying to index concepts of vocabulary " + vocabularyId);
+    private void indexListOfConceptsInGraph(@NotNull String graphId) {
+        log.info("Trying to index concepts of graph " + graphId);
 
-        List<Concept> concepts = termedApiService.getAllConceptsForGraph(vocabularyId);
+        List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
         bulkUpdateAndDeleteDocumentsToIndex(concepts, emptyList(), false);
 
         log.info("Indexed " + concepts.size() + " concepts");
@@ -273,14 +268,14 @@ public class ElasticSearchService {
         }
     }
 
-    private void deleteDocumentsFromIndexByVocabularyId(@NotNull String vocabularyId) {
+    private void deleteDocumentsFromIndexByGraphId(@NotNull String graphId) {
         try {
-            HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + vocabularyId + "\"}}}", ContentType.APPLICATION_JSON);
+            HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
             Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
             if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
                 log.info(reader.lines().collect(Collectors.joining("\n")));
-                log.info("Successfully deleted documents from elasticsearch index from vocabulary: " + vocabularyId);
+                log.info("Successfully deleted documents from elasticsearch index from graph: " + graphId);
             } else {
                 log.error("Unable to delete documents from elasticsearch index");
             }
