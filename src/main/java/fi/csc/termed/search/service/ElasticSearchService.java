@@ -9,6 +9,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -153,7 +154,7 @@ public class ElasticSearchService {
     private void deleteIndex() {
         log.info("Deleting elasticsearch index: " + INDEX_NAME);
 
-        Response response = uncheckException(() -> esRestClient.performRequest("DELETE", "/" + INDEX_NAME));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("DELETE", "/" + INDEX_NAME));
 
         if (isSuccess(response)) {
             log.info("Elasticsearch index deleted: " + INDEX_NAME);
@@ -165,7 +166,7 @@ public class ElasticSearchService {
     private boolean indexExists() {
         log.info("Checking if elasticsearch index exists: " + INDEX_NAME);
 
-        Response response = uncheckException(() -> esRestClient.performRequest("HEAD", "/" + INDEX_NAME));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("HEAD", "/" + INDEX_NAME));
 
         if (response.getStatusLine().getStatusCode() == 404) {
             log.info("Elasticsearch index does not exist: " + INDEX_NAME);
@@ -179,7 +180,7 @@ public class ElasticSearchService {
 
         HttpEntity entity = createHttpEntity(CREATE_INDEX_FILENAME);
         log.info("Trying to create elasticsearch index: " + INDEX_NAME);
-        Response response = uncheckException(() -> esRestClient.performRequest("PUT", "/" + INDEX_NAME, singletonMap("pretty", "true"), entity));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + INDEX_NAME, singletonMap("pretty", "true"), entity));
 
         if (isSuccess(response)) {
             log.info("elasticsearch index successfully created: " + INDEX_NAME);
@@ -195,7 +196,7 @@ public class ElasticSearchService {
         HttpEntity entity = createHttpEntity(CREATE_MAPPINGS_FILENAME);
         log.info("Trying to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
 
-        Response response = uncheckException(() -> esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, singletonMap("pretty", "true"), entity));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, singletonMap("pretty", "true"), entity));
 
         if (isSuccess(response)) {
             log.info("elasticsearch index mapping type successfully created: " + INDEX_MAPPING_TYPE);
@@ -235,7 +236,7 @@ public class ElasticSearchService {
             params.put("refresh", "wait_for");
         }
 
-        Response response = uncheckException(() -> esRestClient.performRequest("POST",  "/_bulk", params, entity));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",  "/_bulk", params, entity));
 
         if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
@@ -249,7 +250,7 @@ public class ElasticSearchService {
     private void deleteDocumentsFromIndexByGraphId(@NotNull String graphId) {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
-        Response response = uncheckException(() -> esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -262,7 +263,7 @@ public class ElasticSearchService {
     public void deleteAllDocumentsFromIndex() {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
-        Response response = uncheckException(() -> esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -274,7 +275,7 @@ public class ElasticSearchService {
 
     private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
 
-        Response response = uncheckException(() -> esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + urlEncode(documentId) + "/_source"));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + urlEncode(documentId) + "/_source"));
 
         if (isSuccess(response)) {
             return Concept.createFromIndex(responseContentAsJson(response).getAsJsonObject());
@@ -283,9 +284,11 @@ public class ElasticSearchService {
         }
     }
 
-    private @NotNull Response uncheckException(@NotNull ResponseSupplier supplier) {
+    private @NotNull Response alsoUnsuccessful(@NotNull ResponseSupplier supplier) {
         try {
             return supplier.get();
+        } catch (ResponseException e) {
+            return e.getResponse();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
