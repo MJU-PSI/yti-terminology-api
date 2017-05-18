@@ -239,7 +239,7 @@ public class TermedApiService {
         }
     }
 
-    private static boolean isSuccess(HttpResponse response) {
+    private static boolean isSuccess(@NotNull HttpResponse response) {
         int statusCode = response.getStatusLine().getStatusCode();
         return statusCode >= 200 && statusCode < 400;
     }
