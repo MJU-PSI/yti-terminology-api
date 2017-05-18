@@ -1,5 +1,6 @@
 package fi.csc.termed.search.service;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import fi.csc.termed.search.domain.Concept;
 import fi.csc.termed.search.dto.TermedNotification;
@@ -21,13 +22,13 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 
 @Service
 public class ElasticSearchService {
@@ -74,21 +75,6 @@ public class ElasticSearchService {
 
     public void doFullIndexing() {
         termedApiService.fetchAllAvailableGraphIds().forEach(this::indexListOfConceptsInGraph);
-    }
-
-    private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
-        try {
-            Response resp = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId + "/_source");
-            if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
-                return Concept.createFromIndex(jsonParser.parse(reader).getAsJsonObject());
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public void updateIndexAfterConceptEvent(@NotNull TermedNotification notification) {
@@ -169,8 +155,9 @@ public class ElasticSearchService {
     private void deleteIndex() {
         log.info("Deleting elasticsearch index: " + INDEX_NAME);
         try {
-            Response resp = esRestClient.performRequest("DELETE", "/" + INDEX_NAME);
-            if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+            Response response = esRestClient.performRequest("DELETE", "/" + INDEX_NAME);
+
+            if(isSuccess(response)) {
                 log.info("Elasticsearch index deleted: " + INDEX_NAME);
             } else {
                 log.info("Elasticsearch index not deleted. Maybe because it did not exist?");
@@ -184,8 +171,8 @@ public class ElasticSearchService {
     private boolean indexExists() {
         log.info("Checking if elasticsearch index exists: " + INDEX_NAME);
         try {
-            Response resp = esRestClient.performRequest("HEAD", "/" + INDEX_NAME);
-            if(resp.getStatusLine().getStatusCode() == 404) {
+            Response response = esRestClient.performRequest("HEAD", "/" + INDEX_NAME);
+            if(response.getStatusLine().getStatusCode() == 404) {
                 log.info("Elasticsearch index does not exist: " + INDEX_NAME);
                 return false;
             }
@@ -201,9 +188,14 @@ public class ElasticSearchService {
         try {
             HttpEntity entity = createHttpEntity(CREATE_INDEX_FILENAME);
             log.info("Trying to create elasticsearch index: " + INDEX_NAME);
-            esRestClient.performRequest("PUT", "/" + INDEX_NAME, Collections.singletonMap("pretty", "true"), entity);
-            log.info("elasticsearch index successfully created: " + INDEX_NAME);
-            return true;
+            Response response = esRestClient.performRequest("PUT", "/" + INDEX_NAME, singletonMap("pretty", "true"), entity);
+
+            if (isSuccess(response)) {
+                log.info("elasticsearch index successfully created: " + INDEX_NAME);
+                return true;
+            } else {
+                log.error("Unable to create elasticsearch index: " + INDEX_NAME);
+            }
         } catch (IOException e) {
             log.error("Unable to create elasticsearch index: " + INDEX_NAME);
             e.printStackTrace();
@@ -215,9 +207,14 @@ public class ElasticSearchService {
         try {
             HttpEntity entity = createHttpEntity(CREATE_MAPPINGS_FILENAME);
             log.info("Trying to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
-            esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, Collections.singletonMap("pretty", "true"), entity);
-            log.info("elasticsearch index mapping type successfully created: " + INDEX_MAPPING_TYPE);
-            return true;
+            Response response = esRestClient.performRequest("PUT", "/" + INDEX_NAME + "/_mapping/" + INDEX_MAPPING_TYPE, singletonMap("pretty", "true"), entity);
+            if (isSuccess(response)) {
+                log.info("elasticsearch index mapping type successfully created: " + INDEX_MAPPING_TYPE);
+                return true;
+            } else {
+                log.error("Unable to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
+                return false;
+            }
         } catch (IOException e) {
             log.error("Unable to create elasticsearch index mapping type: " + INDEX_MAPPING_TYPE);
             e.printStackTrace();
@@ -255,9 +252,9 @@ public class ElasticSearchService {
         }
 
         try {
-            Response resp = esRestClient.performRequest("POST",  "/_bulk", params, entity);
+            Response response = esRestClient.performRequest("POST",  "/_bulk", params, entity);
 
-            if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+            if (isSuccess(response)) {
                 log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
                 log.info("Successfully deleted documents from elasticsearch index: " + deleteDocumentIds.size());
             }
@@ -271,10 +268,10 @@ public class ElasticSearchService {
     private void deleteDocumentsFromIndexByGraphId(@NotNull String graphId) {
         try {
             HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
-            Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
-            if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
-                log.info(reader.lines().collect(Collectors.joining("\n")));
+            Response response = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body);
+
+            if (isSuccess(response)) {
+                log.info(responseContentAsString(response));
                 log.info("Successfully deleted documents from elasticsearch index from graph: " + graphId);
             } else {
                 log.error("Unable to delete documents from elasticsearch index");
@@ -288,10 +285,10 @@ public class ElasticSearchService {
     public void deleteAllDocumentsFromIndex() {
         try {
             HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
-            Response resp = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", Collections.emptyMap(), body);
-            if (resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()));
-                log.info(reader.lines().collect(Collectors.joining("\n")));
+            Response response = esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body);
+
+            if (isSuccess(response)) {
+                log.info(responseContentAsString(response));
                 log.info("Successfully deleted all documents from elasticsearch index");
             } else {
                 log.error("Unable to delete documents from elasticsearch index");
@@ -299,6 +296,39 @@ public class ElasticSearchService {
         } catch (IOException e) {
             log.error("Unable to delete documents from elasticsearch index");
             e.printStackTrace();
+        }
+    }
+
+    private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
+        try {
+            Response response = esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + documentId + "/_source");
+
+            if (isSuccess(response)) {
+                return Concept.createFromIndex(responseContentAsJson(response).getAsJsonObject());
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private boolean isSuccess(Response response) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        return statusCode >= 200 && statusCode < 400;
+    }
+
+    private @NotNull JsonElement responseContentAsJson(@NotNull Response response) {
+        return jsonParser.parse(responseContentAsString(response));
+    }
+
+    private static @NotNull String responseContentAsString(@NotNull Response response) {
+        try (InputStream is = response.getEntity().getContent()) {
+            return new BufferedReader(new InputStreamReader(is)).lines()
+                    .collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -226,11 +226,12 @@ public class TermedApiService {
         request.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 
         try {
-            HttpResponse resp = apiClient.execute(request);
-            if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-                return resp.getEntity();
+            HttpResponse response = apiClient.execute(request);
+
+            if(isSuccess(response)) {
+                return response.getEntity();
             } else {
-                log.warn("Response code: " + resp.getStatusLine().getStatusCode());
+                log.warn("Response code: " + response.getStatusLine().getStatusCode());
                 return null;
             }
         } catch (IOException e) {
@@ -238,6 +239,10 @@ public class TermedApiService {
         }
     }
 
+    private static boolean isSuccess(HttpResponse response) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        return statusCode >= 200 && statusCode < 400;
+    }
 
     private @NotNull String getAuthHeader() {
         return "Basic " + Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
