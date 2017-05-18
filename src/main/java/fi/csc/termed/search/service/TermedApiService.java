@@ -7,16 +7,14 @@ import com.google.gson.JsonParser;
 import fi.csc.termed.search.domain.Concept;
 import fi.csc.termed.search.domain.Vocabulary;
 import fi.csc.termed.search.domain.VocabularyType;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.*;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -24,9 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,47 +53,21 @@ public class TermedApiService {
 	}
 
 	public boolean deleteChangeListener(@NotNull String hookId) {
-		HttpDelete deleteReq = new HttpDelete(createUrl("/hooks/" + hookId));
-		deleteReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-		try {
-			HttpResponse resp = apiClient.execute(deleteReq);
-			if(resp.getStatusLine().getStatusCode() < 200 || resp.getStatusLine().getStatusCode() >= 400) {
-				log.error("Response code: " + resp.getStatusLine().getStatusCode());
-				return false;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		} finally {
-			deleteReq.releaseConnection();
-		}
-		return true;
+        return executeRequest(new HttpDelete(createUrl("/hooks/" + hookId))) != null;
 	}
 
-	public @Nullable String registerChangeListener(String url) {
-		HttpPost registerReq = new HttpPost(createUrl("/hooks", Parameters.single("url", url)));
-		registerReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-		try {
-			HttpResponse resp = apiClient.execute(registerReq);
-			if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
-				BufferedReader rd = new BufferedReader(
-						new InputStreamReader(resp.getEntity().getContent()));
+	public @Nullable String registerChangeListener(@NotNull String url) {
 
-				StringBuilder result = new StringBuilder();
-				String line;
-				while ((line = rd.readLine()) != null) {
-					result.append(line);
-				}
-				return result.toString().replace("<string>", "").replace("</string>", "");
-			} else {
-				log.error("Response code: " + resp.getStatusLine().getStatusCode());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			registerReq.releaseConnection();
-		}
-		return null;
+	    HttpPost request = new HttpPost(createUrl("/hooks", Parameters.single("url", url)));
+        HttpEntity response = executeRequest(request);
+
+        if (response != null) {
+            return responseContentAsString(response)
+                    .replace("<string>", "")
+                    .replace("</string>", "");
+        } else {
+            return null;
+        }
 	}
 
 	@NotNull List<String> fetchAllAvailableGraphIds() {
@@ -225,28 +195,49 @@ public class TermedApiService {
 
     private @NotNull List<JsonObject> fetchJsonObjectsInArrayFromUrl(@NotNull String url) {
 
-	    HttpGet getObjectsReq = new HttpGet(url);
+        HttpEntity response = executeRequest(new HttpGet(url));
 
-        try {
-            getObjectsReq.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
-            HttpResponse resp = apiClient.execute(getObjectsReq);
-            if (resp.getStatusLine().getStatusCode() == 200) {
-                JsonArray docs = jsonParser.parse(EntityUtils.toString(resp.getEntity())).getAsJsonArray();
-                List<JsonObject> result = asStream(docs).map(JsonElement::getAsJsonObject).collect(toList());
-                log.info("Fetched " + result.size() + " objects from termed API from url " + url);
-                return result;
-            } else {
-                log.warn("Fetching objects failed with code: " + resp.getStatusLine().getStatusCode());
-                return emptyList();
-            }
-        } catch (IOException e) {
-            log.error("Fetching objects failed");
-            e.printStackTrace();
+        if (response != null) {
+
+            JsonArray json = responseContentAsJson(response).getAsJsonArray();
+
+            log.info("Fetched " + json.size() + " objects from termed API from url " + url);
+            return asStream(json).map(JsonElement::getAsJsonObject).collect(toList());
+        } else {
             return emptyList();
-        } finally {
-            getObjectsReq.releaseConnection();
         }
     }
+
+    private @NotNull JsonElement responseContentAsJson(@NotNull HttpEntity response) {
+        return jsonParser.parse(responseContentAsString(response));
+    }
+
+    private static @NotNull String responseContentAsString(@NotNull HttpEntity response) {
+        try (InputStream is = response.getContent()) {
+            return new BufferedReader(new InputStreamReader(is)).lines()
+                    .collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private @Nullable HttpEntity executeRequest(@NotNull HttpRequestBase request) {
+
+        request.setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
+
+        try {
+            HttpResponse resp = apiClient.execute(request);
+            if(resp.getStatusLine().getStatusCode() >= 200 && resp.getStatusLine().getStatusCode() < 400) {
+                return resp.getEntity();
+            } else {
+                log.warn("Response code: " + resp.getStatusLine().getStatusCode());
+                return null;
+            }
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
 
     private @NotNull String getAuthHeader() {
         return "Basic " + Base64.getEncoder().encodeToString((API_USER + ":" + API_PW).getBytes());
