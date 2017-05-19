@@ -101,7 +101,7 @@ public class TermedApiService {
 
         if (vocabulary != null) {
             return ids.stream()
-                    .map(id -> getConcept(graphId, id))
+                    .map(id -> getConcept(vocabulary, id))
                     .filter(Objects::nonNull)
                     .collect(toList());
         } else {
@@ -114,13 +114,13 @@ public class TermedApiService {
         Vocabulary vocabulary = getVocabulary(graphId);
 
         if (vocabulary != null) {
-            return getConcept(conceptId, vocabulary);
+            return getConcept(vocabulary, conceptId);
         } else {
             return null;
         }
     }
 
-    private @Nullable Concept getConcept(@NotNull String conceptId, @NotNull Vocabulary vocabulary) {
+    private Concept getConcept(@NotNull Vocabulary vocabulary, @NotNull String conceptId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
