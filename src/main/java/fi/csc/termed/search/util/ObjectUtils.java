@@ -3,7 +3,11 @@ package fi.csc.termed.search.util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ObjectUtils {
+public final class ObjectUtils {
+
+    private ObjectUtils() {
+        // prevent construction
+    }
 
     @NotNull
     public static <T> T requireNonNull(@Nullable T obj) {
