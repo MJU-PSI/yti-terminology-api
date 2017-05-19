@@ -317,7 +317,7 @@ public class ElasticSearchService {
 
     private static @NotNull String responseContentAsString(@NotNull Response response) {
         try (InputStream is = response.getEntity().getContent()) {
-            return new BufferedReader(new InputStreamReader(is)).lines()
+            return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
                     .collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
