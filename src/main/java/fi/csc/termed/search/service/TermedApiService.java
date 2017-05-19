@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -214,7 +215,7 @@ public class TermedApiService {
 
     private static @NotNull String responseContentAsString(@NotNull HttpEntity response) {
         try (InputStream is = response.getContent()) {
-            return new BufferedReader(new InputStreamReader(is)).lines()
+            return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
                     .collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
