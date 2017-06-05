@@ -3,6 +3,7 @@ package fi.csc.termed.search.dto;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Date;
+import java.util.List;
 
 public class TermedNotification {
 
@@ -24,14 +25,14 @@ public class TermedNotification {
 
         private String user;
         private Date date;
-        private Node node;
+        private List<Node> nodes;
 
-        public Node getNode() {
-            return node;
+        public List<Node> getNodes() {
+            return nodes;
         }
 
-        public void setNode(Node node) {
-            this.node = node;
+        public void setNodes(List<Node> node) {
+            this.nodes = node;
         }
 
         public String getUser() {

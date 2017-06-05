@@ -76,16 +76,16 @@ public class ElasticSearchService {
         termedApiService.fetchAllAvailableGraphIds().forEach(this::indexListOfConceptsInGraph);
     }
 
-    public void updateIndexAfterConceptEvent(@NotNull TermedNotification notification) {
+    public void updateIndexAfterConceptEvent(@NotNull TermedNotification.EventType eventType, @NotNull TermedNotification.Node node) {
 
-        String conceptId = notification.getBody().getNode().getId();
-        String graphId = notification.getBody().getNode().getType().getGraph().getId();
+        String conceptId = node.getId();
+        String graphId = node.getType().getGraph().getId();
         String documentId = Concept.formDocumentId(graphId, conceptId);
         Concept previousIndexedConcept = getConceptFromIndex(documentId);
         List<String> previousBroader = previousIndexedConcept != null ? previousIndexedConcept.getBroaderIds() : emptyList();
         List<String> previousNarrower = previousIndexedConcept != null ? previousIndexedConcept.getNarrowerIds() : emptyList();
 
-        switch (notification.getType()) {
+        switch (eventType) {
             case NodeSavedEvent:
                 Concept concept = termedApiService.getConcept(graphId, conceptId);
 
@@ -129,13 +129,13 @@ public class ElasticSearchService {
         }
     }
 
-    public void updateIndexAfterVocabularyEvent(@NotNull TermedNotification notification) {
+    public void updateIndexAfterVocabularyEvent(@NotNull TermedNotification.EventType eventType, @NotNull TermedNotification.Node node) {
 
-        String graphId = notification.getBody().getNode().getType().getGraph().getId();
+        String graphId = node.getType().getGraph().getId();
 
         deleteDocumentsFromIndexByGraphId(graphId);
 
-        switch (notification.getType()) {
+        switch (eventType) {
             case NodeSavedEvent:
                 indexListOfConceptsInGraph(graphId);
                 break;

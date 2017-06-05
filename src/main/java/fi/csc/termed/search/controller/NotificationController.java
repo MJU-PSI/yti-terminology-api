@@ -29,16 +29,18 @@ public class NotificationController {
         log.debug("Notification received");
 
         synchronized(this.lock) {
-            switch(notification.getBody().getNode().getType().getId()) {
-                case Term:
-                    break;
-                case Concept:
-                    this.elasticSearchService.updateIndexAfterConceptEvent(notification);
-                    break;
-                case TerminologicalVocabulary:
-                case Vocabulary:
-                    this.elasticSearchService.updateIndexAfterVocabularyEvent(notification);
-                    break;
+            for (TermedNotification.Node node : notification.getBody().getNodes()) {
+                switch(node.getType().getId()) {
+                    case Term:
+                        break;
+                    case Concept:
+                        this.elasticSearchService.updateIndexAfterConceptEvent(notification.getType(), node);
+                        break;
+                    case TerminologicalVocabulary:
+                    case Vocabulary:
+                        this.elasticSearchService.updateIndexAfterVocabularyEvent(notification.getType(), node);
+                        break;
+                }
             }
         }
     }
