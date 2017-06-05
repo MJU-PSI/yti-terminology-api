@@ -79,7 +79,9 @@ public class ElasticSearchService {
 
     public void updateIndexAfterUpdate(NodeChanges changes) {
 
-        if (changes.hasVocabulary()) {
+        int fullReindexNodeCountThreshold = 20;
+
+        if (changes.hasVocabulary() || changes.getConceptsIds().size() > fullReindexNodeCountThreshold) {
             reindexGraph(changes.getGraphId());
         } else {
             for (String conceptId : changes.getConceptsIds()) {
