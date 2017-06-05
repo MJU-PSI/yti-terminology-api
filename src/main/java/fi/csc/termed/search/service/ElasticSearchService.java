@@ -79,7 +79,7 @@ public class ElasticSearchService {
         termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
-    public void updateIndexAfterUpdate(NodeChanges changes) {
+    public void updateIndexAfterUpdate(@NotNull NodeChanges changes) {
 
         int fullReindexNodeCountThreshold = 20;
 
@@ -96,7 +96,7 @@ public class ElasticSearchService {
         }
     }
 
-    public void updateIndexAfterDelete(NodeChanges changes) {
+    public void updateIndexAfterDelete(@NotNull NodeChanges changes) {
 
         if (changes.hasVocabulary()) {
             deleteDocumentsFromIndexByGraphId(changes.getGraphId());
@@ -109,7 +109,7 @@ public class ElasticSearchService {
         }
     }
 
-    private static @NotNull Set<String> broaderAndNarrowerIds(List<List<Concept>> concepts) {
+    private static @NotNull Set<String> broaderAndNarrowerIds(@NotNull List<List<Concept>> concepts) {
 
         return concepts.stream()
                 .flatMap(Collection::stream)
@@ -186,7 +186,7 @@ public class ElasticSearchService {
         return "{\"index\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument() + "\n";
     }
 
-    private @NotNull String createBulkDeleteMeta(@NotNull String graphId, String conceptId) {
+    private @NotNull String createBulkDeleteMeta(@NotNull String graphId, @NotNull String conceptId) {
         return "{\"delete\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
     }
 

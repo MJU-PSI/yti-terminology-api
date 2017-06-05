@@ -4,6 +4,7 @@ import fi.csc.termed.search.dto.NodeChanges;
 import fi.csc.termed.search.dto.TermedNotification;
 import fi.csc.termed.search.dto.TermedNotification.Node;
 import fi.csc.termed.search.service.ElasticSearchService;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,7 @@ public class NotificationController {
         }
     }
 
-    private static List<String> extractIdsOfType(List<Node> nodes, List<String> types) {
+    private static @NotNull List<String> extractIdsOfType(@NotNull List<Node> nodes, @NotNull List<String> types) {
         return nodes.stream()
                 .filter(node -> types.contains(node.getType().getId()))
                 .map(Node::getId)
