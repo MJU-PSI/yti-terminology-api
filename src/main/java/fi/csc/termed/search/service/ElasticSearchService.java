@@ -3,7 +3,7 @@ package fi.csc.termed.search.service;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import fi.csc.termed.search.domain.Concept;
-import fi.csc.termed.search.dto.NodeChanges;
+import fi.csc.termed.search.dto.AffectedNodes;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
@@ -79,7 +79,7 @@ public class ElasticSearchService {
         termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
-    public void updateIndexAfterUpdate(@NotNull NodeChanges changes) {
+    public void updateIndexAfterUpdate(@NotNull AffectedNodes changes) {
 
         int fullReindexNodeCountThreshold = 20;
 
@@ -96,7 +96,7 @@ public class ElasticSearchService {
         }
     }
 
-    public void updateIndexAfterDelete(@NotNull NodeChanges changes) {
+    public void updateIndexAfterDelete(@NotNull AffectedNodes changes) {
 
         if (changes.hasVocabulary()) {
             deleteDocumentsFromIndexByGraphId(changes.getGraphId());

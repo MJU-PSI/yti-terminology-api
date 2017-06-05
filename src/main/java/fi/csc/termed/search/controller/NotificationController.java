@@ -1,6 +1,6 @@
 package fi.csc.termed.search.controller;
 
-import fi.csc.termed.search.dto.NodeChanges;
+import fi.csc.termed.search.dto.AffectedNodes;
 import fi.csc.termed.search.dto.TermedNotification;
 import fi.csc.termed.search.dto.TermedNotification.Node;
 import fi.csc.termed.search.service.ElasticSearchService;
@@ -56,10 +56,10 @@ public class NotificationController {
 
                 switch (notification.getType()) {
                     case NodeSavedEvent:
-                        this.elasticSearchService.updateIndexAfterUpdate(new NodeChanges(graphId, vocabularies, concepts));
+                        this.elasticSearchService.updateIndexAfterUpdate(new AffectedNodes(graphId, vocabularies, concepts));
                         break;
                     case NodeDeletedEvent:
-                        this.elasticSearchService.updateIndexAfterDelete(new NodeChanges(graphId, vocabularies, concepts));
+                        this.elasticSearchService.updateIndexAfterDelete(new AffectedNodes(graphId, vocabularies, concepts));
                         break;
                 }
             }
