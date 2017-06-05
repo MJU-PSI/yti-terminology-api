@@ -101,7 +101,6 @@ public class TermedApiService {
 
         Vocabulary vocabulary = getVocabulary(graphId);
 
-        // TODO: inefficient implementation
         if (vocabulary != null) {
             return getConcepts(vocabulary, ids);
         } else {
