@@ -78,7 +78,7 @@ public class TermedNotification {
 
     public static class Type {
 
-        private TypeId id;
+        private String id;
         private Graph graph;
 
         @NotNull
@@ -91,20 +91,13 @@ public class TermedNotification {
         }
 
         @NotNull
-        public TypeId getId() {
+        public String getId() {
             return id;
         }
 
-        public void setId(TypeId id) {
+        public void setId(String id) {
             this.id = id;
         }
-    }
-
-    public enum TypeId {
-        Term,
-        Concept,
-        TerminologicalVocabulary,
-        Vocabulary
     }
 
     public enum EventType {

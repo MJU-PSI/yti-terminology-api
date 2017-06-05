@@ -3,7 +3,7 @@ package fi.csc.termed.search.service;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import fi.csc.termed.search.domain.Concept;
-import fi.csc.termed.search.dto.TermedNotification;
+import fi.csc.termed.search.dto.NodeChanges;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
@@ -26,6 +26,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.*;
 
@@ -73,80 +74,59 @@ public class ElasticSearchService {
     }
 
     public void doFullIndexing() {
-        termedApiService.fetchAllAvailableGraphIds().forEach(this::indexListOfConceptsInGraph);
+        termedApiService.fetchAllAvailableGraphIds().forEach(this::reindexGraph);
     }
 
-    public void updateIndexAfterConceptEvent(@NotNull TermedNotification.EventType eventType, @NotNull TermedNotification.Node node) {
+    public void updateIndexAfterUpdate(NodeChanges changes) {
 
-        String conceptId = node.getId();
-        String graphId = node.getType().getGraph().getId();
-        String documentId = Concept.formDocumentId(graphId, conceptId);
-        Concept previousIndexedConcept = getConceptFromIndex(documentId);
-        List<String> previousBroader = previousIndexedConcept != null ? previousIndexedConcept.getBroaderIds() : emptyList();
-        List<String> previousNarrower = previousIndexedConcept != null ? previousIndexedConcept.getNarrowerIds() : emptyList();
+        if (changes.hasVocabulary()) {
+            reindexGraph(changes.getGraphId());
+        } else {
+            for (String conceptId : changes.getConceptsIds()) {
 
-        switch (eventType) {
-            case NodeSavedEvent:
-                Concept concept = termedApiService.getConcept(graphId, conceptId);
+                Concept concept = termedApiService.getConcept(changes.getGraphId(), conceptId);
+                Concept previousConcept = getConceptFromIndex(changes.getGraphId(), conceptId);
 
-                if (concept != null) {
+                Set<String> updateConceptIds = broaderAndNarrowerIds(concept, previousConcept);
 
-                    // First reindex the saved concept
+                List<Concept> possiblyUpdatedConcepts = new ArrayList<>(updateConceptIds.size() + 1);
+                possiblyUpdatedConcepts.add(concept);
+                possiblyUpdatedConcepts.addAll(termedApiService.getConcepts(changes.getGraphId(), updateConceptIds));
 
-                    // Next reindex broader concepts in case the saved concept's broader concept list changed
-                    // Basically each broader concept's hasNarrower index value needs to be revised
-
-                    // First compare API's broader concepts and compare against the corresponding documents in index
-                    // Case: A concept becomes some concept's child (index doc does not contain the new broader concept)
-
-                    // Then the other way around: Compare index documents against API's broader concepts
-                    // Case: A concept is removed from being some concept's child
-
-                    // Narrower and same logic as above
-
-                    HashSet<String> tryUpdateConceptIds = new HashSet<>();
-                    tryUpdateConceptIds.addAll(previousBroader);
-                    tryUpdateConceptIds.addAll(concept.getBroaderIds());
-                    tryUpdateConceptIds.addAll(previousNarrower);
-                    tryUpdateConceptIds.addAll(concept.getNarrowerIds());
-
-                    List<Concept> possiblyUpdatedConcepts = new ArrayList<>(tryUpdateConceptIds.size() + 1);
-                    possiblyUpdatedConcepts.add(concept);
-                    possiblyUpdatedConcepts.addAll(termedApiService.getConcepts(graphId, tryUpdateConceptIds));
-
-                    bulkUpdateAndDeleteDocumentsToIndex(possiblyUpdatedConcepts, emptyList(), true);
-                }
-                break;
-            case NodeDeletedEvent:
-
-                HashSet<String> tryUpdateConceptIds = new HashSet<>();
-                tryUpdateConceptIds.addAll(previousBroader);
-                tryUpdateConceptIds.addAll(previousNarrower);
-
-                List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(graphId, tryUpdateConceptIds);
-                bulkUpdateAndDeleteDocumentsToIndex(possiblyUpdatedConcepts, singletonList(documentId), true);
-                break;
+                bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, emptyList(), true);
+            }
         }
     }
 
-    public void updateIndexAfterVocabularyEvent(@NotNull TermedNotification.EventType eventType, @NotNull TermedNotification.Node node) {
+    public void updateIndexAfterDelete(NodeChanges changes) {
 
-        String graphId = node.getType().getGraph().getId();
+        if (changes.hasVocabulary()) {
+            deleteDocumentsFromIndexByGraphId(changes.getGraphId());
+        } else {
 
-        deleteDocumentsFromIndexByGraphId(graphId);
+            for (String conceptId : changes.getConceptsIds()) {
 
-        switch (eventType) {
-            case NodeSavedEvent:
-                indexListOfConceptsInGraph(graphId);
-                break;
+                Concept previousConcept = getConceptFromIndex(changes.getGraphId(), conceptId);
+                Set<String> updateConceptIds = broaderAndNarrowerIds(previousConcept);
+
+                List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), updateConceptIds);
+                bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, singletonList(conceptId), true);
+            }
         }
     }
 
-    private void indexListOfConceptsInGraph(@NotNull String graphId) {
+    private static @NotNull Set<String> broaderAndNarrowerIds(Concept... concepts) {
+        return Arrays.stream(concepts)
+                .filter(Objects::nonNull)
+                .flatMap(concept -> Stream.concat(concept.getBroaderIds().stream(), concept.getNarrowerIds().stream()))
+                .collect(Collectors.toSet());
+    }
+
+    private void reindexGraph(@NotNull String graphId) {
         log.info("Trying to index concepts of graph " + graphId);
 
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
-        bulkUpdateAndDeleteDocumentsToIndex(concepts, emptyList(), false);
+        bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), false);
 
         log.info("Indexed " + concepts.size() + " concepts");
     }
@@ -211,22 +191,23 @@ public class ElasticSearchService {
         return "{\"index\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument() + "\n";
     }
 
-    private @NotNull String createBulkDeleteMeta(@NotNull String documentId) {
-        return "{\"delete\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + documentId + "\"}}\n";
+    private @NotNull String createBulkDeleteMeta(@NotNull String graphId, String conceptId) {
+        return "{\"delete\":{\"_index\": \"" + INDEX_NAME + "\", \"_type\": \"" + INDEX_MAPPING_TYPE + "\", \"_id\":\"" + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
     }
 
-    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull List<Concept> updateConcepts,
-                                                     @NotNull List<String> deleteDocumentIds,
+    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull String graphId,
+                                                     @NotNull List<Concept> updateConcepts,
+                                                     @NotNull List<String> deleteConceptsIds,
                                                      boolean waitForRefresh) {
 
-        if (updateConcepts.size() == 0 && deleteDocumentIds.size() == 0) {
+        if (updateConcepts.size() == 0 && deleteConceptsIds.size() == 0) {
             return; // nothing to do
         }
 
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html
 
         String index = updateConcepts.stream().map(this::createBulkIndexMetaAndSource).collect(Collectors.joining("\n"));
-        String delete = deleteDocumentIds.stream().map(this::createBulkDeleteMeta).collect(Collectors.joining("\n"));
+        String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id)).collect(Collectors.joining("\n"));
         HttpEntity entity = new NStringEntity(index + delete, ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
 
@@ -240,10 +221,10 @@ public class ElasticSearchService {
 
         if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
-            log.info("Successfully deleted documents from elasticsearch index: " + deleteDocumentIds.size());
+            log.info("Successfully deleted documents from elasticsearch index: " + deleteConceptsIds.size());
         } else {
             log.warn("Unable to add or update document to elasticsearch index: " + updateConcepts.size());
-            log.warn("Unable to delete document from elasticsearch index: " + deleteDocumentIds.size());
+            log.warn("Unable to delete document from elasticsearch index: " + deleteConceptsIds.size());
         }
     }
 
@@ -273,8 +254,9 @@ public class ElasticSearchService {
         }
     }
 
-    private @Nullable Concept getConceptFromIndex(@NotNull String documentId) {
+    private @Nullable Concept getConceptFromIndex(@NotNull String graphId, @NotNull String conceptId) {
 
+        String documentId = Concept.formDocumentId(graphId, conceptId);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/" + urlEncode(documentId) + "/_source"));
 
         if (isSuccess(response)) {
