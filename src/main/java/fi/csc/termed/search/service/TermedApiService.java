@@ -102,16 +102,13 @@ public class TermedApiService {
 
         // TODO: inefficient implementation
         if (vocabulary != null) {
-            return ids.stream()
-                    .map(id -> getConcept(vocabulary, id))
-                    .filter(Objects::nonNull)
-                    .collect(toList());
+            return getConcepts(vocabulary, ids);
         } else {
             return emptyList();
         }
     }
 
-    private Concept getConcept(@NotNull Vocabulary vocabulary, @NotNull String conceptId) {
+    private @NotNull List<Concept> getConcepts(@NotNull Vocabulary vocabulary, @NotNull Collection<String> conceptIds) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -130,17 +127,20 @@ public class TermedApiService {
         params.add("select", "references.broader");
         params.add("select", "referrers.broader");
         params.add("where", "graph.id:" + vocabulary.getGraphId());
-        params.add("where", "id:" + conceptId);
+        params.add("where", idInCollectionWhereClause(conceptIds));
         params.add("max", "-1");
         
-	    JsonObject result = single(fetchJsonObjectsInArrayFromUrl(createUrl("/node-trees", params)));
+	    return fetchJsonObjectsInArrayFromUrl(createUrl("/node-trees", params))
+                .stream()
+                .map(json -> Concept.createFromExtJson(json, vocabulary))
+                .collect(toList());
+    }
 
-        if (result != null) {
-            return Concept.createFromExtJson(result, vocabulary);
-        } else {
-            log.warn("Concept not found: " + conceptId);
-            return null;
-        }
+    private static @NotNull String idInCollectionWhereClause(@NotNull Collection<String> conceptIds) {
+
+	    return conceptIds.stream()
+                .map(conceptId -> "id:" + conceptId)
+                .collect(Collectors.joining(" OR "));
     }
 
     private @Nullable Vocabulary getVocabulary(@NotNull String graphId) {
