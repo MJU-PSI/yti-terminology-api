@@ -79,33 +79,33 @@ public class ElasticSearchService {
         termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
-    public void updateIndexAfterUpdate(@NotNull AffectedNodes changes) {
+    public void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
 
-        if (changes.hasVocabulary() || changes.getConceptsIds().size() > fullReindexNodeCountThreshold) {
-            reindexGraph(changes.getGraphId(), true);
+        if (nodes.hasVocabulary() || nodes.getConceptsIds().size() > fullReindexNodeCountThreshold) {
+            reindexGraph(nodes.getGraphId(), true);
         } else {
 
-            List<Concept> updatedConcepts = termedApiService.getConcepts(changes.getGraphId(), changes.getConceptsIds());
-            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(changes.getGraphId(), changes.getConceptsIds());
-            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), broaderAndNarrowerIds(asList(updatedConcepts, conceptsBeforeUpdate)));
+            List<Concept> updatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), nodes.getConceptsIds());
+            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(asList(updatedConcepts, conceptsBeforeUpdate)));
             List<Concept> updateToIndex = Stream.concat(updatedConcepts.stream(), possiblyUpdatedConcepts.stream()).collect(toList());
 
-            bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), updateToIndex, emptyList(), true);
+            bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), updateToIndex, emptyList(), true);
         }
     }
 
-    public void updateIndexAfterDelete(@NotNull AffectedNodes changes) {
+    public void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
-        if (changes.hasVocabulary()) {
-            deleteDocumentsFromIndexByGraphId(changes.getGraphId());
+        if (nodes.hasVocabulary()) {
+            deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
         } else {
 
-            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(changes.getGraphId(), changes.getConceptsIds());
-            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeUpdate)));
+            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeUpdate)));
 
-            bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, changes.getConceptsIds(), true);
+            bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(), true);
         }
     }
 
