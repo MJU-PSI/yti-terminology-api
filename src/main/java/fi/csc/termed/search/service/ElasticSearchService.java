@@ -102,8 +102,8 @@ public class ElasticSearchService {
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
         } else {
 
-            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
-            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeUpdate)));
+            List<Concept> conceptsBeforeDelete = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeDelete)));
 
             bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(), true);
         }
