@@ -100,6 +100,7 @@ public class TermedApiService {
 
         Vocabulary vocabulary = getVocabulary(graphId);
 
+        // TODO: inefficient implementation
         if (vocabulary != null) {
             return ids.stream()
                     .map(id -> getConcept(vocabulary, id))
@@ -107,17 +108,6 @@ public class TermedApiService {
                     .collect(toList());
         } else {
             return emptyList();
-        }
-    }
-
-    @Nullable Concept getConcept(@NotNull String graphId, @NotNull String conceptId) {
-
-        Vocabulary vocabulary = getVocabulary(graphId);
-
-        if (vocabulary != null) {
-            return getConcept(vocabulary, conceptId);
-        } else {
-            return null;
         }
     }
 

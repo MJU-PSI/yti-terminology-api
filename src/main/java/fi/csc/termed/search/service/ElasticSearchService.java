@@ -28,7 +28,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.*;
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class ElasticSearchService {
@@ -74,7 +76,7 @@ public class ElasticSearchService {
     }
 
     public void doFullIndexing() {
-        termedApiService.fetchAllAvailableGraphIds().forEach(this::reindexGraph);
+        termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
     public void updateIndexAfterUpdate(NodeChanges changes) {
@@ -82,21 +84,15 @@ public class ElasticSearchService {
         int fullReindexNodeCountThreshold = 20;
 
         if (changes.hasVocabulary() || changes.getConceptsIds().size() > fullReindexNodeCountThreshold) {
-            reindexGraph(changes.getGraphId());
+            reindexGraph(changes.getGraphId(), true);
         } else {
-            for (String conceptId : changes.getConceptsIds()) {
 
-                Concept concept = termedApiService.getConcept(changes.getGraphId(), conceptId);
-                Concept previousConcept = getConceptFromIndex(changes.getGraphId(), conceptId);
+            List<Concept> updatedConcepts = termedApiService.getConcepts(changes.getGraphId(), changes.getConceptsIds());
+            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(changes.getGraphId(), changes.getConceptsIds());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), broaderAndNarrowerIds(asList(updatedConcepts, conceptsBeforeUpdate)));
+            List<Concept> updateToIndex = Stream.concat(updatedConcepts.stream(), possiblyUpdatedConcepts.stream()).collect(toList());
 
-                Set<String> updateConceptIds = broaderAndNarrowerIds(concept, previousConcept);
-
-                List<Concept> possiblyUpdatedConcepts = new ArrayList<>(updateConceptIds.size() + 1);
-                possiblyUpdatedConcepts.add(concept);
-                possiblyUpdatedConcepts.addAll(termedApiService.getConcepts(changes.getGraphId(), updateConceptIds));
-
-                bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, emptyList(), true);
-            }
+            bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), updateToIndex, emptyList(), true);
         }
     }
 
@@ -106,29 +102,26 @@ public class ElasticSearchService {
             deleteDocumentsFromIndexByGraphId(changes.getGraphId());
         } else {
 
-            for (String conceptId : changes.getConceptsIds()) {
+            List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(changes.getGraphId(), changes.getConceptsIds());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeUpdate)));
 
-                Concept previousConcept = getConceptFromIndex(changes.getGraphId(), conceptId);
-                Set<String> updateConceptIds = broaderAndNarrowerIds(previousConcept);
-
-                List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(changes.getGraphId(), updateConceptIds);
-                bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, singletonList(conceptId), true);
-            }
+            bulkUpdateAndDeleteDocumentsToIndex(changes.getGraphId(), possiblyUpdatedConcepts, changes.getConceptsIds(), true);
         }
     }
 
-    private static @NotNull Set<String> broaderAndNarrowerIds(Concept... concepts) {
-        return Arrays.stream(concepts)
-                .filter(Objects::nonNull)
+    private static @NotNull Set<String> broaderAndNarrowerIds(List<List<Concept>> concepts) {
+
+        return concepts.stream()
+                .flatMap(Collection::stream)
                 .flatMap(concept -> Stream.concat(concept.getBroaderIds().stream(), concept.getNarrowerIds().stream()))
                 .collect(Collectors.toSet());
     }
 
-    private void reindexGraph(@NotNull String graphId) {
+    private void reindexGraph(@NotNull String graphId, boolean waitForRefresh) {
         log.info("Trying to index concepts of graph " + graphId);
 
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
-        bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), false);
+        bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), waitForRefresh);
 
         log.info("Indexed " + concepts.size() + " concepts");
     }
@@ -266,6 +259,15 @@ public class ElasticSearchService {
         } else {
             return null;
         }
+    }
+
+    private @NotNull List<Concept> getConceptsFromIndex(@NotNull String graphId, @NotNull Collection<String> conceptIds) {
+
+        // TODO inefficient implementation
+        return conceptIds.stream()
+                .map(conceptId -> this.getConceptFromIndex(graphId, conceptId))
+                .filter(Objects::nonNull)
+                .collect(toList());
     }
 
     private @NotNull Response alsoUnsuccessful(@NotNull ResponseSupplier supplier) {
