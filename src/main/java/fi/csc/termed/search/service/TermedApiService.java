@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -269,6 +270,14 @@ public class TermedApiService {
             this.parameters.add(new BasicNameValuePair(name, value));
         }
 
+        private static String urlEncode(String value) {
+            try {
+                return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         @Override
         public String toString() {
 
@@ -278,7 +287,7 @@ public class TermedApiService {
                 result.append("?");
                 result.append(
                         parameters.stream()
-                                .map(param -> param.getName() + "=" + param.getValue())
+                                .map(param -> param.getName() + "=" + urlEncode(param.getValue()))
                                 .collect(Collectors.joining("&")));
             }
 
