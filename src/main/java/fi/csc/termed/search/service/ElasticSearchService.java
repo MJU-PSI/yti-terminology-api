@@ -75,7 +75,14 @@ public class ElasticSearchService {
         }
     }
 
-    public void doFullIndexing() {
+    public void reindex() {
+        log.info("Starting reindexing task..");
+        this.deleteAllDocumentsFromIndex();
+        this.doFullIndexing();
+        log.info("Finished reindexing!");
+    }
+
+    private void doFullIndexing() {
         termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
@@ -236,7 +243,7 @@ public class ElasticSearchService {
         }
     }
 
-    public void deleteAllDocumentsFromIndex() {
+    private void deleteAllDocumentsFromIndex() {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + INDEX_NAME + "/" + INDEX_MAPPING_TYPE + "/_delete_by_query", emptyMap(), body));
