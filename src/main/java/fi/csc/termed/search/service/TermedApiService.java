@@ -99,6 +99,10 @@ public class TermedApiService {
 
     @NotNull List<Concept> getConcepts(@NotNull String graphId, @NotNull Collection<String> ids) {
 
+	    if (ids.isEmpty()) {
+	        return emptyList();
+        }
+
         Vocabulary vocabulary = getVocabulary(graphId);
 
         if (vocabulary != null) {
@@ -222,7 +226,7 @@ public class TermedApiService {
             if(isSuccess(response)) {
                 return response.getEntity();
             } else {
-                log.warn("Response code: " + response.getStatusLine().getStatusCode());
+                log.warn("Response code: " + response.getStatusLine().getStatusCode() + " for request " + request.toString());
                 return null;
             }
         } catch (IOException e) {
