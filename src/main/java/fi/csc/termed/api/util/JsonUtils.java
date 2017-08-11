@@ -1,4 +1,4 @@
-package fi.csc.termed.search.util;
+package fi.csc.termed.api.util;
 
 import com.google.gson.*;
 import org.jetbrains.annotations.NotNull;

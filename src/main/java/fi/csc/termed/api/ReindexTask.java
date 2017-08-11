@@ -1,6 +1,6 @@
-package fi.csc.termed.search;
+package fi.csc.termed.api;
 
-import fi.csc.termed.search.service.ElasticSearchService;
+import fi.csc.termed.api.service.ElasticSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

@@ -1,8 +1,9 @@
-# Termed search
+# Iow termed api
 
 Termed is a web-based vocabulary and metadata editor.
 
-Termed search handles updating of elastic search index. Complete reindexing is done periodically.
+Iow termed api's purpose is to act as a backend for iow-termed-ui frontend project.
+It also handles updating of elastic search index. Complete reindexing is done periodically.
 
 ## Install dependencies
 

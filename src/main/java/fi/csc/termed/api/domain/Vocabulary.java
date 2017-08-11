@@ -1,14 +1,11 @@
-package fi.csc.termed.search.domain;
+package fi.csc.termed.api.domain;
 
 import com.google.gson.JsonObject;
+import fi.csc.termed.api.util.JsonUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
-
-import static fi.csc.termed.search.util.JsonUtils.jsonToLocalizable;
-import static fi.csc.termed.search.util.JsonUtils.localizableToJson;
-import static fi.csc.termed.search.util.JsonUtils.localizableFromTermedProperties;
 
 public final class Vocabulary {
 
@@ -30,7 +27,7 @@ public final class Vocabulary {
         JsonObject properties = json.get("properties").getAsJsonObject();
 
         String graphId = typeObj.get("graph").getAsJsonObject().get("id").getAsString();
-        Map<String, List<String>> label = localizableFromTermedProperties(properties, "prefLabel");
+        Map<String, List<String>> label = JsonUtils.localizableFromTermedProperties(properties, "prefLabel");
 
         return new Vocabulary(graphId, label);
     }
@@ -38,7 +35,7 @@ public final class Vocabulary {
     static @NotNull Vocabulary createFromIndex(@NotNull JsonObject json) {
 
         String graphId = json.get("id").getAsString();
-        Map<String, List<String>> label = jsonToLocalizable(json.get("label").getAsJsonObject());
+        Map<String, List<String>> label = JsonUtils.jsonToLocalizable(json.get("label").getAsJsonObject());
 
         return new Vocabulary(graphId, label);
     }
@@ -46,7 +43,7 @@ public final class Vocabulary {
     @NotNull JsonObject toElasticSearchObject() {
         JsonObject output = new JsonObject();
 
-        output.add("label", localizableToJson(label));
+        output.add("label", JsonUtils.localizableToJson(label));
         output.addProperty("id", graphId);
 
         return output;

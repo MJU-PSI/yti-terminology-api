@@ -1,4 +1,4 @@
-package fi.csc.termed.search.domain;
+package fi.csc.termed.api.domain;
 
 public enum VocabularyType {
     TerminologicalVocabulary,

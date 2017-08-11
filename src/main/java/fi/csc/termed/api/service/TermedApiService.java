@@ -1,12 +1,13 @@
-package fi.csc.termed.search.service;
+package fi.csc.termed.api.service;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import fi.csc.termed.search.domain.Concept;
-import fi.csc.termed.search.domain.Vocabulary;
-import fi.csc.termed.search.domain.VocabularyType;
+import fi.csc.termed.api.domain.Concept;
+import fi.csc.termed.api.domain.VocabularyType;
+import fi.csc.termed.api.domain.Vocabulary;
+import fi.csc.termed.api.util.JsonUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -28,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static fi.csc.termed.search.util.JsonUtils.asStream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
@@ -197,7 +197,7 @@ public class TermedApiService {
             JsonArray json = responseContentAsJson(response).getAsJsonArray();
 
             log.info("Fetched " + json.size() + " objects from termed API from url " + url);
-            return asStream(json).map(JsonElement::getAsJsonObject).collect(toList());
+            return JsonUtils.asStream(json).map(JsonElement::getAsJsonObject).collect(toList());
         } else {
             return emptyList();
         }

@@ -1,8 +1,8 @@
-package fi.csc.termed.search.service;
+package fi.csc.termed.api.service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import fi.csc.termed.search.domain.VocabularyType;
+import fi.csc.termed.api.domain.VocabularyType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

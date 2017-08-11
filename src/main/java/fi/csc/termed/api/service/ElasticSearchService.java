@@ -1,9 +1,9 @@
-package fi.csc.termed.search.service;
+package fi.csc.termed.api.service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import fi.csc.termed.search.domain.Concept;
-import fi.csc.termed.search.dto.AffectedNodes;
+import fi.csc.termed.api.domain.Concept;
+import fi.csc.termed.api.dto.AffectedNodes;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;

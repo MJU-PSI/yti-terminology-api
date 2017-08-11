@@ -1,8 +1,8 @@
-package fi.csc.termed.search.domain;
+package fi.csc.termed.api.domain;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import fi.csc.termed.search.service.AllNodesResult;
+import fi.csc.termed.api.service.AllNodesResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,8 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static fi.csc.termed.search.util.JsonUtils.*;
-import static fi.csc.termed.search.util.ObjectUtils.requireNonNull;
+import static fi.csc.termed.api.util.JsonUtils.*;
+import static fi.csc.termed.api.util.ObjectUtils.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 public final class Concept {

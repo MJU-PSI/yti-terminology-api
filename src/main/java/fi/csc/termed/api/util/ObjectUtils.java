@@ -1,4 +1,4 @@
-package fi.csc.termed.search.util;
+package fi.csc.termed.api.util;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
