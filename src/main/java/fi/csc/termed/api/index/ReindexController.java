@@ -1,6 +1,5 @@
-package fi.csc.termed.api.controller;
+package fi.csc.termed.api.index;
 
-import fi.csc.termed.api.service.ElasticSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

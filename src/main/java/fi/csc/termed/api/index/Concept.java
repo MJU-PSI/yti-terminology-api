@@ -1,8 +1,7 @@
-package fi.csc.termed.api.domain;
+package fi.csc.termed.api.index;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import fi.csc.termed.api.service.AllNodesResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

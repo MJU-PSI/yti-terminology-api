@@ -1,9 +1,7 @@
-package fi.csc.termed.api.service;
+package fi.csc.termed.api.index;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import fi.csc.termed.api.domain.Concept;
-import fi.csc.termed.api.dto.AffectedNodes;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
@@ -51,12 +49,12 @@ public class ElasticSearchService {
     private boolean DELETE_INDEX_ON_APP_RESTART;
 
     private final RestClient esRestClient;
-    private final TermedApiService termedApiService;
+    private final TermedService termedApiService;
     private final JsonParser jsonParser = new JsonParser();
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    public ElasticSearchService(TermedApiService termedApiService,
+    public ElasticSearchService(TermedService termedApiService,
                                 @Value("${search.host.url}") String searchHostUrl,
                                 @Value("${search.host.port}") int searchHostPort,
                                 @Value("${search.host.scheme}") String searchHostScheme) {

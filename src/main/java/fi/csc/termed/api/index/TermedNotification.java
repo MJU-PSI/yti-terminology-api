@@ -1,4 +1,4 @@
-package fi.csc.termed.api.dto;
+package fi.csc.termed.api.index;
 
 import org.jetbrains.annotations.NotNull;
 

@@ -1,9 +1,6 @@
-package fi.csc.termed.api.controller;
+package fi.csc.termed.api.index;
 
-import fi.csc.termed.api.dto.AffectedNodes;
-import fi.csc.termed.api.dto.TermedNotification;
-import fi.csc.termed.api.dto.TermedNotification.Node;
-import fi.csc.termed.api.service.ElasticSearchService;
+import fi.csc.termed.api.index.TermedNotification.Node;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,7 +1,7 @@
 package fi.csc.termed.api;
 
-import fi.csc.termed.api.service.ElasticSearchService;
-import fi.csc.termed.api.service.TermedApiService;
+import fi.csc.termed.api.index.ElasticSearchService;
+import fi.csc.termed.api.index.TermedService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ import javax.annotation.PreDestroy;
 public class ApplicationInitializer {
 
     private final ElasticSearchService elasticSearchService;
-    private final TermedApiService termedApiService;
+    private final TermedService termedApiService;
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -25,7 +25,7 @@ public class ApplicationInitializer {
     private String NOTIFY_HOOK_URL;
 
     @Autowired
-    public ApplicationInitializer(ElasticSearchService elasticSearchService, TermedApiService termedApiService) {
+    public ApplicationInitializer(ElasticSearchService elasticSearchService, TermedService termedApiService) {
         this.elasticSearchService = elasticSearchService;
         this.termedApiService = termedApiService;
     }

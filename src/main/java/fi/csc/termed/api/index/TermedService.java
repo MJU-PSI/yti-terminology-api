@@ -1,12 +1,9 @@
-package fi.csc.termed.api.service;
+package fi.csc.termed.api.index;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import fi.csc.termed.api.domain.Concept;
-import fi.csc.termed.api.domain.VocabularyType;
-import fi.csc.termed.api.domain.Vocabulary;
 import fi.csc.termed.api.util.JsonUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -33,7 +30,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 @Service
-public class TermedApiService {
+public class TermedService {
 
 	@Value("${api.user}")
 	private String API_USER;
@@ -49,7 +46,7 @@ public class TermedApiService {
 
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-	public TermedApiService() {
+	public TermedService() {
 		this.apiClient = HttpClientBuilder.create().build();
 		this.jsonParser = new JsonParser();
 	}
