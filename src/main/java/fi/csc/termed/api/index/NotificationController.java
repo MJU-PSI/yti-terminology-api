@@ -41,7 +41,7 @@ public class NotificationController {
         synchronized(this.lock) {
 
             Map<String, List<Node>> nodesByGraphId =
-                    notification.getBody().getNodes().stream().collect(Collectors.groupingBy(node -> node.getType().getGraph().getId()));
+                    notification.body.nodes.stream().collect(Collectors.groupingBy(node -> node.type.graph.id));
 
             for (Map.Entry<String, List<Node>> entries : nodesByGraphId.entrySet()) {
 
@@ -51,7 +51,7 @@ public class NotificationController {
                 List<String> vocabularies = extractIdsOfType(nodes, vocabularyTypes);
                 List<String> concepts = extractIdsOfType(nodes, conceptTypes);
 
-                switch (notification.getType()) {
+                switch (notification.type) {
                     case NodeSavedEvent:
                         this.elasticSearchService.updateIndexAfterUpdate(new AffectedNodes(graphId, vocabularies, concepts));
                         break;
@@ -65,8 +65,8 @@ public class NotificationController {
 
     private static @NotNull List<String> extractIdsOfType(@NotNull List<Node> nodes, @NotNull List<String> types) {
         return nodes.stream()
-                .filter(node -> types.contains(node.getType().getId()))
-                .map(Node::getId)
+                .filter(node -> types.contains(node.type.id))
+                .map(node -> node.id)
                 .collect(toList());
     }
 }

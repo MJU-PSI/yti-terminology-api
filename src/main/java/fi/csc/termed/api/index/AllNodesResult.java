@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import static java.util.function.Function.identity;
 
-public final class AllNodesResult {
+final class AllNodesResult {
 
     private final Map<String, JsonObject> nodes;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -23,11 +23,11 @@ public final class AllNodesResult {
         this.nodes = nodes.stream().collect(Collectors.toMap(node -> node.get("id").getAsString(), identity()));
     }
 
-    public @Nullable JsonObject getNode(@NotNull String id) {
+    @Nullable JsonObject getNode(@NotNull String id) {
         return getNode(id, null);
     }
 
-    public @Nullable JsonObject getNode(@NotNull String id, @Nullable String expectedType) {
+    @Nullable JsonObject getNode(@NotNull String id, @Nullable String expectedType) {
 
         JsonObject node = this.nodes.get(id);
 

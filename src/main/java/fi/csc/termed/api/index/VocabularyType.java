@@ -1,6 +1,6 @@
 package fi.csc.termed.api.index;
 
-public enum VocabularyType {
+enum VocabularyType {
     TerminologicalVocabulary,
     Vocabulary
 }

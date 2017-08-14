@@ -6,27 +6,27 @@ import java.util.List;
 
 import static java.util.Collections.unmodifiableList;
 
-public final class AffectedNodes {
+final class AffectedNodes {
 
     private final String graphId;
     private final List<String> vocabularyIds;
     private final List<String> conceptsIds;
 
-    public AffectedNodes(@NotNull String graphId, @NotNull List<String> vocabularyIds, @NotNull List<String> conceptsIds) {
+    AffectedNodes(@NotNull String graphId, @NotNull List<String> vocabularyIds, @NotNull List<String> conceptsIds) {
         this.graphId = graphId;
         this.vocabularyIds = vocabularyIds;
         this.conceptsIds = conceptsIds;
     }
 
-    public @NotNull String getGraphId() {
+    @NotNull String getGraphId() {
         return graphId;
     }
 
-    public @NotNull List<String> getConceptsIds() {
+    @NotNull List<String> getConceptsIds() {
         return unmodifiableList(conceptsIds);
     }
 
-    public boolean hasVocabulary() {
+    boolean hasVocabulary() {
         return !this.vocabularyIds.isEmpty();
     }
 }

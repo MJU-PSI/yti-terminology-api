@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 
-public final class Vocabulary {
+final class Vocabulary {
 
     private final String graphId;
     private final Map<String, List<String>> label;
@@ -17,11 +17,11 @@ public final class Vocabulary {
         this.label = label;
     }
 
-    public @NotNull String getGraphId() {
+    @NotNull String getGraphId() {
         return graphId;
     }
 
-    public static @NotNull Vocabulary createFromExtJson(@NotNull JsonObject json) {
+    static @NotNull Vocabulary createFromExtJson(@NotNull JsonObject json) {
 
         JsonObject typeObj = json.get("type").getAsJsonObject();
         JsonObject properties = json.get("properties").getAsJsonObject();

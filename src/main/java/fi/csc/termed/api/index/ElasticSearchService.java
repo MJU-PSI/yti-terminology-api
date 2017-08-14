@@ -84,7 +84,7 @@ public class ElasticSearchService {
         termedApiService.fetchAllAvailableGraphIds().forEach(graphId -> reindexGraph(graphId, false));
     }
 
-    public void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
+    void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
 
@@ -101,7 +101,7 @@ public class ElasticSearchService {
         }
     }
 
-    public void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
+    void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
         if (nodes.hasVocabulary()) {
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());

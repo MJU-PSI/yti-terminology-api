@@ -1,103 +1,30 @@
 package fi.csc.termed.api.index;
 
-import org.jetbrains.annotations.NotNull;
-
+import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 
+@SuppressWarnings("WeakerAccess")
 public class TermedNotification {
 
-    public static class Graph {
-
-        private String id;
-
-        @NotNull
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
+    static class Graph {
+        @NotNull public String id;
     }
 
     public static class Body {
-
-        private String user;
-        private Date date;
-        private List<Node> nodes;
-
-        public List<Node> getNodes() {
-            return nodes;
-        }
-
-        public void setNodes(List<Node> node) {
-            this.nodes = node;
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public void setUser(String user) {
-            this.user = user;
-        }
-
-        public Date getDate() {
-            return date;
-        }
-
-        public void setDate(Date date) {
-            this.date = date;
-        }
+        @NotNull public String user;
+        @NotNull public Date date;
+        @NotNull public List<Node> nodes;
     }
 
     public static class Node {
-
-        private String id;
-        private Type type;
-
-        @NotNull
-        public Type getType() {
-            return type;
-        }
-
-        public void setType(Type type) {
-            this.type = type;
-        }
-
-        @NotNull
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
+        @NotNull public String id;
+        @NotNull public Type type;
     }
 
     public static class Type {
-
-        private String id;
-        private Graph graph;
-
-        @NotNull
-        public Graph getGraph() {
-            return graph;
-        }
-
-        public void setGraph(Graph graph) {
-            this.graph = graph;
-        }
-
-        @NotNull
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
+        @NotNull public String id;
+        @NotNull public Graph graph;
     }
 
     public enum EventType {
@@ -107,24 +34,6 @@ public class TermedNotification {
         ApplicationShutdownEvent
     }
 
-    private EventType type;
-    private Body body;
-
-    @NotNull
-    public EventType getType() {
-        return type;
-    }
-
-    public void setType(EventType type) {
-        this.type = type;
-    }
-
-    @NotNull
-    public Body getBody() {
-        return body;
-    }
-
-    public void setBody(Body body) {
-        this.body = body;
-    }
+    @NotNull public EventType type;
+    @NotNull public Body body;
 }

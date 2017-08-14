@@ -14,7 +14,7 @@ import static fi.csc.termed.api.util.JsonUtils.*;
 import static fi.csc.termed.api.util.ObjectUtils.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public final class Concept {
+final class Concept {
 
     private final String id;
     private final Vocabulary vocabulary;
@@ -85,7 +85,7 @@ public final class Concept {
         return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate);
     }
 
-    public static @NotNull Concept createFromExtJson(@NotNull JsonObject json, @NotNull Vocabulary vocabulary) {
+    static @NotNull Concept createFromExtJson(@NotNull JsonObject json, @NotNull Vocabulary vocabulary) {
 
         JsonObject references = json.get("references").getAsJsonObject();
 
@@ -100,7 +100,7 @@ public final class Concept {
         return createFromTermedNodes(json, prefLabelXlReferences, altLabelXlReferences, vocabulary);
     }
 
-    public static @NotNull Concept createFromAllNodeResult(@NotNull String conceptId, @NotNull String vocabularyId, @NotNull AllNodesResult allNodesResult) {
+    static @NotNull Concept createFromAllNodeResult(@NotNull String conceptId, @NotNull String vocabularyId, @NotNull AllNodesResult allNodesResult) {
 
         JsonObject conceptJson = requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
         JsonObject vocabularyJson = requireNonNull(allNodesResult.getNode(vocabularyId));
@@ -120,7 +120,7 @@ public final class Concept {
         return createFromTermedNodes(conceptJson, prefLabelXLReferences, altLabelXLReferences, Vocabulary.createFromExtJson(vocabularyJson));
     }
 
-    public static @NotNull Concept createFromIndex(@NotNull JsonObject json) {
+    static @NotNull Concept createFromIndex(@NotNull JsonObject json) {
 
         String id = json.get("id").getAsString();
         List<String> broader = jsonToList(json.getAsJsonArray("broader"));
@@ -146,19 +146,19 @@ public final class Concept {
         }
     }
 
-    public @NotNull String getDocumentId() {
+    @NotNull String getDocumentId() {
         return formDocumentId(vocabulary.getGraphId(), id);
     }
 
-    public static @NotNull String formDocumentId(@NotNull String graphId, @NotNull String conceptId) {
+    static @NotNull String formDocumentId(@NotNull String graphId, @NotNull String conceptId) {
         return graphId + "/" + conceptId;
     }
 
-    public @NotNull List<String> getBroaderIds() {
+    @NotNull List<String> getBroaderIds() {
         return broaderIds;
     }
 
-    public @NotNull List<String> getNarrowerIds() {
+    @NotNull List<String> getNarrowerIds() {
         return narrowerIds;
     }
 
@@ -177,7 +177,7 @@ public final class Concept {
         return result;
     }
 
-    public @NotNull JsonObject toElasticSearchDocument() {
+    @NotNull JsonObject toElasticSearchDocument() {
 
         JsonObject output = new JsonObject();
 
