@@ -1,5 +1,7 @@
 package fi.csc.termed.api.index;
 
+import fi.csc.termed.api.common.NodeIdentifier;
+
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
@@ -7,24 +9,11 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 public class TermedNotification {
 
-    static class Graph {
-        @NotNull public String id;
-    }
-
     public static class Body {
         @NotNull public String user;
         @NotNull public Date date;
-        @NotNull public List<Node> nodes;
-    }
-
-    public static class Node {
-        @NotNull public String id;
-        @NotNull public Type type;
-    }
-
-    public static class Type {
-        @NotNull public String id;
-        @NotNull public Graph graph;
+        @NotNull public List<NodeIdentifier> nodes;
+        public boolean sync;
     }
 
     public enum EventType {

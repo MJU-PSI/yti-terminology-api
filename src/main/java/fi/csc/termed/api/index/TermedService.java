@@ -5,14 +5,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import fi.csc.termed.api.util.JsonUtils;
+import fi.csc.termed.api.util.Parameters;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.*;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicNameValuePair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,7 +20,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -253,45 +251,6 @@ public class TermedService {
     }
 
     private @NotNull String createUrl(@NotNull String path, @NotNull Parameters parameters) {
-        return API_URL + path + parameters.toString();
-    }
-
-    private static class Parameters {
-        
-	    private final List<NameValuePair> parameters = new ArrayList<>();
-
-	    private static @NotNull Parameters single(@NotNull String name, @NotNull String value) {
-            Parameters result = new Parameters();
-            result.add(name, value);
-            return result;
-        }
-	    
-        private void add(@NotNull String name, @NotNull String value) {
-            this.parameters.add(new BasicNameValuePair(name, value));
-        }
-
-        private static String urlEncode(String value) {
-            try {
-                return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String toString() {
-
-            StringBuilder result = new StringBuilder();
-
-            if (!parameters.isEmpty()) {
-                result.append("?");
-                result.append(
-                        parameters.stream()
-                                .map(param -> param.getName() + "=" + urlEncode(param.getValue()))
-                                .collect(Collectors.joining("&")));
-            }
-
-            return result.toString();
-        }
+        return API_URL + path + parameters.toEncodedString();
     }
 }

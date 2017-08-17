@@ -1,6 +1,6 @@
 package fi.csc.termed.api.index;
 
-import fi.csc.termed.api.index.TermedNotification.Node;
+import fi.csc.termed.api.common.NodeIdentifier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,13 +40,13 @@ public class NotificationController {
 
         synchronized(this.lock) {
 
-            Map<String, List<Node>> nodesByGraphId =
+            Map<String, List<NodeIdentifier>> nodesByGraphId =
                     notification.body.nodes.stream().collect(Collectors.groupingBy(node -> node.type.graph.id));
 
-            for (Map.Entry<String, List<Node>> entries : nodesByGraphId.entrySet()) {
+            for (Map.Entry<String, List<NodeIdentifier>> entries : nodesByGraphId.entrySet()) {
 
                 String graphId = entries.getKey();
-                List<Node> nodes = entries.getValue();
+                List<NodeIdentifier> nodes = entries.getValue();
 
                 List<String> vocabularies = extractIdsOfType(nodes, vocabularyTypes);
                 List<String> concepts = extractIdsOfType(nodes, conceptTypes);
@@ -63,7 +63,7 @@ public class NotificationController {
         }
     }
 
-    private static @NotNull List<String> extractIdsOfType(@NotNull List<Node> nodes, @NotNull List<String> types) {
+    private static @NotNull List<String> extractIdsOfType(@NotNull List<NodeIdentifier> nodes, @NotNull List<String> types) {
         return nodes.stream()
                 .filter(node -> types.contains(node.type.id))
                 .map(node -> node.id)
