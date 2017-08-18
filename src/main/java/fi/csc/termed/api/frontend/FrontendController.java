@@ -3,6 +3,11 @@ package fi.csc.termed.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import fi.csc.termed.api.util.Parameters;
+import org.apache.http.HttpHost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +16,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/frontend")
 public class FrontendController {
@@ -18,17 +31,28 @@ public class FrontendController {
     private final String termedUsername;
     private final String termedPassword;
     private final String termedUrl;
+    private final String indexName;
+    private final String indexMappingType;
     private final RestTemplate restTemplate;
+    private final RestClient esRestClient;
 
     @Autowired
     public FrontendController(@Value("${api.user}") String termedUser,
                               @Value("${api.pw}") String termedPassword,
                               @Value("${api.url}") String termedUrl,
+                              @Value("${search.host.url}") String searchHostUrl,
+                              @Value("${search.host.port}") int searchHostPort,
+                              @Value("${search.host.scheme}") String searchHostScheme,
+                              @Value("${search.index.name}") String indexName,
+                              @Value("${search.index.mapping.type}") String indexMappingType,
                               RestTemplate restTemplate) {
         this.termedUsername = termedUser;
         this.termedPassword = termedPassword;
         this.termedUrl = termedUrl;
+        this.indexName = indexName;
+        this.indexMappingType = indexMappingType;
         this.restTemplate = restTemplate;
+        this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
     }
 
     @RequestMapping("/checkCredentials")
@@ -273,6 +297,32 @@ public class FrontendController {
     @RequestMapping(value = "/graph", method = RequestMethod.DELETE)
     void deleteGraph(@RequestParam String graphId) {
         this.restTemplate.delete(createUrl("/graphs/" + graphId));
+    }
+
+    @RequestMapping(value = "/searchConcept", method = RequestMethod.POST)
+    String searchConcept(@RequestBody JsonNode query) {
+
+        Parameters params = new Parameters();
+        params.add("source", query.toString());
+        params.add("source_content_type", "application/json");
+        String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+        NStringEntity body = new NStringEntity(query.toString(), ContentType.APPLICATION_JSON);
+
+        try {
+            Response response = esRestClient.performRequest("GET", endpoint, Collections.emptyMap(), body);
+            return responseContentAsString(response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static @NotNull String responseContentAsString(@NotNull Response response) {
+        try (InputStream is = response.getEntity().getContent()) {
+            return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
+                    .collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static JsonNode requireSingle(ArrayNode array) {

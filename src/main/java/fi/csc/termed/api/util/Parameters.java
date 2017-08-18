@@ -9,6 +9,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
 
@@ -32,6 +34,10 @@ public class Parameters {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Map<String, String> toMap() {
+        return this.parameters.stream().collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
     }
 
     @Override
