@@ -13,9 +13,7 @@ apply plugin: 'war'
 apply plugin: 'org.springframework.boot'
 
 jar {
-    manifest {
-        attributes 'Main-Class': 'fi.csc.termed.api.Application'
-    }
+    baseName = 'iow-termed-api'
 }
 
 repositories {
