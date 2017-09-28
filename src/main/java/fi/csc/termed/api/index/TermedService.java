@@ -194,6 +194,7 @@ public class TermedService {
             log.info("Fetched " + json.size() + " objects from termed API from url " + url);
             return JsonUtils.asStream(json).map(JsonElement::getAsJsonObject).collect(toList());
         } else {
+            log.info("Failed to fetch objects from termed API from url " + url);
             return emptyList();
         }
     }
