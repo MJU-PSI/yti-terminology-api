@@ -281,7 +281,7 @@ public class ElasticSearchService {
         } catch (ResponseException e) {
             return e.getResponse();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ElasticEndpointException(e);
         }
     }
 

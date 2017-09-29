@@ -1,6 +1,8 @@
 package fi.csc.termed.api;
 
+import fi.csc.termed.api.index.ElasticEndpointException;
 import fi.csc.termed.api.index.ElasticSearchService;
+import fi.csc.termed.api.index.TermedEndpointException;
 import fi.csc.termed.api.index.TermedService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +33,30 @@ public class ApplicationInitializer {
     }
 
     @PostConstruct
-    public void onInit() {
-        this.elasticSearchService.initIndex();
+    public void onInit() throws InterruptedException {
 
-        if (!NOTIFY_HOOK_URL.isEmpty()) {
-            registerNotificationUrl(NOTIFY_HOOK_URL);
+        for (int retryCount = 0; retryCount < 10; retryCount++) {
+            try {
+
+                if (retryCount > 0) {
+                    log.info("Retrying");
+                }
+
+                this.elasticSearchService.initIndex();
+
+                if (!NOTIFY_HOOK_URL.isEmpty()) {
+                    registerNotificationUrl(NOTIFY_HOOK_URL);
+                }
+
+                return;
+
+            } catch (TermedEndpointException | ElasticEndpointException e) {
+                log.warn("Initialization failed (" + retryCount + ")", e);
+                Thread.sleep(20000);
+            }
         }
+
+        throw new RuntimeException("Cannot initialize");
     }
 
     @PreDestroy

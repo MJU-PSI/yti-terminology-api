@@ -226,7 +226,7 @@ public class TermedService {
                 return null;
             }
         } catch (IOException e) {
-            return null;
+            throw new TermedEndpointException(e);
         }
     }
 
