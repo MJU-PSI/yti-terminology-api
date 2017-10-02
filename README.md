@@ -1,8 +1,8 @@
-# Iow termed api
+# YTI termonology API
 
-Termed is a web-based vocabulary and metadata editor.
+Terminology editor is a web-based vocabulary and metadata editor.
 
-Iow termed api's purpose is to act as a backend for iow-termed-ui frontend project.
+This modules purpose is to act as a backend for frontend project.
 It also handles updating of elastic search index. Complete reindexing is done periodically.
 
 ## Install dependencies
@@ -15,7 +15,7 @@ Run with `./gradlew assemble` to download all dependencies.
 
 Run with: `./gradlew bootRun`
 
-Termed search should respond at port `8001`.
+Terminology API should respond at port `8001`.
 
 ### Using profile-specific properties
 

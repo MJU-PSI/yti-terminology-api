@@ -13,7 +13,7 @@ apply plugin: 'war'
 apply plugin: 'org.springframework.boot'
 
 war {
-    baseName = 'iow-termed-api'
+    baseName = 'yti-terminology-api'
 }
 
 repositories {
@@ -44,5 +44,5 @@ bootRun {
 }
 
 bootRepackage {
-    mainClass = 'fi.csc.termed.api.Application'
+    mainClass = 'fi.vm.yti.terminology.api.Application'
 }

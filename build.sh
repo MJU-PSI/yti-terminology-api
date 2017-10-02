@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t iow-termed-api .
+docker build -t yti-terminology-api .
