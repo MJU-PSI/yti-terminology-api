@@ -104,20 +104,35 @@ final class Concept {
 
         JsonObject conceptJson = ObjectUtils.requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
         JsonObject vocabularyJson = ObjectUtils.requireNonNull(allNodesResult.getNode(vocabularyId));
+        Vocabulary vocabulary = Vocabulary.createFromExtJson(vocabularyJson);
 
         JsonObject references = conceptJson.getAsJsonObject("references");
 
         List<JsonObject> prefLabelXLReferences =
                 getReferenceIdsFromTermedReferences(references, "prefLabelXl").stream()
-                        .map(refId -> allNodesResult.getNode(refId, "Term"))
+                        .map(refId -> {
+                            JsonObject term = allNodesResult.getNode(refId, "Term");
+
+                            if (term == null)
+                                throw new BrokenTermedDataLinkException(vocabulary, refId);
+
+                            return term;
+                        })
                         .collect(toList());
 
         List<JsonObject> altLabelXLReferences =
                 getReferenceIdsFromTermedReferences(references, "altLabelXl").stream()
-                        .map(refId -> allNodesResult.getNode(refId, "Term"))
+                        .map(refId -> {
+                            JsonObject term = allNodesResult.getNode(refId, "Term");
+
+                            if (term == null)
+                                throw new BrokenTermedDataLinkException(vocabulary, refId);
+
+                            return term;
+                        })
                         .collect(toList());
 
-        return createFromTermedNodes(conceptJson, prefLabelXLReferences, altLabelXLReferences, Vocabulary.createFromExtJson(vocabularyJson));
+        return createFromTermedNodes(conceptJson, prefLabelXLReferences, altLabelXLReferences, vocabulary);
     }
 
     static @NotNull Concept createFromIndex(@NotNull JsonObject json) {

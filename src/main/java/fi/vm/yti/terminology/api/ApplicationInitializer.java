@@ -1,9 +1,6 @@
 package fi.vm.yti.terminology.api;
 
-import fi.vm.yti.terminology.api.index.ElasticEndpointException;
-import fi.vm.yti.terminology.api.index.ElasticSearchService;
-import fi.vm.yti.terminology.api.index.TermedEndpointException;
-import fi.vm.yti.terminology.api.index.TermedService;
+import fi.vm.yti.terminology.api.index.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +47,7 @@ public class ApplicationInitializer {
 
                 return;
 
-            } catch (TermedEndpointException | ElasticEndpointException e) {
+            } catch (TermedEndpointException | ElasticEndpointException | BrokenTermedDataLinkException e) {
                 log.warn("Initialization failed (" + retryCount + ")", e);
                 Thread.sleep(30000);
             }
