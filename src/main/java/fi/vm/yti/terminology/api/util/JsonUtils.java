@@ -70,6 +70,7 @@ public final class JsonUtils {
 					}
 				})
 				.map(JsonElement::getAsJsonObject)
+				.filter(localization -> localization.get("lang") != null && localization.get("value") != null)
 				.collect(groupingBy(localization -> localization.get("lang").getAsString(),
 						mapping(localization -> localization.get("value").getAsString(), toList())));
 	}
