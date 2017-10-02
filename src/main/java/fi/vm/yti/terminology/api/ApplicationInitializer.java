@@ -52,7 +52,7 @@ public class ApplicationInitializer {
 
             } catch (TermedEndpointException | ElasticEndpointException e) {
                 log.warn("Initialization failed (" + retryCount + ")", e);
-                Thread.sleep(20000);
+                Thread.sleep(30000);
             }
         }
 
