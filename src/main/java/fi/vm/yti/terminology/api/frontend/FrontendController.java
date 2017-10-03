@@ -274,6 +274,30 @@ public class FrontendController {
         return response.getBody();
     }
 
+    // TODO: better typing for easy authorization
+    @RequestMapping(value = "/types", method = RequestMethod.POST)
+    void updateTypes(@RequestParam String graphId,
+                     @RequestBody ArrayNode metaNodes) {
+
+        Parameters params = new Parameters();
+        params.add("batch", "true");
+
+        this.restTemplate.exchange(createUrl("/graphs/" + graphId + "/types", params), HttpMethod.POST,
+                new HttpEntity<>(metaNodes, createAuthHeaders(termedUsername, termedPassword)), String.class);
+    }
+
+    // TODO: better typing for easy authorization
+    @RequestMapping(value = "/types", method = RequestMethod.DELETE)
+    void removeTypes(@RequestParam String graphId,
+                     @RequestBody ArrayNode identifiers) {
+
+        Parameters params = new Parameters();
+        params.add("batch", "true");
+
+        this.restTemplate.exchange(createUrl("/graphs/" + graphId + "/types", params), HttpMethod.DELETE,
+                new HttpEntity<>(identifiers, createAuthHeaders(termedUsername, termedPassword)), String.class);
+    }
+
     @RequestMapping("/graphs")
     ArrayNode getGraphs() {
 
