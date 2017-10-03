@@ -259,7 +259,7 @@ public class FrontendController {
         return response.getBody();
     }
 
-    @RequestMapping("/types")
+    @RequestMapping(value = "/types", method = RequestMethod.GET)
     ArrayNode getTypes(@RequestParam(required = false) String graphId) {
 
         Parameters params = new Parameters();
@@ -291,12 +291,13 @@ public class FrontendController {
     void createGraph(@RequestBody JsonNode graph) {
 
         this.restTemplate.exchange(createUrl("/graphs"), HttpMethod.POST,
-                new HttpEntity<>(graph), String.class);
+                new HttpEntity<>(graph, createAuthHeaders(termedUsername, termedPassword)), String.class);
     }
 
     @RequestMapping(value = "/graph", method = RequestMethod.DELETE)
     void deleteGraph(@RequestParam String graphId) {
-        this.restTemplate.delete(createUrl("/graphs/" + graphId));
+        this.restTemplate.exchange(createUrl("/graphs/" + graphId), HttpMethod.DELETE,
+                new HttpEntity<>(null, createAuthHeaders(termedUsername, termedPassword)), String.class);
     }
 
     @RequestMapping(value = "/searchConcept", method = RequestMethod.POST)
