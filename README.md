@@ -34,6 +34,20 @@ and run:
 
 Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
 
+## Development
+
+Get started:
+
+  - Copy `src/main/resources/config/application-template.properties` to `application-local.properties`
+    and adjust the settings.
+  - Run `./gradlew assemble` to download all dependencies.
+
+To develop the code:
+
+  - Run java class `fi.vm.yti.terminology.api.Application` with parameter `-Dspring.profiles.active=local` to start up Spring Boot web application at [http://localhost:8001](http://localhost:8001).
+
+Now you can start hacking the code normally.
+
 ## Build (executable) jar
 
 Run with: `./gradlew jar -Dspring.profiles.active=prod`
