@@ -2,6 +2,9 @@ package fi.vm.yti.terminology.api.frontend;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.exception.NotFoundException;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
@@ -9,11 +12,11 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
@@ -23,6 +26,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 @RequestMapping("/frontend")
@@ -35,6 +41,7 @@ public class FrontendController {
     private final String indexMappingType;
     private final RestTemplate restTemplate;
     private final RestClient esRestClient;
+    private final AuthenticatedUserProvider userProvider;
 
     @Autowired
     public FrontendController(@Value("${api.user}") String termedUser,
@@ -45,7 +52,8 @@ public class FrontendController {
                               @Value("${search.host.scheme}") String searchHostScheme,
                               @Value("${search.index.name}") String indexName,
                               @Value("${search.index.mapping.type}") String indexMappingType,
-                              RestTemplate restTemplate) {
+                              RestTemplate restTemplate,
+                              AuthenticatedUserProvider userProvider) {
         this.termedUsername = termedUser;
         this.termedPassword = termedPassword;
         this.termedUrl = termedUrl;
@@ -53,24 +61,12 @@ public class FrontendController {
         this.indexMappingType = indexMappingType;
         this.restTemplate = restTemplate;
         this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
+        this.userProvider = userProvider;
     }
 
-    @RequestMapping("/checkCredentials")
-    boolean checkCredentials(@RequestParam  String username, @RequestParam String password) {
-
-        try {
-            // uses an arbitrary url for checking authentication
-            this.restTemplate.exchange(createUrl("/graphs"), HttpMethod.GET,
-                    new HttpEntity<>(createAuthHeaders(username, password)), String.class);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                return false;
-            } else {
-                throw e;
-            }
-        }
-
-        return true;
+    @RequestMapping(value = "/authenticated-user", method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE)
+    YtiUser getUser() {
+        return this.userProvider.getUser();
     }
     
     @RequestMapping("/vocabulary")
@@ -115,10 +111,10 @@ public class FrontendController {
 
         return response.getBody();
     }
-    
+
     @RequestMapping("/concept")
-    JsonNode getConcept(@RequestParam String graphId,
-                        @RequestParam String conceptId) {
+    @Nullable JsonNode getConcept(@RequestParam String graphId,
+                                  @RequestParam String conceptId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -141,7 +137,13 @@ public class FrontendController {
         ResponseEntity<ArrayNode> response = this.restTemplate.exchange(createUrl("/node-trees", params), HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(termedUsername, termedPassword)), ArrayNode.class);
 
-        return requireSingle(response.getBody());
+        JsonNode concept = findSingle(response.getBody());
+
+        if (concept == null) {
+            throw new NotFoundException(graphId, conceptId);
+        }
+
+        return concept;
     }
 
     @RequestMapping("/collection")
@@ -216,31 +218,31 @@ public class FrontendController {
 
     // TODO: better typing for easy authorization
     @RequestMapping(value = "/modify", method = RequestMethod.POST)
-    void updateAndDeleteInternalNodes(@RequestParam String username,
-                                      @RequestParam String password,
-                                      @RequestBody JsonNode deleteAndSave) {
+    void updateAndDeleteInternalNodes(@RequestBody JsonNode deleteAndSave) {
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
         params.add("sync", "true");
 
+        // TODO user authenticated user credentials
+
         this.restTemplate.exchange(createUrl("/nodes", params), HttpMethod.POST,
-                new HttpEntity<>(deleteAndSave, createAuthHeaders(username, password)), String.class);
+                new HttpEntity<>(deleteAndSave, createAuthHeaders(termedUsername, termedPassword)), String.class);
     }
 
     // TODO: better typing for easy authorization
     @RequestMapping(value = "/remove", method = RequestMethod.DELETE)
-    void removeNodes(@RequestParam String username,
-                     @RequestParam String password,
-                     @RequestParam boolean sync,
+    void removeNodes(@RequestParam boolean sync,
                      @RequestBody ArrayNode identifiers) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
         params.add("sync", Boolean.toString(sync));
 
+        // TODO user authenticated user credentials
+
         this.restTemplate.exchange(createUrl("/nodes", params), HttpMethod.DELETE,
-                new HttpEntity<>(identifiers, createAuthHeaders(username, password)), String.class);
+                new HttpEntity<>(identifiers, createAuthHeaders(termedUsername, termedPassword)), String.class);
     }
 
     
@@ -350,12 +352,19 @@ public class FrontendController {
         }
     }
 
-    private static JsonNode requireSingle(ArrayNode array) {
+    private static @NotNull JsonNode requireSingle(ArrayNode array) {
+        return requireNonNull(findSingle(array), "One array item required, was: " + array.size());
+    }
 
-        if (array.size() != 1)
-            throw new RuntimeException("One array item required, was: " + array.size());
+    private static @Nullable JsonNode findSingle(ArrayNode array) {
 
-        return array.get(0);
+        if (array.size() > 1) {
+            throw new RuntimeException("One or zero array items required, was: " + array.size());
+        } else if (array.size() == 0) {
+            return null;
+        } else {
+            return array.get(0);
+        }
     }
 
     private @NotNull HttpHeaders createAuthHeaders(String username, String password) {
