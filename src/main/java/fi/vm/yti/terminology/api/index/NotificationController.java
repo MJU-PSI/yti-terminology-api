@@ -21,7 +21,7 @@ import static java.util.stream.Collectors.toList;
 @RestController
 public class NotificationController {
 
-    private final ElasticSearchService elasticSearchService;
+    private final IndexElasticSearchService elasticSearchService;
 
     private final Object lock = new Object();
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -30,7 +30,7 @@ public class NotificationController {
     private static final List<String> vocabularyTypes = asList("TerminologicalVocabulary", "Vocabulary");
 
     @Autowired
-    public NotificationController(ElasticSearchService elasticSearchService) {
+    public NotificationController(IndexElasticSearchService elasticSearchService) {
         this.elasticSearchService = elasticSearchService;
     }
 

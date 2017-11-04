@@ -13,8 +13,8 @@ import javax.annotation.PreDestroy;
 @Component
 public class ApplicationInitializer {
 
-    private final ElasticSearchService elasticSearchService;
-    private final TermedService termedApiService;
+    private final IndexElasticSearchService elasticSearchService;
+    private final IndexTermedService termedApiService;
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -24,7 +24,7 @@ public class ApplicationInitializer {
     private String NOTIFY_HOOK_URL;
 
     @Autowired
-    public ApplicationInitializer(ElasticSearchService elasticSearchService, TermedService termedApiService) {
+    public ApplicationInitializer(IndexElasticSearchService elasticSearchService, IndexTermedService termedApiService) {
         this.elasticSearchService = elasticSearchService;
         this.termedApiService = termedApiService;
     }

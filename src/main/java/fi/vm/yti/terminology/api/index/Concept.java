@@ -1,7 +1,9 @@
 package fi.vm.yti.terminology.api.index;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import fi.vm.yti.terminology.api.util.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,17 +51,17 @@ final class Concept {
         this.lastModifiedDate = lastModifiedDate;
     }
 
-    private static @NotNull Concept createFromTermedNodes(@NotNull JsonObject conceptJson,
-                                                          @NotNull List<JsonObject> prefLabelXlReferences,
-                                                          @NotNull List<JsonObject> altLabelXlReferences,
+    private static @NotNull Concept createFromTermedNodes(@NotNull JsonNode conceptJson,
+                                                          @NotNull List<JsonNode> prefLabelXlReferences,
+                                                          @NotNull List<JsonNode> altLabelXlReferences,
                                                           @NotNull Vocabulary vocabulary) {
 
-        String id = conceptJson.get("id").getAsString();
-        String lastModifiedDate = conceptJson.get("lastModifiedDate").getAsString();
+        String id = conceptJson.get("id").textValue();
+        String lastModifiedDate = conceptJson.get("lastModifiedDate").textValue();
 
-        JsonObject properties = conceptJson.getAsJsonObject("properties");
-        JsonObject references = conceptJson.getAsJsonObject("references");
-        JsonObject referrers = conceptJson.getAsJsonObject("referrers");
+        JsonNode properties = conceptJson.get("properties");
+        JsonNode references = conceptJson.get("references");
+        JsonNode referrers = conceptJson.get("referrers");
 
         Map<String, List<String>> label =
                 properties.has("prefLabel")
@@ -85,16 +87,16 @@ final class Concept {
         return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate);
     }
 
-    static @NotNull Concept createFromExtJson(@NotNull JsonObject json, @NotNull Vocabulary vocabulary) {
+    static @NotNull Concept createFromExtJson(@NotNull JsonNode json, @NotNull Vocabulary vocabulary) {
 
-        JsonObject references = json.get("references").getAsJsonObject();
+        JsonNode references = json.get("references");
 
-        List<JsonObject> prefLabelXlReferences = references.has("prefLabelXl")
-                ? asStream(references.getAsJsonArray("prefLabelXl")).map(JsonElement::getAsJsonObject).collect(toList())
+        List<JsonNode> prefLabelXlReferences = references.has("prefLabelXl")
+                ? asStream(references.get("prefLabelXl")).collect(toList())
                 : Collections.emptyList();
 
-        List<JsonObject> altLabelXlReferences = references.has("prefLabelXl")
-                ? asStream(references.getAsJsonArray("prefLabelXl")).map(JsonElement::getAsJsonObject).collect(toList())
+        List<JsonNode> altLabelXlReferences = references.has("prefLabelXl")
+                ? asStream(references.get("prefLabelXl")).collect(toList())
                 : Collections.emptyList();
 
         return createFromTermedNodes(json, prefLabelXlReferences, altLabelXlReferences, vocabulary);
@@ -102,16 +104,16 @@ final class Concept {
 
     static @NotNull Concept createFromAllNodeResult(@NotNull String conceptId, @NotNull String vocabularyId, @NotNull AllNodesResult allNodesResult) {
 
-        JsonObject conceptJson = ObjectUtils.requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
-        JsonObject vocabularyJson = ObjectUtils.requireNonNull(allNodesResult.getNode(vocabularyId));
+        JsonNode conceptJson = ObjectUtils.requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
+        JsonNode vocabularyJson = ObjectUtils.requireNonNull(allNodesResult.getNode(vocabularyId));
         Vocabulary vocabulary = Vocabulary.createFromExtJson(vocabularyJson);
 
-        JsonObject references = conceptJson.getAsJsonObject("references");
+        JsonNode references = conceptJson.get("references");
 
-        List<JsonObject> prefLabelXLReferences =
+        List<JsonNode> prefLabelXLReferences =
                 getReferenceIdsFromTermedReferences(references, "prefLabelXl").stream()
                         .map(refId -> {
-                            JsonObject term = allNodesResult.getNode(refId, "Term");
+                            JsonNode term = allNodesResult.getNode(refId, "Term");
 
                             if (term == null)
                                 throw new BrokenTermedDataLinkException(vocabulary, refId);
@@ -120,10 +122,10 @@ final class Concept {
                         })
                         .collect(toList());
 
-        List<JsonObject> altLabelXLReferences =
+        List<JsonNode> altLabelXLReferences =
                 getReferenceIdsFromTermedReferences(references, "altLabelXl").stream()
                         .map(refId -> {
-                            JsonObject term = allNodesResult.getNode(refId, "Term");
+                            JsonNode term = allNodesResult.getNode(refId, "Term");
 
                             if (term == null)
                                 throw new BrokenTermedDataLinkException(vocabulary, refId);
@@ -135,26 +137,25 @@ final class Concept {
         return createFromTermedNodes(conceptJson, prefLabelXLReferences, altLabelXLReferences, vocabulary);
     }
 
-    static @NotNull Concept createFromIndex(@NotNull JsonObject json) {
+    static @NotNull Concept createFromIndex(ObjectMapper mapper, @NotNull JsonNode json) {
 
-        String id = json.get("id").getAsString();
-        List<String> broader = jsonToList(json.getAsJsonArray("broader"));
-        List<String> narrower = jsonToList(json.getAsJsonArray("narrower"));
-        Map<String, List<String>> definition = jsonToLocalizable(json.getAsJsonObject("definition"));
-        Map<String, List<String>> label = jsonToLocalizable(json.getAsJsonObject("label"));
-        Map<String, List<String>> altLabel = jsonToLocalizable(json.getAsJsonObject("altLabel"));
-        String lastModifiedDate = json.has("modified")  ? json.get("modified").getAsString() : null;
-        String status = json.has("status") ? json.get("status").getAsString() : null;
-        Vocabulary vocabulary = Vocabulary.createFromIndex(json.getAsJsonObject("vocabulary"));
+        String id = json.get("id").textValue();
+        List<String> broader = jsonToList(json.get("broader"));
+        List<String> narrower = jsonToList(json.get("narrower"));
+        Map<String, List<String>> definition = jsonToLocalizable(mapper, json.get("definition"));
+        Map<String, List<String>> label = jsonToLocalizable(mapper, json.get("label"));
+        Map<String, List<String>> altLabel = jsonToLocalizable(mapper, json.get("altLabel"));
+        String lastModifiedDate = json.has("modified")  ? json.get("modified").textValue() : null;
+        String status = json.has("status") ? json.get("status").textValue() : null;
+        Vocabulary vocabulary = Vocabulary.createFromIndex(mapper, json.get("vocabulary"));
 
         return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate);
     }
 
-    private static @NotNull List<String> getReferenceIdsFromTermedReferences(@NotNull JsonObject references, @NotNull String referenceName) {
+    private static @NotNull List<String> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName) {
         if (references.has(referenceName)) {
-            return asStream(references.getAsJsonArray(referenceName))
-                    .map(JsonElement::getAsJsonObject)
-                    .map(node -> node.get("id").getAsString())
+            return asStream(references.get(referenceName))
+                    .map(node -> node.get("id").textValue())
                     .collect(toList());
         } else {
             return Collections.emptyList();
@@ -192,29 +193,29 @@ final class Concept {
         return result;
     }
 
-    @NotNull JsonObject toElasticSearchDocument() {
+    @NotNull JsonNode toElasticSearchDocument(ObjectMapper mapper) {
 
-        JsonObject output = new JsonObject();
+        ObjectNode output = mapper.createObjectNode();
 
-        output.addProperty("id", id);
-        output.add("broader", listToJson(broaderIds));
-        output.add("narrower", listToJson(narrowerIds));
-        output.add("definition", localizableToJson(definition));
-        output.add("label", localizableToJson(label));
-        output.add("altLabel", localizableToJson(altLabel));
-        output.add("sortByLabel", localizableToJson(getSingleLabelAsLower()));
+        output.put("id", id);
+        output.set("broader", listToJson(mapper, broaderIds));
+        output.set("narrower", listToJson(mapper, narrowerIds));
+        output.set("definition", localizableToJson(mapper, definition));
+        output.set("label", localizableToJson(mapper, label));
+        output.set("altLabel", localizableToJson(mapper, altLabel));
+        output.set("sortByLabel", localizableToJson(mapper, getSingleLabelAsLower()));
 
         if (lastModifiedDate != null) {
-            output.addProperty("modified", lastModifiedDate);
+            output.put("modified", lastModifiedDate);
         }
 
-        output.addProperty("hasNarrower",narrowerIds.size() > 0);
+        output.put("hasNarrower",narrowerIds.size() > 0);
 
         if (status != null) {
-            output.addProperty("status", status);
+            output.put("status", status);
         }
 
-        output.add("vocabulary", vocabulary.toElasticSearchObject());
+        output.set("vocabulary", vocabulary.toElasticSearchObject(mapper));
 
         return output;
     }

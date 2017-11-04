@@ -18,6 +18,10 @@ public class Parameters {
 
     private final List<NameValuePair> parameters = new ArrayList<>();
 
+    public static @NotNull Parameters empty() {
+        return new Parameters();
+    }
+
     public static @NotNull Parameters single(@NotNull String name, @NotNull String value) {
         Parameters result = new Parameters();
         result.add(name, value);

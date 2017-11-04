@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ReindexController {
 
-    private final ElasticSearchService elasticSearchService;
+    private final IndexElasticSearchService elasticSearchService;
 
     @Autowired
-    public ReindexController(ElasticSearchService elasticSearchService) {
+    public ReindexController(IndexElasticSearchService elasticSearchService) {
         this.elasticSearchService = elasticSearchService;
     }
 

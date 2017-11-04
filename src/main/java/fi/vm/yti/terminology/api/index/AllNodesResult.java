@@ -1,7 +1,6 @@
 package fi.vm.yti.terminology.api.index;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -12,24 +11,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static fi.vm.yti.terminology.api.util.JsonUtils.asStream;
 import static java.util.function.Function.identity;
 
 final class AllNodesResult {
 
-    private final Map<String, JsonObject> nodes;
+    private final Map<String, JsonNode> nodes;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    AllNodesResult(@NotNull List<JsonObject> nodes) {
-        this.nodes = nodes.stream().collect(Collectors.toMap(node -> node.get("id").getAsString(), identity()));
+    AllNodesResult(@NotNull JsonNode node) {
+        this.nodes = asStream(node).collect(Collectors.toMap(n -> n.get("id").textValue(), identity()));
     }
 
-    @Nullable JsonObject getNode(@NotNull String id) {
+    @Nullable JsonNode getNode(@NotNull String id) {
         return getNode(id, null);
     }
 
-    @Nullable JsonObject getNode(@NotNull String id, @Nullable String expectedType) {
+    @Nullable JsonNode getNode(@NotNull String id, @Nullable String expectedType) {
 
-        JsonObject node = this.nodes.get(id);
+        JsonNode node = this.nodes.get(id);
 
         if (node == null) {
             log.warn("No node found for id: " + id);
@@ -54,41 +54,41 @@ final class AllNodesResult {
     @NotNull List<String> getConceptNodeIds() {
         return this.nodes.values().stream()
                 .filter(AllNodesResult::isConceptNode)
-                .map(node -> node.get("id").getAsString())
+                .map(node -> node.get("id").textValue())
                 .collect(Collectors.toList());
     }
 
     @NotNull Optional<String> getVocabularyNodeId() {
         return this.nodes.values().stream()
                 .filter(AllNodesResult::isVocabularyNode)
-                .map(node -> node.get("id").getAsString())
+                .map(node -> node.get("id").textValue())
                 .findFirst();
     }
 
-    private static boolean isConceptNode(@NotNull JsonObject jsonObj) {
+    private static boolean isConceptNode(@NotNull JsonNode jsonObj) {
         return typeIs(jsonObj, "Concept");
     }
 
-    private static boolean isVocabularyNode(@NotNull JsonObject jsonObj) {
+    private static boolean isVocabularyNode(@NotNull JsonNode jsonObj) {
         return typeIs(jsonObj, VocabularyType.TerminologicalVocabulary.name(), VocabularyType.Vocabulary.name());
     }
 
-    private @Nullable static String type(@NotNull JsonObject jsonObj) {
+    private @Nullable static String type(@NotNull JsonNode jsonObj) {
 
-        JsonElement type = jsonObj.get("type");
+        JsonNode type = jsonObj.get("type");
 
         if (type != null) {
-            JsonElement id = type.getAsJsonObject().get("id");
+            JsonNode id = type.get("id");
 
             if (id != null) {
-                return id.getAsString();
+                return id.textValue();
             }
         }
 
         return null;
     }
 
-    private static boolean typeIs(@NotNull JsonObject jsonObj, @NotNull String... types) {
+    private static boolean typeIs(@NotNull JsonNode jsonObj, @NotNull String... types) {
         String jsonObjType = type(jsonObj);
 
         if (jsonObjType == null) {

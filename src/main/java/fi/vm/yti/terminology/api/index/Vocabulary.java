@@ -1,6 +1,8 @@
 package fi.vm.yti.terminology.api.index;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,30 +23,31 @@ final class Vocabulary {
         return graphId;
     }
 
-    static @NotNull Vocabulary createFromExtJson(@NotNull JsonObject json) {
+    static @NotNull Vocabulary createFromExtJson(@NotNull JsonNode json) {
 
-        JsonObject typeObj = json.get("type").getAsJsonObject();
-        JsonObject properties = json.get("properties").getAsJsonObject();
+        JsonNode typeObj = json.get("type");
+        JsonNode properties = json.get("properties");
 
-        String graphId = typeObj.get("graph").getAsJsonObject().get("id").getAsString();
+        String graphId = typeObj.get("graph").get("id").textValue();
         Map<String, List<String>> label = JsonUtils.localizableFromTermedProperties(properties, "prefLabel");
 
         return new Vocabulary(graphId, label);
     }
 
-    static @NotNull Vocabulary createFromIndex(@NotNull JsonObject json) {
+    static @NotNull Vocabulary createFromIndex(ObjectMapper mapper, @NotNull JsonNode json) {
 
-        String graphId = json.get("id").getAsString();
-        Map<String, List<String>> label = JsonUtils.jsonToLocalizable(json.get("label").getAsJsonObject());
+        String graphId = json.get("id").textValue();
+        Map<String, List<String>> label = JsonUtils.jsonToLocalizable(mapper, json.get("label"));
 
         return new Vocabulary(graphId, label);
     }
 
-    @NotNull JsonObject toElasticSearchObject() {
-        JsonObject output = new JsonObject();
+    @NotNull ObjectNode toElasticSearchObject(ObjectMapper objectMapper) {
 
-        output.add("label", JsonUtils.localizableToJson(label));
-        output.addProperty("id", graphId);
+        ObjectNode output = objectMapper.createObjectNode();
+
+        output.set("label", JsonUtils.localizableToJson(objectMapper, label));
+        output.put("id", graphId);
 
         return output;
     }

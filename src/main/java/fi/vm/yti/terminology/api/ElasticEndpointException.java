@@ -1,9 +1,9 @@
-package fi.vm.yti.terminology.api.index;
+package fi.vm.yti.terminology.api;
 
 import java.io.IOException;
 
 public class ElasticEndpointException extends RuntimeException {
-    ElasticEndpointException(IOException e) {
+    public ElasticEndpointException(IOException e) {
         super("Elastic endpoint connection failed", e);
     }
 }
