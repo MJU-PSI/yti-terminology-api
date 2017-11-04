@@ -2,9 +2,7 @@ package fi.vm.yti.terminology.api.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import fi.vm.yti.terminology.api.util.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.*;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 final class Concept {
@@ -104,8 +103,8 @@ final class Concept {
 
     static @NotNull Concept createFromAllNodeResult(@NotNull String conceptId, @NotNull String vocabularyId, @NotNull AllNodesResult allNodesResult) {
 
-        JsonNode conceptJson = ObjectUtils.requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
-        JsonNode vocabularyJson = ObjectUtils.requireNonNull(allNodesResult.getNode(vocabularyId));
+        JsonNode conceptJson = requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
+        JsonNode vocabularyJson = requireNonNull(allNodesResult.getNode(vocabularyId));
         Vocabulary vocabulary = Vocabulary.createFromExtJson(vocabularyJson);
 
         JsonNode references = conceptJson.get("references");
