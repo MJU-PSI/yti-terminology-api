@@ -1,10 +1,13 @@
 package fi.vm.yti.terminology.api.frontend;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
@@ -13,15 +16,21 @@ import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
 import static java.util.Objects.requireNonNull;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @Service
 public class FrontendTermedService {
 
+    private static final String USER_PASSWORD = "user";
+
     private final TermedRequester termedRequester;
+    private final AuthenticatedUserProvider userProvider;
 
     @Autowired
-    public FrontendTermedService(TermedRequester termedRequester) {
+    public FrontendTermedService(TermedRequester termedRequester,
+                                 AuthenticatedUserProvider userProvider) {
         this.termedRequester = termedRequester;
+        this.userProvider = userProvider;
     }
 
     @NotNull JsonNode getVocabulary(String graphId, String vocabularyType) {
@@ -145,8 +154,9 @@ public class FrontendTermedService {
         params.add("changeset", "true");
         params.add("sync", "true");
 
-        // TODO user authenticated user credentials
-        this.termedRequester.exchange("/nodes", HttpMethod.POST, params, String.class, deleteAndSave);
+        String username = ensureTermedUser();
+
+        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username, USER_PASSWORD);
     }
 
     // TODO: better typing for easy authorization
@@ -156,8 +166,9 @@ public class FrontendTermedService {
         params.add("batch", "true");
         params.add("sync", Boolean.toString(sync));
 
-        // TODO user authenticated user credentials
-        this.termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers);
+        String username = ensureTermedUser();
+
+        this.termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username, USER_PASSWORD);
     }
 
     @NotNull JsonNode getAllNodeIdentifiers(String graphId) {
@@ -187,7 +198,7 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("batch", "true");
 
-        this.termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.POST, params, String.class, metaNodes);
+        this.termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
     }
 
     // TODO: better typing for easy authorization
@@ -209,10 +220,36 @@ public class FrontendTermedService {
 
     // TODO: better typing for easy authorization
     void createGraph(JsonNode graph) {
-        termedRequester.exchange("/graphs", HttpMethod.POST, Parameters.empty(), String.class, graph);
+        termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
 
     void deleteGraph(String graphId) {
         termedRequester.exchange("/graphs/" + graphId, HttpMethod.DELETE, Parameters.empty(), String.class);
+    }
+
+    private String ensureTermedUser() {
+
+        YtiUser user = this.userProvider.getUser();
+
+        if (user.isAnonymous()) {
+            throw new RuntimeException("Logged in user needed for the operation");
+        }
+
+        if (findTermedUser(user) == null) {
+            createTermedUser(user);
+        }
+
+        return user.getEmail();
+    }
+
+    private @Nullable TermedUser findTermedUser(YtiUser user) {
+        Parameters params = Parameters.single("username", user.getEmail());
+        return termedRequester.exchange("/users", GET, params, TermedUser.class);
+    }
+
+    private void createTermedUser(YtiUser user) {
+        Parameters params = Parameters.single("sync", "true");
+        TermedUser termedUser = new TermedUser(user.getUsername(), USER_PASSWORD, "ADMIN");
+        termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 }
