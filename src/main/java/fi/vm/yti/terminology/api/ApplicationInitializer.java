@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api;
 
+import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
+import fi.vm.yti.terminology.api.exception.TermedEndpointException;
 import fi.vm.yti.terminology.api.index.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

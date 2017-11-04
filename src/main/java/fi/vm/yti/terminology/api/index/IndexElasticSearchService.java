@@ -2,7 +2,7 @@ package fi.vm.yti.terminology.api.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.vm.yti.terminology.api.ElasticEndpointException;
+import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;

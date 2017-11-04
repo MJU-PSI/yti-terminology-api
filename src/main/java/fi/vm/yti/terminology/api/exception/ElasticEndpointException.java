@@ -1,4 +1,4 @@
-package fi.vm.yti.terminology.api;
+package fi.vm.yti.terminology.api.exception;
 
 import java.io.IOException;
 
