@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -18,8 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static fi.vm.yti.terminology.api.util.JsonUtils.*;
+import static fi.vm.yti.terminology.api.util.JsonUtils.asStream;
+import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpMethod.GET;
 
@@ -36,15 +36,15 @@ public class IndexTermedService {
     }
 
 	public boolean deleteChangeListener(@NotNull String hookId) {
-        return termedRequester.exchange("/hooks/" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class).getBody() != null;
+        return termedRequester.exchange("/hooks/" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class) != null;
 	}
 
 	public @Nullable String registerChangeListener(@NotNull String url) {
 
-        ResponseEntity<String> response = termedRequester.exchange("/hooks", HttpMethod.POST, Parameters.single("url", url), String.class);
+        String response = termedRequester.exchange("/hooks", HttpMethod.POST, Parameters.single("url", url), String.class);
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return response.getBody()
+        if (response != null) {
+            return response
                     .replace("<string>", "")
                     .replace("</string>", "");
         } else {
@@ -56,7 +56,7 @@ public class IndexTermedService {
 
         log.info("Fetching all graph IDs..");
 
-        return asStream(termedRequester.exchange("/graphs", GET, Parameters.empty(), JsonNode.class).getBody())
+        return asStream(termedRequester.exchange("/graphs", GET, Parameters.empty(), JsonNode.class))
                 .map(x -> x.get("id").textValue())
                 .collect(toList());
     }
@@ -114,7 +114,7 @@ public class IndexTermedService {
         params.add("where", idInCollectionWhereClause(conceptIds));
         params.add("max", "-1");
 
-        return asStream(termedRequester.exchange("/node-trees", GET, params, JsonNode.class).getBody())
+        return asStream(termedRequester.exchange("/node-trees", GET, params, JsonNode.class))
                 .map(json -> Concept.createFromExtJson(json, vocabulary))
                 .collect(toList());
     }
@@ -160,13 +160,13 @@ public class IndexTermedService {
         params.add("where", "type.id:" + vocabularyType.name());
         params.add("max", "-1");
 
-        return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class).getBody());
+        return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
     private @NotNull AllNodesResult fetchAllNodesInGraph(String graphId) {
 
         Parameters params = Parameters.single("max", "-1");
-        ResponseEntity<JsonNode> response = termedRequester.exchange("/graphs/" + graphId + "/nodes", GET, params, JsonNode.class);
-        return new AllNodesResult(response.getBody());
+        JsonNode response = termedRequester.exchange("/graphs/" + graphId + "/nodes", GET, params, JsonNode.class);
+        return new AllNodesResult(requireNonNull(response));
     }
 }

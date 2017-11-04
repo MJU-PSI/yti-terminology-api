@@ -4,13 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
 import fi.vm.yti.terminology.api.util.Parameters;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
+import static java.util.Objects.requireNonNull;
+import static org.springframework.http.HttpMethod.GET;
 
 @Service
 public class FrontendTermedService {
@@ -22,7 +24,7 @@ public class FrontendTermedService {
         this.termedRequester = termedRequester;
     }
 
-    JsonNode getVocabulary(String graphId, String vocabularyType) {
+    @NotNull JsonNode getVocabulary(String graphId, String vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -39,10 +41,10 @@ public class FrontendTermedService {
         params.add("where", "type.id:" + vocabularyType);
         params.add("max", "-1");
 
-        return requireSingle(termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class).getBody());
+        return requireSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    JsonNode getVocabularyList(String vocabularyType) {
+    @NotNull JsonNode getVocabularyList(String vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -53,10 +55,10 @@ public class FrontendTermedService {
         params.add("where", "type.id:" + vocabularyType);
         params.add("max", "-1");
 
-        return termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    JsonNode getConcept(String graphId, String conceptId) {
+    @NotNull JsonNode getConcept(String graphId, String conceptId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -76,9 +78,8 @@ public class FrontendTermedService {
         params.add("where", "id:" + conceptId);
         params.add("max", "-1");
 
-        ResponseEntity<JsonNode> response = termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class);
-
-        JsonNode concept = findSingle(response.getBody());
+        JsonNode response = termedRequester.exchange("/node-trees", GET, params, JsonNode.class);
+        JsonNode concept = findSingle(response);
 
         if (concept == null) {
             throw new NotFoundException(graphId, conceptId);
@@ -87,7 +88,7 @@ public class FrontendTermedService {
         return concept;
     }
 
-    JsonNode getCollection(String graphId, String collectionId) {
+    @NotNull JsonNode getCollection(String graphId, String collectionId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -105,12 +106,12 @@ public class FrontendTermedService {
         params.add("where", "id:" + collectionId);
         params.add("max", "-1");
 
-        ResponseEntity<JsonNode> response = termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class);
+        JsonNode response = termedRequester.exchange("/node-trees", GET, params, JsonNode.class);
 
-        return requireSingle(response.getBody());
+        return requireSingle(response);
     }
 
-    JsonNode getCollectionList(String graphId) {
+    @NotNull JsonNode getCollectionList(String graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -122,10 +123,10 @@ public class FrontendTermedService {
         params.add("where", "type.id:" + "Collection");
         params.add("max", "-1");
 
-        return termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    JsonNode getNodeListWithoutReferencesOrReferrers(String nodeType) {
+    @NotNull JsonNode getNodeListWithoutReferencesOrReferrers(String nodeType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -134,7 +135,7 @@ public class FrontendTermedService {
         params.add("where", "type.id:" + nodeType);
         params.add("max", "-1");
 
-        return termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
     // TODO: better typing for easy authorization
@@ -159,7 +160,7 @@ public class FrontendTermedService {
         this.termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers);
     }
 
-    JsonNode getAllNodeIdentifiers(String graphId) {
+    @NotNull JsonNode getAllNodeIdentifiers(String graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -167,17 +168,17 @@ public class FrontendTermedService {
         params.add("where", "graph.id:" + graphId);
         params.add("max", "-1");
 
-        return termedRequester.exchange("/node-trees", HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    JsonNode getTypes(String graphId) {
+    @NotNull JsonNode getTypes(String graphId) {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
 
         String path = graphId != null ? "/graphs/" + graphId + "/types" : "/types";
 
-        return termedRequester.exchange(path, HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange(path, GET, params, JsonNode.class));
     }
 
     // TODO: better typing for easy authorization
@@ -198,12 +199,12 @@ public class FrontendTermedService {
         this.termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, identifiers);
     }
 
-    JsonNode getGraphs() {
+    @NotNull JsonNode getGraphs() {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
 
-        return termedRequester.exchange("/graphs", HttpMethod.GET, params, JsonNode.class).getBody();
+        return requireNonNull(termedRequester.exchange("/graphs", GET, params, JsonNode.class));
     }
 
     // TODO: better typing for easy authorization

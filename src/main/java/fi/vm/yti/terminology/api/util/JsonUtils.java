@@ -28,9 +28,11 @@ public final class JsonUtils {
         return requireNonNull(findSingle(array), "One array item required, was: " + array.size());
     }
 
-    public static @Nullable JsonNode findSingle(JsonNode array) {
+    public static @Nullable JsonNode findSingle(@Nullable JsonNode array) {
 
-        if (array.size() > 1) {
+	    if (array == null) {
+	      throw new RuntimeException("Missing node");
+        } else if (array.size() > 1) {
             throw new RuntimeException("One or zero array items required, was: " + array.size());
         } else if (array.size() == 0) {
             return null;
@@ -107,7 +109,11 @@ public final class JsonUtils {
 		}
 	}
 
-	public static @NotNull Stream<JsonNode> asStream(@NotNull JsonNode node) {
-		return StreamSupport.stream(node.spliterator(), false);
+	public static @NotNull Stream<JsonNode> asStream(@Nullable JsonNode node) {
+	    if (node == null) {
+	        return Stream.empty();
+        } else {
+            return StreamSupport.stream(node.spliterator(), false);
+        }
 	}
 }
