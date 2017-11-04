@@ -160,10 +160,11 @@ public class FrontendTermedService {
     }
 
     // TODO: better typing for easy authorization
-    void removeNodes(boolean sync, JsonNode identifiers) {
+    void removeNodes(boolean sync, boolean disconnect, JsonNode identifiers) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
+        params.add("disconnect", Boolean.toString(disconnect));
         params.add("sync", Boolean.toString(sync));
 
         String username = ensureTermedUser();

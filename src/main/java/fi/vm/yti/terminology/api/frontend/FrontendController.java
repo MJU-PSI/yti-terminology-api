@@ -76,8 +76,9 @@ public class FrontendController {
 
     @RequestMapping(value = "/remove", method = RequestMethod.DELETE)
     void removeNodes(@RequestParam boolean sync,
+                     @RequestParam boolean disconnect,
                      @RequestBody JsonNode identifiers) {
-        termedService.removeNodes(sync, identifiers);
+        termedService.removeNodes(sync, disconnect, identifiers);
     }
 
     
