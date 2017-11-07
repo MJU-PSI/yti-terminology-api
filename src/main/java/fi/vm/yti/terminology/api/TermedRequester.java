@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -13,6 +14,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
+import java.util.function.Supplier;
 
 @Service
 public class TermedRequester {
@@ -43,17 +45,41 @@ public class TermedRequester {
     public <TResponse> @Nullable TResponse exchange(@NotNull String path,
                                                     @NotNull HttpMethod method,
                                                     @NotNull Parameters parameters,
+                                                    @NotNull ParameterizedTypeReference<TResponse> responseType) {
+        return exchange(path, method, parameters, responseType, null);
+    }
+
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
                                                     @NotNull Class<TResponse> responseType,
                                                     @NotNull String username,
                                                     @NotNull String password) {
         return exchange(path, method, parameters, responseType, null, username, password);
     }
 
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
+                                                    @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                    @NotNull String username,
+                                                    @NotNull String password) {
+        return exchange(path, method, parameters, responseType, null, username, password);
+    }
+
     public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
-                                                                    @NotNull HttpMethod method,
-                                                                    @NotNull Parameters parameters,
-                                                                    @NotNull Class<TResponse> responseType,
-                                                                    @Nullable TRequest body) {
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull Class<TResponse> responseType,
+                                                              @Nullable TRequest body) {
+        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword);
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                              @Nullable TRequest body) {
         return exchange(path, method, parameters, responseType, body, termedUser, termedPassword);
     }
 
@@ -64,8 +90,22 @@ public class TermedRequester {
                                                               @Nullable TRequest body,
                                                               @NotNull String username,
                                                               @NotNull String password) {
+        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password)), responseType).getBody());
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                              @Nullable TRequest body,
+                                                              @NotNull String username,
+                                                              @NotNull String password) {
+        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password)), responseType).getBody());
+    }
+
+    private static <T> T mapExceptions(Supplier<T> supplier) {
         try {
-            return restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password)), responseType).getBody();
+            return supplier.get();
         } catch (ResourceAccessException e) {
             throw new TermedEndpointException(e);
         } catch (HttpClientErrorException ex)   {
