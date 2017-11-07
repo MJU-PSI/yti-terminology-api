@@ -13,6 +13,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class FrontendController {
 
     private final FrontendTermedService termedService;
+    private final FrontendElasticSearchService elasticSearchService;
+    private final AuthenticatedUserProvider userProvider;
 
     public FrontendController(FrontendTermedService termedService,
                               FrontendElasticSearchService elasticSearchService,
@@ -22,15 +24,11 @@ public class FrontendController {
         this.userProvider = userProvider;
     }
 
-    private final FrontendElasticSearchService elasticSearchService;
-    private final AuthenticatedUserProvider userProvider;
-
-
     @RequestMapping(value = "/authenticated-user", method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE)
     YtiUser getUser() {
         return this.userProvider.getUser();
     }
-    
+
     @RequestMapping("/vocabulary")
     JsonNode getVocabulary(@RequestParam String graphId,
                            @RequestParam String vocabularyType) {
@@ -81,7 +79,6 @@ public class FrontendController {
         termedService.removeNodes(sync, disconnect, identifiers);
     }
 
-    
     @RequestMapping("/nodes")
     JsonNode getAllNodeIdentifiers(@RequestParam String graphId) {
         return termedService.getAllNodeIdentifiers(graphId);
