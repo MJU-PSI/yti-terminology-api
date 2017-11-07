@@ -1,14 +1,25 @@
 package fi.vm.yti.terminology.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
+
+import javax.net.ssl.SSLContext;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 
 @Configuration
 class RestConfig {
@@ -22,7 +33,26 @@ class RestConfig {
 
     @Bean
     ClientHttpRequestFactory httpRequestFactory(){
-        return new SimpleClientHttpRequestFactory();
+        return new HttpComponentsClientHttpRequestFactory(httpClient());
+    }
+
+    @Bean
+    HttpClient httpClient() {
+
+        TrustStrategy naivelyAcceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+
+        try {
+            SSLContext sslContext = SSLContexts.custom()
+                    .loadTrustMaterial(null, naivelyAcceptingTrustStrategy)
+                    .build();
+
+            return HttpClients.custom()
+                    .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
+                    .build();
+
+        } catch (NoSuchAlgorithmException |KeyManagementException |KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Bean
