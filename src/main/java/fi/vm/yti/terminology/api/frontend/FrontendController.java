@@ -26,7 +26,7 @@ public class FrontendController {
 
     @RequestMapping(value = "/authenticated-user", method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE)
     YtiUser getUser() {
-        return this.userProvider.getUser();
+        return userProvider.getUser();
     }
 
     @RequestMapping("/vocabulary")

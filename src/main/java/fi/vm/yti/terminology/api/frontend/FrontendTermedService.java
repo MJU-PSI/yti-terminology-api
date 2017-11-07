@@ -169,7 +169,7 @@ public class FrontendTermedService {
 
         String username = ensureTermedUser();
 
-        this.termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username, USER_PASSWORD);
+        termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username, USER_PASSWORD);
     }
 
     @NotNull JsonNode getAllNodeIdentifiers(String graphId) {
@@ -199,7 +199,7 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("batch", "true");
 
-        this.termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
+        termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
     }
 
     // TODO: better typing for easy authorization
@@ -208,7 +208,7 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("batch", "true");
 
-        this.termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, identifiers);
+        termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, identifiers);
     }
 
     @NotNull JsonNode getGraphs() {
@@ -230,7 +230,7 @@ public class FrontendTermedService {
 
     private String ensureTermedUser() {
 
-        YtiUser user = this.userProvider.getUser();
+        YtiUser user = userProvider.getUser();
 
         if (user.isAnonymous()) {
             throw new RuntimeException("Logged in user needed for the operation");
