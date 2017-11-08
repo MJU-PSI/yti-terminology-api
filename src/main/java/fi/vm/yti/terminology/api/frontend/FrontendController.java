@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
 @RequestMapping("/frontend")
@@ -24,99 +27,99 @@ public class FrontendController {
         this.userProvider = userProvider;
     }
 
-    @RequestMapping(value = "/authenticated-user", method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/authenticated-user", method = GET)
     YtiUser getUser() {
         return userProvider.getUser();
     }
 
-    @RequestMapping("/vocabulary")
+    @RequestMapping(value = "/vocabulary", method = GET)
     JsonNode getVocabulary(@RequestParam String graphId,
                            @RequestParam String vocabularyType) {
         return termedService.getVocabulary(graphId, vocabularyType);
     }
 
-    @RequestMapping("/vocabularies")
+    @RequestMapping(value = "/vocabularies", method = GET)
     JsonNode getVocabularyList(@RequestParam String vocabularyType) {
         return termedService.getVocabularyList(vocabularyType);
     }
 
-    @RequestMapping("/concept")
+    @RequestMapping(value = "/concept", method = GET)
     @Nullable JsonNode getConcept(@RequestParam String graphId,
                                   @RequestParam String conceptId) {
         return termedService.getConcept(graphId, conceptId);
     }
 
-    @RequestMapping("/collection")
+    @RequestMapping(value = "/collection", method = GET)
     JsonNode getCollection(@RequestParam String graphId,
                            @RequestParam String collectionId) {
         return termedService.getCollection(graphId, collectionId);
     }
 
-    @RequestMapping("/collections")
+    @RequestMapping(value = "/collections", method = GET)
     JsonNode getCollectionList(@RequestParam String graphId) {
         return termedService.getCollectionList(graphId);
     }
 
-    @RequestMapping("/organizations")
+    @RequestMapping(value = "/organizations", method = GET)
     JsonNode getOrganizationList() {
         return termedService.getNodeListWithoutReferencesOrReferrers("Organization");
     }
 
-    @RequestMapping("/groups")
+    @RequestMapping(value = "/groups", method = GET)
     JsonNode getGroupList() {
         return termedService.getNodeListWithoutReferencesOrReferrers("Group");
     }
 
-    @RequestMapping(value = "/modify", method = RequestMethod.POST)
+    @RequestMapping(value = "/modify", method = POST)
     void updateAndDeleteInternalNodes(@RequestBody JsonNode deleteAndSave) {
         termedService.updateAndDeleteInternalNodes(deleteAndSave);
     }
 
-    @RequestMapping(value = "/remove", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/remove", method = DELETE)
     void removeNodes(@RequestParam boolean sync,
                      @RequestParam boolean disconnect,
                      @RequestBody JsonNode identifiers) {
         termedService.removeNodes(sync, disconnect, identifiers);
     }
 
-    @RequestMapping("/nodes")
+    @RequestMapping(value = "/nodes", method = GET)
     JsonNode getAllNodeIdentifiers(@RequestParam String graphId) {
         return termedService.getAllNodeIdentifiers(graphId);
     }
 
-    @RequestMapping(value = "/types", method = RequestMethod.GET)
+    @RequestMapping(value = "/types", method = GET)
     JsonNode getTypes(@RequestParam(required = false) String graphId) {
         return termedService.getTypes(graphId);
     }
 
-    @RequestMapping(value = "/types", method = RequestMethod.POST)
+    @RequestMapping(value = "/types", method = POST)
     void updateTypes(@RequestParam String graphId,
                      @RequestBody JsonNode metaNodes) {
         termedService.updateTypes(graphId, metaNodes);
     }
 
-    @RequestMapping(value = "/types", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/types", method = DELETE)
     void removeTypes(@RequestParam String graphId,
                      @RequestBody JsonNode identifiers) {
         termedService.removeTypes(graphId, identifiers);
     }
 
-    @RequestMapping("/graphs")
+    @RequestMapping(value = "/graphs", method = GET)
     JsonNode getGraphs() {
         return termedService.getGraphs();
     }
 
-    @RequestMapping(value = "/graph", method = RequestMethod.POST)
+    @RequestMapping(value = "/graph", method = POST)
     void createGraph(@RequestBody JsonNode graph) {
         termedService.createGraph(graph);
     }
 
-    @RequestMapping(value = "/graph", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/graph", method = DELETE)
     void deleteGraph(@RequestParam String graphId) {
         termedService.deleteGraph(graphId);
     }
 
-    @RequestMapping(value = "/searchConcept", method = RequestMethod.POST)
+    @RequestMapping(value = "/searchConcept", method = POST)
     String searchConcept(@RequestBody JsonNode query) {
         return elasticSearchService.searchConcept(query);
     }

@@ -4,7 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+
 @RestController
+@RequestMapping(value = "/synchronize")
 public class SynchronizationController {
 
     private final SynchronizationService synchronizationService;
@@ -14,7 +17,7 @@ public class SynchronizationController {
         this.synchronizationService = synchronizationService;
     }
 
-    @RequestMapping("/synchronize")
+    @RequestMapping(method = GET)
     public String synchronize() {
         synchronizationService.synchronize();
         return "OK!";
