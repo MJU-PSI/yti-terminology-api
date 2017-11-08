@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
@@ -27,45 +28,45 @@ public class FrontendController {
         this.userProvider = userProvider;
     }
 
-    @RequestMapping(value = "/authenticated-user", method = GET)
+    @RequestMapping(value = "/authenticated-user", method = GET, produces = APPLICATION_JSON_VALUE)
     YtiUser getUser() {
         return userProvider.getUser();
     }
 
-    @RequestMapping(value = "/vocabulary", method = GET)
+    @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getVocabulary(@RequestParam String graphId,
                            @RequestParam String vocabularyType) {
         return termedService.getVocabulary(graphId, vocabularyType);
     }
 
-    @RequestMapping(value = "/vocabularies", method = GET)
+    @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getVocabularyList(@RequestParam String vocabularyType) {
         return termedService.getVocabularyList(vocabularyType);
     }
 
-    @RequestMapping(value = "/concept", method = GET)
+    @RequestMapping(value = "/concept", method = GET, produces = APPLICATION_JSON_VALUE)
     @Nullable JsonNode getConcept(@RequestParam String graphId,
                                   @RequestParam String conceptId) {
         return termedService.getConcept(graphId, conceptId);
     }
 
-    @RequestMapping(value = "/collection", method = GET)
+    @RequestMapping(value = "/collection", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getCollection(@RequestParam String graphId,
                            @RequestParam String collectionId) {
         return termedService.getCollection(graphId, collectionId);
     }
 
-    @RequestMapping(value = "/collections", method = GET)
+    @RequestMapping(value = "/collections", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getCollectionList(@RequestParam String graphId) {
         return termedService.getCollectionList(graphId);
     }
 
-    @RequestMapping(value = "/organizations", method = GET)
+    @RequestMapping(value = "/organizations", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getOrganizationList() {
         return termedService.getNodeListWithoutReferencesOrReferrers("Organization");
     }
 
-    @RequestMapping(value = "/groups", method = GET)
+    @RequestMapping(value = "/groups", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getGroupList() {
         return termedService.getNodeListWithoutReferencesOrReferrers("Group");
     }
@@ -82,12 +83,12 @@ public class FrontendController {
         termedService.removeNodes(sync, disconnect, identifiers);
     }
 
-    @RequestMapping(value = "/nodes", method = GET)
+    @RequestMapping(value = "/nodes", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getAllNodeIdentifiers(@RequestParam String graphId) {
         return termedService.getAllNodeIdentifiers(graphId);
     }
 
-    @RequestMapping(value = "/types", method = GET)
+    @RequestMapping(value = "/types", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getTypes(@RequestParam(required = false) String graphId) {
         return termedService.getTypes(graphId);
     }
@@ -104,7 +105,7 @@ public class FrontendController {
         termedService.removeTypes(graphId, identifiers);
     }
 
-    @RequestMapping(value = "/graphs", method = GET)
+    @RequestMapping(value = "/graphs", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getGraphs() {
         return termedService.getGraphs();
     }
@@ -119,7 +120,7 @@ public class FrontendController {
         termedService.deleteGraph(graphId);
     }
 
-    @RequestMapping(value = "/searchConcept", method = POST)
+    @RequestMapping(value = "/searchConcept", method = POST, produces = APPLICATION_JSON_VALUE)
     String searchConcept(@RequestBody JsonNode query) {
         return elasticSearchService.searchConcept(query);
     }
