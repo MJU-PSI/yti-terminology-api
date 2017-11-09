@@ -7,14 +7,14 @@ import static java.util.Collections.emptyList;
 public final class GenericDeleteAndSave implements DeleteAndSave {
 
     private final List<Identifier> delete;
-    private final List<GenericTermedNode> save;
+    private final List<GenericNode> save;
 
     // Jackson constructor
     private GenericDeleteAndSave() {
         this(emptyList(), emptyList());
     }
 
-    public GenericDeleteAndSave(List<Identifier> delete, List<GenericTermedNode> save) {
+    public GenericDeleteAndSave(List<Identifier> delete, List<GenericNode> save) {
         this.delete = delete;
         this.save = save;
     }
@@ -23,7 +23,7 @@ public final class GenericDeleteAndSave implements DeleteAndSave {
         return delete;
     }
 
-    public List<GenericTermedNode> getSave() {
+    public List<GenericNode> getSave() {
         return save;
     }
 }

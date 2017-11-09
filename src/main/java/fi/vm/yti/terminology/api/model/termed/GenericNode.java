@@ -5,7 +5,7 @@ import java.util.*;
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
 
-public final class GenericTermedNode implements Node {
+public final class GenericNode implements Node {
 
     private final UUID id;
     private final String code;
@@ -24,22 +24,22 @@ public final class GenericTermedNode implements Node {
     private final Map<String, List<Identifier>> referrers;
 
     // Jackson constructor
-    private GenericTermedNode() {
+    private GenericNode() {
         this(randomUUID(), "", "", 0L, "", new Date(), "", new Date(), TypeId.placeholder(), emptyMap(), emptyMap(), emptyMap());
     }
 
-    public GenericTermedNode(UUID id,
-                             String code,
-                             String uri,
-                             Long number,
-                             String createdBy,
-                             Date createdDate,
-                             String lastModifiedBy,
-                             Date lastModifiedDate,
-                             TypeId type,
-                             Map<String, List<Attribute>> properties,
-                             Map<String, List<Identifier>> references,
-                             Map<String, List<Identifier>> referrers) {
+    public GenericNode(UUID id,
+                       String code,
+                       String uri,
+                       Long number,
+                       String createdBy,
+                       Date createdDate,
+                       String lastModifiedBy,
+                       Date lastModifiedDate,
+                       TypeId type,
+                       Map<String, List<Attribute>> properties,
+                       Map<String, List<Identifier>> references,
+                       Map<String, List<Identifier>> referrers) {
         this.id = id;
         this.code = code;
         this.uri = uri;
