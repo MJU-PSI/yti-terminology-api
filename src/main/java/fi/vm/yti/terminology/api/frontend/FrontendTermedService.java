@@ -39,6 +39,17 @@ public class FrontendTermedService {
         this.userProvider = userProvider;
     }
 
+    boolean isNamespaceInUse(String prefix, String namespace) {
+
+        for (TermedGraph graph : getGraphs()) {
+            if (prefix.equals(graph.getCode()) || namespace.equals(graph.getUri())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @NotNull JsonNode getVocabulary(UUID graphId, VocabularyType vocabularyType) {
 
         Parameters params = new Parameters();

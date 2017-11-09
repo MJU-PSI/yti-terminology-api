@@ -33,6 +33,12 @@ public class FrontendController {
         this.userProvider = userProvider;
     }
 
+    @RequestMapping(value = "/namespaceInUse", method = GET, produces = APPLICATION_JSON_VALUE)
+    boolean isNamespaceInUse(@RequestParam String prefix,
+                             @RequestParam String namespace) {
+        return termedService.isNamespaceInUse(prefix, namespace);
+    }
+
     @RequestMapping(value = "/authenticated-user", method = GET, produces = APPLICATION_JSON_VALUE)
     YtiUser getUser() {
         return userProvider.getUser();
