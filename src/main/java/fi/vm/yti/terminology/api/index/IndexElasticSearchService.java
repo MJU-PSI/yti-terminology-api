@@ -121,7 +121,7 @@ public class IndexElasticSearchService {
         }
     }
 
-    private static @NotNull Set<String> broaderAndNarrowerIds(@NotNull List<List<Concept>> concepts) {
+    private static @NotNull Set<UUID> broaderAndNarrowerIds(@NotNull List<List<Concept>> concepts) {
 
         return concepts.stream()
                 .flatMap(Collection::stream)
@@ -129,7 +129,7 @@ public class IndexElasticSearchService {
                 .collect(Collectors.toSet());
     }
 
-    private void reindexGraph(@NotNull String graphId, boolean waitForRefresh) {
+    private void reindexGraph(@NotNull UUID graphId, boolean waitForRefresh) {
         log.info("Trying to index concepts of graph " + graphId);
 
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
@@ -198,13 +198,13 @@ public class IndexElasticSearchService {
         return "{\"index\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\"" + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
     }
 
-    private @NotNull String createBulkDeleteMeta(@NotNull String graphId, @NotNull String conceptId) {
+    private @NotNull String createBulkDeleteMeta(@NotNull UUID graphId, @NotNull UUID conceptId) {
         return "{\"delete\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\"" + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
     }
 
-    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull String graphId,
+    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull UUID graphId,
                                                      @NotNull List<Concept> updateConcepts,
-                                                     @NotNull List<String> deleteConceptsIds,
+                                                     @NotNull List<UUID> deleteConceptsIds,
                                                      boolean waitForRefresh) {
 
         if (updateConcepts.size() == 0 && deleteConceptsIds.size() == 0) {
@@ -235,7 +235,7 @@ public class IndexElasticSearchService {
         }
     }
 
-    private void deleteDocumentsFromIndexByGraphId(@NotNull String graphId) {
+    private void deleteDocumentsFromIndexByGraphId(@NotNull UUID graphId) {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
@@ -261,7 +261,7 @@ public class IndexElasticSearchService {
         }
     }
 
-    private @Nullable Concept getConceptFromIndex(@NotNull String graphId, @NotNull String conceptId) {
+    private @Nullable Concept getConceptFromIndex(@NotNull UUID graphId, @NotNull UUID conceptId) {
 
         String documentId = Concept.formDocumentId(graphId, conceptId);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET", "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source"));
@@ -273,7 +273,7 @@ public class IndexElasticSearchService {
         }
     }
 
-    private @NotNull List<Concept> getConceptsFromIndex(@NotNull String graphId, @NotNull Collection<String> conceptIds) {
+    private @NotNull List<Concept> getConceptsFromIndex(@NotNull UUID graphId, @NotNull Collection<UUID> conceptIds) {
 
         // TODO inefficient implementation
         return conceptIds.stream()

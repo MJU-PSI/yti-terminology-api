@@ -1,6 +1,6 @@
 package fi.vm.yti.terminology.api.index;
 
-import fi.vm.yti.terminology.api.common.NodeIdentifier;
+import fi.vm.yti.terminology.api.model.termed.TermedIdentifier;
 
 import javax.validation.constraints.NotNull;
 import java.util.Date;
@@ -12,7 +12,7 @@ public class TermedNotification {
     public static class Body {
         @NotNull public String user;
         @NotNull public Date date;
-        @NotNull public List<NodeIdentifier> nodes;
+        @NotNull public List<TermedIdentifier> nodes;
         public boolean sync;
     }
 

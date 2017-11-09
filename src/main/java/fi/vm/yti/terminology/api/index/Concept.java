@@ -6,10 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.*;
 import static java.util.Objects.requireNonNull;
@@ -17,26 +14,26 @@ import static java.util.stream.Collectors.toList;
 
 final class Concept {
 
-    private final String id;
+    private final UUID id;
     private final Vocabulary vocabulary;
     private final Map<String, List<String>> label;
     private final Map<String, List<String>> altLabel;
     private final Map<String, List<String>> definition;
     @Nullable
     private final String status;
-    private final List<String> broaderIds;
-    private final List<String> narrowerIds;
+    private final List<UUID> broaderIds;
+    private final List<UUID> narrowerIds;
     @Nullable
     private final String lastModifiedDate;
 
-    private Concept(String id,
+    private Concept(UUID id,
                     Vocabulary vocabulary,
                     Map<String, List<String>> label,
                     Map<String, List<String>> altLabel,
                     Map<String, List<String>> definition,
                     @Nullable String status,
-                    List<String> broaderIds,
-                    List<String> narrowerIds,
+                    List<UUID> broaderIds,
+                    List<UUID> narrowerIds,
                     @Nullable String lastModifiedDate) {
 
         this.id = id;
@@ -55,7 +52,7 @@ final class Concept {
                                                           @NotNull List<JsonNode> altLabelXlReferences,
                                                           @NotNull Vocabulary vocabulary) {
 
-        String id = conceptJson.get("id").textValue();
+        UUID id = UUID.fromString(conceptJson.get("id").textValue());
         String lastModifiedDate = conceptJson.get("lastModifiedDate").textValue();
 
         JsonNode properties = conceptJson.get("properties");
@@ -80,8 +77,8 @@ final class Concept {
 
         String status = getSinglePropertyValue(properties, "status");
 
-        List<String> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
-        List<String> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
+        List<UUID> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
+        List<UUID> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
 
         return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate);
     }
@@ -101,7 +98,7 @@ final class Concept {
         return createFromTermedNodes(json, prefLabelXlReferences, altLabelXlReferences, vocabulary);
     }
 
-    static @NotNull Concept createFromAllNodeResult(@NotNull String conceptId, @NotNull String vocabularyId, @NotNull AllNodesResult allNodesResult) {
+    static @NotNull Concept createFromAllNodeResult(@NotNull UUID conceptId, @NotNull UUID vocabularyId, @NotNull AllNodesResult allNodesResult) {
 
         JsonNode conceptJson = requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
         JsonNode vocabularyJson = requireNonNull(allNodesResult.getNode(vocabularyId));
@@ -138,9 +135,9 @@ final class Concept {
 
     static @NotNull Concept createFromIndex(ObjectMapper mapper, @NotNull JsonNode json) {
 
-        String id = json.get("id").textValue();
-        List<String> broader = jsonToList(json.get("broader"));
-        List<String> narrower = jsonToList(json.get("narrower"));
+        UUID id = UUID.fromString(json.get("id").textValue());
+        List<UUID> broader = jsonToList(json.get("broader"));
+        List<UUID> narrower = jsonToList(json.get("narrower"));
         Map<String, List<String>> definition = jsonToLocalizable(mapper, json.get("definition"));
         Map<String, List<String>> label = jsonToLocalizable(mapper, json.get("label"));
         Map<String, List<String>> altLabel = jsonToLocalizable(mapper, json.get("altLabel"));
@@ -151,10 +148,10 @@ final class Concept {
         return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate);
     }
 
-    private static @NotNull List<String> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName) {
+    private static @NotNull List<UUID> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName) {
         if (references.has(referenceName)) {
             return asStream(references.get(referenceName))
-                    .map(node -> node.get("id").textValue())
+                    .map(node -> UUID.fromString(node.get("id").textValue()))
                     .collect(toList());
         } else {
             return Collections.emptyList();
@@ -165,15 +162,15 @@ final class Concept {
         return formDocumentId(vocabulary.getGraphId(), id);
     }
 
-    static @NotNull String formDocumentId(@NotNull String graphId, @NotNull String conceptId) {
+    static @NotNull String formDocumentId(@NotNull UUID graphId, @NotNull UUID conceptId) {
         return graphId + "/" + conceptId;
     }
 
-    @NotNull List<String> getBroaderIds() {
+    @NotNull List<UUID> getBroaderIds() {
         return broaderIds;
     }
 
-    @NotNull List<String> getNarrowerIds() {
+    @NotNull List<UUID> getNarrowerIds() {
         return narrowerIds;
     }
 
@@ -196,7 +193,7 @@ final class Concept {
 
         ObjectNode output = mapper.createObjectNode();
 
-        output.put("id", id);
+        output.put("id", id.toString());
         output.set("broader", listToJson(mapper, broaderIds));
         output.set("narrower", listToJson(mapper, narrowerIds));
         output.set("definition", localizableToJson(mapper, definition));

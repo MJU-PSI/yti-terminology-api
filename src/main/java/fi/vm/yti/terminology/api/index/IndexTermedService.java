@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.asStream;
@@ -52,20 +53,20 @@ public class IndexTermedService {
         }
     }
 
-    @NotNull List<String> fetchAllAvailableGraphIds() {
+    @NotNull List<UUID> fetchAllAvailableGraphIds() {
 
         log.info("Fetching all graph IDs..");
 
         return asStream(termedRequester.exchange("/graphs", GET, Parameters.empty(), JsonNode.class))
-                .map(x -> x.get("id").textValue())
+                .map(x -> UUID.fromString(x.get("id").textValue()))
                 .collect(toList());
     }
 
-	@NotNull List<Concept> getAllConceptsForGraph(@NotNull String graphId) {
+	@NotNull List<Concept> getAllConceptsForGraph(@NotNull UUID graphId) {
 
 	    AllNodesResult allNodesResult = this.fetchAllNodesInGraph(graphId);
 
-        Optional<String> vocabularyNodeId = allNodesResult.getVocabularyNodeId();
+        Optional<UUID> vocabularyNodeId = allNodesResult.getVocabularyNodeId();
 
         if (vocabularyNodeId.isPresent()) {
             return allNodesResult.getConceptNodeIds().stream()
@@ -77,7 +78,7 @@ public class IndexTermedService {
         }
 	}
 
-    @NotNull List<Concept> getConcepts(@NotNull String graphId, @NotNull Collection<String> ids) {
+    @NotNull List<Concept> getConcepts(@NotNull UUID graphId, @NotNull Collection<UUID> ids) {
 
 	    if (ids.isEmpty()) {
 	        return emptyList();
@@ -92,7 +93,7 @@ public class IndexTermedService {
         }
     }
 
-    private @NotNull List<Concept> getConcepts(@NotNull Vocabulary vocabulary, @NotNull Collection<String> conceptIds) {
+    private @NotNull List<Concept> getConcepts(@NotNull Vocabulary vocabulary, @NotNull Collection<UUID> conceptIds) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -119,14 +120,14 @@ public class IndexTermedService {
                 .collect(toList());
     }
 
-    private static @NotNull String idInCollectionWhereClause(@NotNull Collection<String> conceptIds) {
+    private static @NotNull String idInCollectionWhereClause(@NotNull Collection<UUID> conceptIds) {
 
 	    return conceptIds.stream()
                 .map(conceptId -> "id:" + conceptId)
                 .collect(Collectors.joining(" OR "));
     }
 
-    private @Nullable Vocabulary getVocabulary(@NotNull String graphId) {
+    private @Nullable Vocabulary getVocabulary(@NotNull UUID graphId) {
 
 	    JsonNode vocabularyNode = getVocabularyNode(graphId);
 
@@ -138,7 +139,7 @@ public class IndexTermedService {
         }
     }
 
-    private @Nullable JsonNode getVocabularyNode(@NotNull String graphId) {
+    private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId) {
 
         JsonNode json = getVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
 
@@ -150,7 +151,7 @@ public class IndexTermedService {
         }
     }
 
-    private @Nullable JsonNode getVocabularyNode(@NotNull String graphId, @NotNull VocabularyType vocabularyType) {
+    private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId, @NotNull VocabularyType vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -163,7 +164,7 @@ public class IndexTermedService {
         return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    private @NotNull AllNodesResult fetchAllNodesInGraph(String graphId) {
+    private @NotNull AllNodesResult fetchAllNodesInGraph(UUID graphId) {
 
         Parameters params = Parameters.single("max", "-1");
         JsonNode response = termedRequester.exchange("/graphs/" + graphId + "/nodes", GET, params, JsonNode.class);

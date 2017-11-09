@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.asStream;
@@ -16,18 +17,18 @@ import static java.util.function.Function.identity;
 
 final class AllNodesResult {
 
-    private final Map<String, JsonNode> nodes;
+    private final Map<UUID, JsonNode> nodes;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     AllNodesResult(@NotNull JsonNode node) {
-        this.nodes = asStream(node).collect(Collectors.toMap(n -> n.get("id").textValue(), identity()));
+        this.nodes = asStream(node).collect(Collectors.toMap(n -> UUID.fromString(n.get("id").textValue()), identity()));
     }
 
-    @Nullable JsonNode getNode(@NotNull String id) {
+    @Nullable JsonNode getNode(@NotNull UUID id) {
         return getNode(id, null);
     }
 
-    @Nullable JsonNode getNode(@NotNull String id, @Nullable String expectedType) {
+    @Nullable JsonNode getNode(@NotNull UUID id, @Nullable String expectedType) {
 
         JsonNode node = this.nodes.get(id);
 
@@ -51,17 +52,17 @@ final class AllNodesResult {
         return node;
     }
 
-    @NotNull List<String> getConceptNodeIds() {
+    @NotNull List<UUID> getConceptNodeIds() {
         return this.nodes.values().stream()
                 .filter(AllNodesResult::isConceptNode)
-                .map(node -> node.get("id").textValue())
+                .map(node -> UUID.fromString(node.get("id").textValue()))
                 .collect(Collectors.toList());
     }
 
-    @NotNull Optional<String> getVocabularyNodeId() {
+    @NotNull Optional<UUID> getVocabularyNodeId() {
         return this.nodes.values().stream()
                 .filter(AllNodesResult::isVocabularyNode)
-                .map(node -> node.get("id").textValue())
+                .map(node -> UUID.fromString(node.get("id").textValue()))
                 .findFirst();
     }
 

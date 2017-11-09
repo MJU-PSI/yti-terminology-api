@@ -41,15 +41,15 @@ public final class JsonUtils {
         }
     }
 
-	public static JsonNode listToJson(ObjectMapper mapper, @NotNull List<String> collection) {
+	public static JsonNode listToJson(ObjectMapper mapper, @NotNull List<UUID> collection) {
         ArrayNode arrayNode = mapper.createArrayNode();
-        collection.forEach(arrayNode::add);
+        collection.forEach(item -> arrayNode.add(item.toString()));
         return arrayNode;
 	}
 
-    public static @NotNull List<String> jsonToList(@NotNull JsonNode arrayNode) {
+    public static @NotNull List<UUID> jsonToList(@NotNull JsonNode arrayNode) {
         Stream<JsonNode> stream = StreamSupport.stream(arrayNode.spliterator(), false);
-        return stream.map(JsonNode::toString).collect(toList());
+        return stream.map(node -> UUID.fromString(node.textValue())).collect(toList());
     }
 
 	public static @NotNull ObjectNode localizableToJson(ObjectMapper mapper, @NotNull Map<String, List<String>> localizable) {

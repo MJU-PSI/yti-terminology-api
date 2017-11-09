@@ -8,18 +8,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 final class Vocabulary {
 
-    private final String graphId;
+    private final UUID graphId;
     private final Map<String, List<String>> label;
 
-    private Vocabulary(@NotNull String graphId, @NotNull Map<String, List<String>> label) {
+    private Vocabulary(@NotNull UUID graphId, @NotNull Map<String, List<String>> label) {
         this.graphId = graphId;
         this.label = label;
     }
 
-    @NotNull String getGraphId() {
+    @NotNull UUID getGraphId() {
         return graphId;
     }
 
@@ -28,7 +29,7 @@ final class Vocabulary {
         JsonNode typeObj = json.get("type");
         JsonNode properties = json.get("properties");
 
-        String graphId = typeObj.get("graph").get("id").textValue();
+        UUID graphId = UUID.fromString(typeObj.get("graph").get("id").textValue());
         Map<String, List<String>> label = JsonUtils.localizableFromTermedProperties(properties, "prefLabel");
 
         return new Vocabulary(graphId, label);
@@ -36,7 +37,7 @@ final class Vocabulary {
 
     static @NotNull Vocabulary createFromIndex(ObjectMapper mapper, @NotNull JsonNode json) {
 
-        String graphId = json.get("id").textValue();
+        UUID graphId = UUID.fromString(json.get("id").textValue());
         Map<String, List<String>> label = JsonUtils.jsonToLocalizable(mapper, json.get("label"));
 
         return new Vocabulary(graphId, label);
@@ -47,7 +48,7 @@ final class Vocabulary {
         ObjectNode output = objectMapper.createObjectNode();
 
         output.set("label", JsonUtils.localizableToJson(objectMapper, label));
-        output.put("id", graphId);
+        output.put("id", graphId.toString());
 
         return output;
     }

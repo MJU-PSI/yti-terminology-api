@@ -1,6 +1,6 @@
 package fi.vm.yti.terminology.api.index;
 
-import fi.vm.yti.terminology.api.common.NodeIdentifier;
+import fi.vm.yti.terminology.api.model.termed.TermedIdentifier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -40,16 +41,16 @@ public class NotificationController {
 
         synchronized(this.lock) {
 
-            Map<String, List<NodeIdentifier>> nodesByGraphId =
-                    notification.body.nodes.stream().collect(Collectors.groupingBy(node -> node.type.graph.id));
+            Map<UUID, List<TermedIdentifier>> nodesByGraphId =
+                    notification.body.nodes.stream().collect(Collectors.groupingBy(node -> node.getType().getGraph().getId()));
 
-            for (Map.Entry<String, List<NodeIdentifier>> entries : nodesByGraphId.entrySet()) {
+            for (Map.Entry<UUID, List<TermedIdentifier>> entries : nodesByGraphId.entrySet()) {
 
-                String graphId = entries.getKey();
-                List<NodeIdentifier> nodes = entries.getValue();
+                UUID graphId = entries.getKey();
+                List<TermedIdentifier> nodes = entries.getValue();
 
-                List<String> vocabularies = extractIdsOfType(nodes, vocabularyTypes);
-                List<String> concepts = extractIdsOfType(nodes, conceptTypes);
+                List<UUID> vocabularies = extractIdsOfType(nodes, vocabularyTypes);
+                List<UUID> concepts = extractIdsOfType(nodes, conceptTypes);
 
                 switch (notification.type) {
                     case NodeSavedEvent:
@@ -63,10 +64,10 @@ public class NotificationController {
         }
     }
 
-    private static @NotNull List<String> extractIdsOfType(@NotNull List<NodeIdentifier> nodes, @NotNull List<String> types) {
+    private static @NotNull List<UUID> extractIdsOfType(@NotNull List<TermedIdentifier> nodes, @NotNull List<String> types) {
         return nodes.stream()
-                .filter(node -> types.contains(node.type.id))
-                .map(node -> node.id)
+                .filter(node -> types.contains(node.getType().getId()))
+                .map(TermedIdentifier::getId)
                 .collect(toList());
     }
 }
