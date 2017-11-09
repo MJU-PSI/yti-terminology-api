@@ -1,20 +1,18 @@
 package fi.vm.yti.terminology.api.model.termed;
 
-public final class TermedLangValue {
+public final class Property {
 
     private final String lang;
     private final String value;
-    private final String regex;
 
     // Jackson constructor
-    private TermedLangValue() {
-        this("", "", "");
+    private Property() {
+        this("", "");
     }
 
-    public TermedLangValue(String lang, String value, String regex) {
+    public Property(String lang, String value) {
         this.lang = lang;
         this.value = value;
-        this.regex = regex;
     }
 
     public String getLang() {
@@ -23,9 +21,5 @@ public final class TermedLangValue {
 
     public String getValue() {
         return value;
-    }
-
-    public String getRegex() {
-        return regex;
     }
 }

@@ -4,17 +4,21 @@ import java.util.UUID;
 
 import static java.util.UUID.randomUUID;
 
-public final class TermedGraphId {
+public final class GraphId {
 
     private final UUID id;
 
     // Jackson constructor
-    private TermedGraphId() {
+    private GraphId() {
         this(randomUUID());
     }
 
-    public TermedGraphId(UUID id) {
+    public GraphId(UUID id) {
         this.id = id;
+    }
+
+    public static GraphId placeholder() {
+        return new GraphId();
     }
 
     public UUID getId() {
@@ -26,7 +30,7 @@ public final class TermedGraphId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TermedGraphId graphId = (TermedGraphId) o;
+        GraphId graphId = (GraphId) o;
 
         return id.equals(graphId.id);
     }

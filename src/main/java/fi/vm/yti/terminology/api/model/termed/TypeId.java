@@ -2,28 +2,36 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import java.util.UUID;
 
-import static java.util.UUID.randomUUID;
+public final class TypeId {
 
-public final class TermedTypeId {
-
-    private final String id;
-    private final TermedGraphId graph;
+    private final NodeType id;
+    private final GraphId graph;
+    private final String uri;
 
     // Jackson constructor
-    private TermedTypeId() {
-        this("", new TermedGraphId(randomUUID()));
+    private TypeId() {
+        this(NodeType.placeholder(), GraphId.placeholder());
     }
 
-    public TermedTypeId(String id, TermedGraphId graph) {
+    public TypeId(NodeType id, GraphId graph) {
+        this(id, graph, "");
+    }
+
+    public TypeId(NodeType id, GraphId graph, String uri) {
         this.id = id;
         this.graph = graph;
+        this.uri = uri;
     }
 
-    public String getId() {
+    public static TypeId placeholder() {
+        return new TypeId();
+    }
+
+    public NodeType getId() {
         return id;
     }
 
-    public TermedGraphId getGraph() {
+    public GraphId getGraph() {
         return graph;
     }
 
@@ -31,12 +39,16 @@ public final class TermedTypeId {
         return graph != null ? graph.getId() : null;
     }
 
+    public String getUri() {
+        return uri;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TermedTypeId that = (TermedTypeId) o;
+        TypeId that = (TypeId) o;
 
         return id.equals(that.id) && graph.equals(that.graph);
     }

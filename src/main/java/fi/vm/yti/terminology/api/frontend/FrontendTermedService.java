@@ -5,8 +5,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
-import fi.vm.yti.terminology.api.model.termed.TermedGraph;
-import fi.vm.yti.terminology.api.model.termed.VocabularyType;
+import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +40,7 @@ public class FrontendTermedService {
 
     boolean isNamespaceInUse(String prefix, String namespace) {
 
-        for (TermedGraph graph : getGraphs()) {
+        for (Graph graph : getGraphs()) {
             if (prefix.equals(graph.getCode()) || namespace.equals(graph.getUri())) {
                 return true;
             }
@@ -152,7 +151,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getNodeListWithoutReferencesOrReferrers(String nodeType) {
+    @NotNull JsonNode getNodeListWithoutReferencesOrReferrers(NodeType nodeType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -164,8 +163,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    // TODO: better typing for easy authorization
-    void updateAndDeleteInternalNodes(JsonNode deleteAndSave) {
+    void updateAndDeleteInternalNodes(DeleteAndSave deleteAndSave) {
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
@@ -176,8 +174,7 @@ public class FrontendTermedService {
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username, USER_PASSWORD);
     }
 
-    // TODO: better typing for easy authorization
-    void removeNodes(boolean sync, boolean disconnect, JsonNode identifiers) {
+    void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -200,18 +197,17 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getTypes(UUID graphId) {
+    @NotNull List<MetaNode> getTypes(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
 
         String path = graphId != null ? "/graphs/" + graphId + "/types" : "/types";
 
-        return requireNonNull(termedRequester.exchange(path, GET, params, JsonNode.class));
+        return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<MetaNode>>() {}));
     }
 
-    // TODO: better typing for easy authorization
-    void updateTypes(UUID graphId, JsonNode metaNodes) {
+    void updateTypes(UUID graphId, List<MetaNode> metaNodes) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -219,25 +215,23 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
     }
 
-    // TODO: better typing for easy authorization
-    void removeTypes(UUID graphId, JsonNode identifiers) {
+    void removeTypes(UUID graphId, List<MetaNode> metaNodes) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
 
-        termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, identifiers);
+        termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, metaNodes);
     }
 
-    @NotNull List<TermedGraph> getGraphs() {
+    @NotNull List<Graph> getGraphs() {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
 
-        return requireNonNull(termedRequester.exchange("/graphs", GET, params, new ParameterizedTypeReference<List<TermedGraph>>() {}));
+        return requireNonNull(termedRequester.exchange("/graphs", GET, params, new ParameterizedTypeReference<List<Graph>>() {}));
     }
 
-    // TODO: better typing for easy authorization
-    void createGraph(JsonNode graph) {
+    void createGraph(Graph graph) {
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
 

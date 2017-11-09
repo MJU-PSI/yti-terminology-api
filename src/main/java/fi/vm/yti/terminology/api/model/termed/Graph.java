@@ -5,23 +5,24 @@ import java.util.Map;
 import java.util.UUID;
 
 import static java.util.Collections.*;
+import static java.util.UUID.randomUUID;
 
-public class TermedGraph {
+public final class Graph {
 
     private final UUID id;
     private final String code;
     private final String uri;
 
     private final List<String> roles;
-    private final Map<String, List<TermedPermission>> permissions;
-    private final Map<String, List<TermedLangValue>> properties;
+    private final Map<String, List<Permission>> permissions;
+    private final Map<String, List<Attribute>> properties;
 
     // Jackson constructor
-    private TermedGraph() {
-        this(UUID.randomUUID(), "", "", emptyList(), emptyMap(), emptyMap());
+    private Graph() {
+        this(randomUUID(), "", "", emptyList(), emptyMap(), emptyMap());
     }
 
-    public TermedGraph(UUID id, String code, String uri, List<String> roles, Map<String, List<TermedPermission>> permissions, Map<String, List<TermedLangValue>> properties) {
+    public Graph(UUID id, String code, String uri, List<String> roles, Map<String, List<Permission>> permissions, Map<String, List<Attribute>> properties) {
         this.id = id;
         this.code = code;
         this.uri = uri;
@@ -46,11 +47,11 @@ public class TermedGraph {
         return roles;
     }
 
-    public Map<String, List<TermedPermission>> getPermissions() {
+    public Map<String, List<Permission>> getPermissions() {
         return permissions;
     }
 
-    public Map<String, List<TermedLangValue>> getProperties() {
+    public Map<String, List<Attribute>> getProperties() {
         return properties;
     }
 }

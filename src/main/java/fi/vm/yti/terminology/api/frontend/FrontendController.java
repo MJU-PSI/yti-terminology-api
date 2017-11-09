@@ -3,8 +3,7 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
-import fi.vm.yti.terminology.api.model.termed.TermedGraph;
-import fi.vm.yti.terminology.api.model.termed.VocabularyType;
+import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
+import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
@@ -74,23 +75,23 @@ public class FrontendController {
 
     @RequestMapping(value = "/organizations", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getOrganizationList() {
-        return termedService.getNodeListWithoutReferencesOrReferrers("Organization");
+        return termedService.getNodeListWithoutReferencesOrReferrers(Organization);
     }
 
     @RequestMapping(value = "/groups", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getGroupList() {
-        return termedService.getNodeListWithoutReferencesOrReferrers("Group");
+        return termedService.getNodeListWithoutReferencesOrReferrers(Group);
     }
 
     @RequestMapping(value = "/modify", method = POST)
-    void updateAndDeleteInternalNodes(@RequestBody JsonNode deleteAndSave) {
+    void updateAndDeleteInternalNodes(@RequestBody GenericDeleteAndSave deleteAndSave) {
         termedService.updateAndDeleteInternalNodes(deleteAndSave);
     }
 
     @RequestMapping(value = "/remove", method = DELETE)
     void removeNodes(@RequestParam boolean sync,
                      @RequestParam boolean disconnect,
-                     @RequestBody JsonNode identifiers) {
+                     @RequestBody List<Identifier> identifiers) {
         termedService.removeNodes(sync, disconnect, identifiers);
     }
 
@@ -100,29 +101,29 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/types", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getTypes(@RequestParam(required = false) UUID graphId) {
+    List<MetaNode> getTypes(@RequestParam(required = false) UUID graphId) {
         return termedService.getTypes(graphId);
     }
 
     @RequestMapping(value = "/types", method = POST)
     void updateTypes(@RequestParam UUID graphId,
-                     @RequestBody JsonNode metaNodes) {
+                     @RequestBody List<MetaNode> metaNodes) {
         termedService.updateTypes(graphId, metaNodes);
     }
 
     @RequestMapping(value = "/types", method = DELETE)
     void removeTypes(@RequestParam UUID graphId,
-                     @RequestBody JsonNode identifiers) {
-        termedService.removeTypes(graphId, identifiers);
+                     @RequestBody List<MetaNode> metaNodes) {
+        termedService.removeTypes(graphId, metaNodes);
     }
 
     @RequestMapping(value = "/graphs", method = GET, produces = APPLICATION_JSON_VALUE)
-    List<TermedGraph> getGraphs() {
+    List<Graph> getGraphs() {
         return termedService.getGraphs();
     }
 
     @RequestMapping(value = "/graph", method = POST)
-    void createGraph(@RequestBody JsonNode graph) {
+    void createGraph(@RequestBody Graph graph) {
         termedService.createGraph(graph);
     }
 

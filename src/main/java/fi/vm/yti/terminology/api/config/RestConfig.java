@@ -1,6 +1,9 @@
 package fi.vm.yti.terminology.api.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClients;
@@ -21,6 +24,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
+
 @Configuration
 class RestConfig {
 
@@ -28,11 +34,14 @@ class RestConfig {
 
     @Autowired
     RestConfig(ObjectMapper objectMapper) {
+        objectMapper.setSerializationInclusion(NON_NULL);
+        objectMapper.disable(WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.setDateFormat(new ISO8601DateFormat());
         this.objectMapper = objectMapper;
     }
 
     @Bean
-    ClientHttpRequestFactory httpRequestFactory(){
+    ClientHttpRequestFactory httpRequestFactory() {
         return new HttpComponentsClientHttpRequestFactory(httpClient());
     }
 
