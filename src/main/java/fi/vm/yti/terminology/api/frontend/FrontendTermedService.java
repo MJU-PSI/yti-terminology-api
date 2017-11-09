@@ -5,14 +5,17 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
+import fi.vm.yti.terminology.api.model.termed.TermedGraph;
 import fi.vm.yti.terminology.api.model.termed.VocabularyType;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
@@ -214,12 +217,12 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, identifiers);
     }
 
-    @NotNull JsonNode getGraphs() {
+    @NotNull List<TermedGraph> getGraphs() {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
 
-        return requireNonNull(termedRequester.exchange("/graphs", GET, params, JsonNode.class));
+        return requireNonNull(termedRequester.exchange("/graphs", GET, params, new ParameterizedTypeReference<List<TermedGraph>>() {}));
     }
 
     // TODO: better typing for easy authorization

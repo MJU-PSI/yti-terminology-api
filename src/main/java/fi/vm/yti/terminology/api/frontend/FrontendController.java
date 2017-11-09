@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.model.termed.TermedGraph;
 import fi.vm.yti.terminology.api.model.termed.VocabularyType;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -109,7 +111,7 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/graphs", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getGraphs() {
+    List<TermedGraph> getGraphs() {
         return termedService.getGraphs();
     }
 
