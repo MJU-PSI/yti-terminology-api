@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
 import static java.util.Objects.requireNonNull;
@@ -33,7 +35,7 @@ public class FrontendTermedService {
         this.userProvider = userProvider;
     }
 
-    @NotNull JsonNode getVocabulary(String graphId, String vocabularyType) {
+    @NotNull JsonNode getVocabulary(UUID graphId, String vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -67,7 +69,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getConcept(String graphId, String conceptId) {
+    @NotNull JsonNode getConcept(UUID graphId, UUID conceptId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -97,7 +99,7 @@ public class FrontendTermedService {
         return concept;
     }
 
-    @NotNull JsonNode getCollection(String graphId, String collectionId) {
+    @NotNull JsonNode getCollection(UUID graphId, UUID collectionId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -120,7 +122,7 @@ public class FrontendTermedService {
         return requireSingle(response);
     }
 
-    @NotNull JsonNode getCollectionList(String graphId) {
+    @NotNull JsonNode getCollectionList(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -172,7 +174,7 @@ public class FrontendTermedService {
         termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username, USER_PASSWORD);
     }
 
-    @NotNull JsonNode getAllNodeIdentifiers(String graphId) {
+    @NotNull JsonNode getAllNodeIdentifiers(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -183,7 +185,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getTypes(String graphId) {
+    @NotNull JsonNode getTypes(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
@@ -194,7 +196,7 @@ public class FrontendTermedService {
     }
 
     // TODO: better typing for easy authorization
-    void updateTypes(String graphId, JsonNode metaNodes) {
+    void updateTypes(UUID graphId, JsonNode metaNodes) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -203,7 +205,7 @@ public class FrontendTermedService {
     }
 
     // TODO: better typing for easy authorization
-    void removeTypes(String graphId, JsonNode identifiers) {
+    void removeTypes(UUID graphId, JsonNode identifiers) {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -224,7 +226,7 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
 
-    void deleteGraph(String graphId) {
+    void deleteGraph(UUID graphId) {
         termedRequester.exchange("/graphs/" + graphId, HttpMethod.DELETE, Parameters.empty(), String.class);
     }
 

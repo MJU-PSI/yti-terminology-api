@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
@@ -34,7 +36,7 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabulary(@RequestParam String graphId,
+    JsonNode getVocabulary(@RequestParam UUID graphId,
                            @RequestParam String vocabularyType) {
         return termedService.getVocabulary(graphId, vocabularyType);
     }
@@ -45,19 +47,19 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/concept", method = GET, produces = APPLICATION_JSON_VALUE)
-    @Nullable JsonNode getConcept(@RequestParam String graphId,
-                                  @RequestParam String conceptId) {
+    @Nullable JsonNode getConcept(@RequestParam UUID graphId,
+                                  @RequestParam UUID conceptId) {
         return termedService.getConcept(graphId, conceptId);
     }
 
     @RequestMapping(value = "/collection", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getCollection(@RequestParam String graphId,
-                           @RequestParam String collectionId) {
+    JsonNode getCollection(@RequestParam UUID graphId,
+                           @RequestParam UUID collectionId) {
         return termedService.getCollection(graphId, collectionId);
     }
 
     @RequestMapping(value = "/collections", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getCollectionList(@RequestParam String graphId) {
+    JsonNode getCollectionList(@RequestParam UUID graphId) {
         return termedService.getCollectionList(graphId);
     }
 
@@ -84,23 +86,23 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/nodes", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getAllNodeIdentifiers(@RequestParam String graphId) {
+    JsonNode getAllNodeIdentifiers(@RequestParam UUID graphId) {
         return termedService.getAllNodeIdentifiers(graphId);
     }
 
     @RequestMapping(value = "/types", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getTypes(@RequestParam(required = false) String graphId) {
+    JsonNode getTypes(@RequestParam(required = false) UUID graphId) {
         return termedService.getTypes(graphId);
     }
 
     @RequestMapping(value = "/types", method = POST)
-    void updateTypes(@RequestParam String graphId,
+    void updateTypes(@RequestParam UUID graphId,
                      @RequestBody JsonNode metaNodes) {
         termedService.updateTypes(graphId, metaNodes);
     }
 
     @RequestMapping(value = "/types", method = DELETE)
-    void removeTypes(@RequestParam String graphId,
+    void removeTypes(@RequestParam UUID graphId,
                      @RequestBody JsonNode identifiers) {
         termedService.removeTypes(graphId, identifiers);
     }
@@ -116,7 +118,7 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/graph", method = DELETE)
-    void deleteGraph(@RequestParam String graphId) {
+    void deleteGraph(@RequestParam UUID graphId) {
         termedService.deleteGraph(graphId);
     }
 
