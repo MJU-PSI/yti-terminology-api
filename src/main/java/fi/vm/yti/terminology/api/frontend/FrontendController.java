@@ -47,12 +47,12 @@ public class FrontendController {
 
     @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getVocabulary(@RequestParam UUID graphId,
-                           @RequestParam VocabularyType vocabularyType) {
+                           @RequestParam VocabularyNodeType vocabularyType) {
         return termedService.getVocabulary(graphId, vocabularyType);
     }
 
     @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabularyList(@RequestParam VocabularyType vocabularyType) {
+    JsonNode getVocabularyList(@RequestParam VocabularyNodeType vocabularyType) {
         return termedService.getVocabularyList(vocabularyType);
     }
 

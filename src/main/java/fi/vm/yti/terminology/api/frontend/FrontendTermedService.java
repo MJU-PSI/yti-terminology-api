@@ -49,7 +49,7 @@ public class FrontendTermedService {
         return false;
     }
 
-    @NotNull JsonNode getVocabulary(UUID graphId, VocabularyType vocabularyType) {
+    @NotNull JsonNode getVocabulary(UUID graphId, VocabularyNodeType vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -69,7 +69,7 @@ public class FrontendTermedService {
         return requireSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getVocabularyList(VocabularyType vocabularyType) {
+    @NotNull JsonNode getVocabularyList(VocabularyNodeType vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
