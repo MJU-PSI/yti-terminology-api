@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.model.termed.VocabularyType;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,12 +38,12 @@ public class FrontendController {
 
     @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getVocabulary(@RequestParam UUID graphId,
-                           @RequestParam String vocabularyType) {
+                           @RequestParam VocabularyType vocabularyType) {
         return termedService.getVocabulary(graphId, vocabularyType);
     }
 
     @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabularyList(@RequestParam String vocabularyType) {
+    JsonNode getVocabularyList(@RequestParam VocabularyType vocabularyType) {
         return termedService.getVocabularyList(vocabularyType);
     }
 

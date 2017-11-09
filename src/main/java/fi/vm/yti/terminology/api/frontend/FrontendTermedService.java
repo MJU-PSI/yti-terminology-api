@@ -5,6 +5,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
+import fi.vm.yti.terminology.api.model.termed.VocabularyType;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +36,7 @@ public class FrontendTermedService {
         this.userProvider = userProvider;
     }
 
-    @NotNull JsonNode getVocabulary(UUID graphId, String vocabularyType) {
+    @NotNull JsonNode getVocabulary(UUID graphId, VocabularyType vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -55,7 +56,7 @@ public class FrontendTermedService {
         return requireSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getVocabularyList(String vocabularyType) {
+    @NotNull JsonNode getVocabularyList(VocabularyType vocabularyType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
