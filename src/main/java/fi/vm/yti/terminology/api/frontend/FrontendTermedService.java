@@ -231,6 +231,10 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/graphs", GET, params, new ParameterizedTypeReference<List<Graph>>() {}));
     }
 
+    @NotNull Graph getGraph(UUID graphId) {
+        return requireNonNull(termedRequester.exchange("/graphs/" + graphId, GET, Parameters.empty(), Graph.class));
+    }
+
     void createGraph(Graph graph) {
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }

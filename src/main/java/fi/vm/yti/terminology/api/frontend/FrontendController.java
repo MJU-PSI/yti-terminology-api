@@ -5,10 +5,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -120,6 +117,11 @@ public class FrontendController {
     @RequestMapping(value = "/graphs", method = GET, produces = APPLICATION_JSON_VALUE)
     List<Graph> getGraphs() {
         return termedService.getGraphs();
+    }
+
+    @RequestMapping(value = "/graphs/{id}", method = GET, produces = APPLICATION_JSON_VALUE)
+    Graph getGraph(@PathVariable("id") UUID graphId) {
+        return termedService.getGraph(graphId);
     }
 
     @RequestMapping(value = "/graph", method = POST)
