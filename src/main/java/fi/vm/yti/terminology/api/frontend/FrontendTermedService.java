@@ -6,6 +6,7 @@ import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NotFoundException;
 import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
+import static fi.vm.yti.security.AuthorizationException.check;
 import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
 import static java.util.Objects.requireNonNull;
@@ -30,12 +32,15 @@ public class FrontendTermedService {
 
     private final TermedRequester termedRequester;
     private final AuthenticatedUserProvider userProvider;
+    private final AuthorizationManager authorizationManager;
 
     @Autowired
     public FrontendTermedService(TermedRequester termedRequester,
-                                 AuthenticatedUserProvider userProvider) {
+                                 AuthenticatedUserProvider userProvider,
+                                 AuthorizationManager authorizationManager) {
         this.termedRequester = termedRequester;
         this.userProvider = userProvider;
+        this.authorizationManager = authorizationManager;
     }
 
     boolean isNamespaceInUse(String prefix, String namespace) {
@@ -163,7 +168,10 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    void updateAndDeleteInternalNodes(DeleteAndSave deleteAndSave) {
+    void updateAndDeleteInternalNodes(GenericDeleteAndSave deleteAndSave) {
+
+        check(authorizationManager.canModifyNodes(deleteAndSave.getSave()));
+        check(authorizationManager.canRemoveNodes(deleteAndSave.getDelete()));
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
@@ -175,6 +183,8 @@ public class FrontendTermedService {
     }
 
     void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
+
+        check(authorizationManager.canRemoveNodes(identifiers));
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -209,6 +219,8 @@ public class FrontendTermedService {
 
     void updateTypes(UUID graphId, List<MetaNode> metaNodes) {
 
+        check(authorizationManager.canModifyMetaNodes(metaNodes));
+
         Parameters params = new Parameters();
         params.add("batch", "true");
 
@@ -216,6 +228,8 @@ public class FrontendTermedService {
     }
 
     void removeTypes(UUID graphId, List<MetaNode> metaNodes) {
+
+        check(authorizationManager.canRemoveMetaNodes(metaNodes));
 
         Parameters params = new Parameters();
         params.add("batch", "true");
@@ -236,10 +250,16 @@ public class FrontendTermedService {
     }
 
     void createGraph(Graph graph) {
+
+        check(authorizationManager.canCreateGraph(graph));
+
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
 
     void deleteGraph(UUID graphId) {
+
+        check(authorizationManager.canDeleteGraph(graphId));
+
         termedRequester.exchange("/graphs/" + graphId, HttpMethod.DELETE, Parameters.empty(), String.class);
     }
 
