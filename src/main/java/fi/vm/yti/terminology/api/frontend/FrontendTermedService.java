@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static fi.vm.yti.security.AuthorizationException.check;
+import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.TerminologicalVocabulary;
+import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.Vocabulary;
 import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
 import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
 import static java.util.Objects.requireNonNull;
@@ -54,7 +56,7 @@ public class FrontendTermedService {
         return false;
     }
 
-    @NotNull JsonNode getVocabulary(UUID graphId, VocabularyNodeType vocabularyType) {
+    @NotNull JsonNode getVocabulary(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -67,14 +69,18 @@ public class FrontendTermedService {
         params.add("select", "lastModifiedDate");
         params.add("select", "properties.*");
         params.add("select", "references.*");
-        params.add("where", "graph.id:" + graphId);
-        params.add("where", "type.id:" + vocabularyType);
+
+        params.add("where",
+                "graph.id:" + graphId +
+                        " AND (type.id:" + Vocabulary +
+                        " OR type.id:" + TerminologicalVocabulary + ")");
+
         params.add("max", "-1");
 
         return requireSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull JsonNode getVocabularyList(VocabularyNodeType vocabularyType) {
+    @NotNull JsonNode getVocabularyList() {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -82,8 +88,13 @@ public class FrontendTermedService {
         params.add("select", "properties.*");
         params.add("select", "references.publisher");
         params.add("select", "references.inGroup");
-        params.add("where", "type.id:" + vocabularyType);
+
+        params.add("where",
+                "type.id:" + Vocabulary +
+                        " OR type.id:" + TerminologicalVocabulary);
+
         params.add("max", "-1");
+
 
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
