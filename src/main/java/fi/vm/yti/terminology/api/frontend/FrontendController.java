@@ -22,15 +22,18 @@ public class FrontendController {
 
     private final FrontendTermedService termedService;
     private final FrontendElasticSearchService elasticSearchService;
+    private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final String namespaceRoot;
 
     public FrontendController(FrontendTermedService termedService,
                               FrontendElasticSearchService elasticSearchService,
+                              FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
                               @Value("${namespace.root}") String namespaceRoot) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
+        this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.namespaceRoot = namespaceRoot;
     }
@@ -48,6 +51,16 @@ public class FrontendController {
     @RequestMapping(value = "/authenticated-user", method = GET, produces = APPLICATION_JSON_VALUE)
     YtiUser getUser() {
         return userProvider.getUser();
+    }
+
+    @RequestMapping(value = "/requests", method = GET, produces = APPLICATION_JSON_VALUE)
+    List<GroupManagementUserRequest> getUserRequests() {
+        return groupManagementService.getUserRequests();
+    }
+
+    @RequestMapping(value = "/request", method = POST)
+    void sendRequest(@RequestParam UUID organizationId) {
+        groupManagementService.sendRequest(organizationId);
     }
 
     @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
