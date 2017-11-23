@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Collections.emptyMap;
 
@@ -63,5 +64,12 @@ public final class AttributeMeta {
 
     public Map<String, List<Property>> getProperties() {
         return properties;
+    }
+
+    public AttributeMeta copyToGraph(UUID graphId) {
+
+        TypeId newDomain = domain.copyToGraph(graphId);
+
+        return new AttributeMeta(regex, id, uri, index, newDomain, permissions, properties);
     }
 }

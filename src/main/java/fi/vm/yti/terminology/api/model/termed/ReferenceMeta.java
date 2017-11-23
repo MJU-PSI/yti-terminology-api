@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Collections.emptyMap;
 
@@ -62,5 +63,13 @@ public final class ReferenceMeta {
 
     public Map<String, List<Property>> getProperties() {
         return properties;
+    }
+
+    public ReferenceMeta copyToGraph(UUID graphId) {
+
+        TypeId newDomain = domain.copyToGraph(graphId);
+        TypeId newRange = domain.getGraph().equals(range.getGraph()) ? range.copyToGraph(graphId) : range;
+
+        return new ReferenceMeta(newRange, id, uri, index, newDomain, permissions, properties);
     }
 }

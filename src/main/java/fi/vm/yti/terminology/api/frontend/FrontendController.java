@@ -5,6 +5,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,19 +23,26 @@ public class FrontendController {
     private final FrontendTermedService termedService;
     private final FrontendElasticSearchService elasticSearchService;
     private final AuthenticatedUserProvider userProvider;
+    private final String namespaceRoot;
 
     public FrontendController(FrontendTermedService termedService,
                               FrontendElasticSearchService elasticSearchService,
-                              AuthenticatedUserProvider userProvider) {
+                              AuthenticatedUserProvider userProvider,
+                              @Value("${namespace.root}") String namespaceRoot) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.userProvider = userProvider;
+        this.namespaceRoot = namespaceRoot;
     }
 
     @RequestMapping(value = "/namespaceInUse", method = GET, produces = APPLICATION_JSON_VALUE)
-    boolean isNamespaceInUse(@RequestParam String prefix,
-                             @RequestParam String namespace) {
-        return termedService.isNamespaceInUse(prefix, namespace);
+    boolean isNamespaceInUse(@RequestParam String prefix) {
+        return termedService.isNamespaceInUse(prefix);
+    }
+
+    @RequestMapping(value = "/namespaceRoot", method = GET, produces = APPLICATION_JSON_VALUE)
+    String getNamespaceRoot() {
+        return namespaceRoot;
     }
 
     @RequestMapping(value = "/authenticated-user", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -50,6 +58,18 @@ public class FrontendController {
     @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
     JsonNode getVocabularyList() {
         return termedService.getVocabularyList();
+    }
+
+    @RequestMapping(value = "/vocabulary", method = POST)
+    UUID createVocabulary(@RequestParam UUID templateGraphId,
+                          @RequestParam String prefix,
+                          @RequestBody GenericNode vocabularyNode) {
+        return termedService.createVocabulary(templateGraphId, prefix, vocabularyNode);
+    }
+
+    @RequestMapping(value = "/vocabulary", method = DELETE)
+    void deleteVocabulary(@RequestParam UUID graphId) {
+        termedService.deleteVocabulary(graphId);
     }
 
     @RequestMapping(value = "/concept", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -81,7 +101,7 @@ public class FrontendController {
 
     @RequestMapping(value = "/modify", method = POST)
     void updateAndDeleteInternalNodes(@RequestBody GenericDeleteAndSave deleteAndSave) {
-        termedService.updateAndDeleteInternalNodes(deleteAndSave);
+        termedService.bulkChange(deleteAndSave);
     }
 
     @RequestMapping(value = "/remove", method = DELETE)
@@ -91,26 +111,9 @@ public class FrontendController {
         termedService.removeNodes(sync, disconnect, identifiers);
     }
 
-    @RequestMapping(value = "/nodes", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getAllNodeIdentifiers(@RequestParam UUID graphId) {
-        return termedService.getAllNodeIdentifiers(graphId);
-    }
-
     @RequestMapping(value = "/types", method = GET, produces = APPLICATION_JSON_VALUE)
     List<MetaNode> getTypes(@RequestParam(required = false) UUID graphId) {
         return termedService.getTypes(graphId);
-    }
-
-    @RequestMapping(value = "/types", method = POST)
-    void updateTypes(@RequestParam UUID graphId,
-                     @RequestBody List<MetaNode> metaNodes) {
-        termedService.updateTypes(graphId, metaNodes);
-    }
-
-    @RequestMapping(value = "/types", method = DELETE)
-    void removeTypes(@RequestParam UUID graphId,
-                     @RequestBody List<MetaNode> metaNodes) {
-        termedService.removeTypes(graphId, metaNodes);
     }
 
     @RequestMapping(value = "/graphs", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -121,16 +124,6 @@ public class FrontendController {
     @RequestMapping(value = "/graphs/{id}", method = GET, produces = APPLICATION_JSON_VALUE)
     Graph getGraph(@PathVariable("id") UUID graphId) {
         return termedService.getGraph(graphId);
-    }
-
-    @RequestMapping(value = "/graph", method = POST)
-    void createGraph(@RequestBody Graph graph) {
-        termedService.createGraph(graph);
-    }
-
-    @RequestMapping(value = "/graph", method = DELETE)
-    void deleteGraph(@RequestParam UUID graphId) {
-        termedService.deleteGraph(graphId);
     }
 
     @RequestMapping(value = "/searchConcept", method = POST, produces = APPLICATION_JSON_VALUE)

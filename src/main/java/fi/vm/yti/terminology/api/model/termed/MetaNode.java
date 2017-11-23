@@ -2,7 +2,9 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
@@ -70,5 +72,13 @@ public final class MetaNode {
 
     public List<ReferenceMeta> getReferenceAttributes() {
         return referenceAttributes;
+    }
+
+    public MetaNode copyToGraph(UUID graphId) {
+
+        List<AttributeMeta> newAttributes = mapToList(textAttributes, textAttribute -> textAttribute.copyToGraph(graphId));
+        List<ReferenceMeta> newReferences = mapToList(referenceAttributes, referenceAttribute -> referenceAttribute.copyToGraph(graphId));
+
+        return new MetaNode(id, uri, index, new GraphId(graphId), permissions, properties, newAttributes, newReferences);
     }
 }

@@ -59,4 +59,8 @@ public final class TypeId {
         result = 31 * result + graph.hashCode();
         return result;
     }
+
+    public TypeId copyToGraph(UUID graphId) {
+        return new TypeId(id, new GraphId(graphId), uri);
+    }
 }

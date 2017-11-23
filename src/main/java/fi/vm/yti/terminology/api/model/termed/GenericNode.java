@@ -1,6 +1,9 @@
 package fi.vm.yti.terminology.api.model.termed;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
@@ -100,5 +103,12 @@ public final class GenericNode implements Node {
 
     public Map<String, List<Identifier>> getReferrers() {
         return referrers;
+    }
+
+    public GenericNode copyToGraph(UUID graphId) {
+
+        TypeId newType = type.copyToGraph(graphId);
+
+        return new GenericNode(id, code, uri, number, createdBy, createdDate, lastModifiedBy, lastModifiedDate, newType, properties, references, referrers);
     }
 }

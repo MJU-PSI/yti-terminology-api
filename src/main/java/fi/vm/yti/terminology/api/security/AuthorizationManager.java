@@ -2,9 +2,8 @@ package fi.vm.yti.terminology.api.security;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
-import fi.vm.yti.terminology.api.model.termed.Graph;
+import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import fi.vm.yti.terminology.api.model.termed.Identifier;
-import fi.vm.yti.terminology.api.model.termed.MetaNode;
 import fi.vm.yti.terminology.api.model.termed.Node;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,10 @@ import java.util.*;
 
 import static fi.vm.yti.security.Role.ADMIN;
 import static fi.vm.yti.security.Role.TERMINOLOGY_EDITOR;
-import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
+import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToSet;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toSet;
 
 @Service
 public class AuthorizationManager {
@@ -29,50 +31,36 @@ public class AuthorizationManager {
     }
 
     public boolean canModifyNodes(List<? extends Node> nodes) {
-        return canModifyAllGraphs(mapToList(nodes, node -> node.getType().getGraphId()));
+        return nodes.isEmpty() || canModifyAllGraphs(mapToSet(nodes, node -> node.getType().getGraphId()));
     }
 
     public boolean canRemoveNodes(List<Identifier> identifiers) {
-        return canModifyAllGraphs(mapToList(identifiers, id -> id.getType().getGraphId()));
+        return identifiers.isEmpty() || canModifyAllGraphs(mapToSet(identifiers, id -> id.getType().getGraphId()));
     }
 
-    public boolean canModifyMetaNodes(List<MetaNode> metaNodes) {
-        return isLoggedIn(); // TODO
+    public boolean canDeleteVocabulary(UUID graphId) {
+        return canModifyAllGraphs(singleton(graphId));
     }
 
-    public boolean canRemoveMetaNodes(List<MetaNode> metaNodes) {
-        return isLoggedIn(); // TODO
-    }
+    public boolean canCreateVocabulary(GenericNode vocabularyNode) {
 
-    public boolean canCreateGraph(Graph graph) {
-        return isLoggedIn(); // TODO
-    }
+        Set<UUID> organizationIds =
+                mapToSet(vocabularyNode.getReferences().getOrDefault("publisher", emptyList()), Identifier::getId);
 
-    public boolean canDeleteGraph(UUID graphId) {
-        return isLoggedIn(); // TODO
+        return canModifyAllOrganizations(organizationIds);
     }
 
     private boolean canModifyAllGraphs(Collection<UUID> graphIds) {
 
-        YtiUser user = userProvider.getUser();
+        Set<UUID> organizationIds = graphIds.stream()
+                .flatMap(graphId -> termedService.getOrganizationIds(graphId).stream())
+                .collect(toSet());
 
-        if (user.isSuperuser()) {
-            return true;
-        }
-
-        for (UUID graphId : graphIds) {
-
-            Set<UUID> organizationIds = termedService.getOrganizationIds(graphId);
-
-            if (!user.isInAnyRole(EnumSet.of(ADMIN, TERMINOLOGY_EDITOR), organizationIds)) {
-                return false;
-            }
-        }
-
-        return true;
+        return canModifyAllOrganizations(organizationIds);
     }
 
-    private boolean isLoggedIn() {
-        return !userProvider.getUser().isAnonymous();
+    private boolean canModifyAllOrganizations(Collection<UUID> organizationIds) {
+        YtiUser user = userProvider.getUser();
+        return user.isSuperuser() || user.isInAnyRole(EnumSet.of(ADMIN, TERMINOLOGY_EDITOR), organizationIds);
     }
 }
