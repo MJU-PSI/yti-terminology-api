@@ -182,8 +182,13 @@ public class FrontendTermedService {
         params.add("max", "-1");
 
         JsonNode response = termedRequester.exchange("/node-trees", GET, params, JsonNode.class);
+        JsonNode collection = findSingle(response);
 
-        return requireSingle(response);
+        if (collection == null) {
+            throw new NotFoundException(graphId, collectionId);
+        }
+
+        return collection;
     }
 
     @NotNull JsonNode getCollectionList(UUID graphId) {
