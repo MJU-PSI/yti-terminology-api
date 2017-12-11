@@ -10,6 +10,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,13 +21,16 @@ import static org.springframework.http.HttpMethod.POST;
 public class FrontendGroupManagementService {
 
     private final String groupManagementUrl;
+    private final boolean fakeLoginAllowed;
     private final RestTemplate restTemplate;
     private final AuthenticatedUserProvider userProvider;
 
     public FrontendGroupManagementService(@Value("${groupmanagement.url}") String groupManagementUrl,
+                                          @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed,
                                           RestTemplate restTemplate,
                                           AuthenticatedUserProvider userProvider) {
         this.groupManagementUrl = groupManagementUrl;
+        this.fakeLoginAllowed = fakeLoginAllowed;
         this.restTemplate = restTemplate;
         this.userProvider = userProvider;
     }
@@ -58,5 +62,15 @@ public class FrontendGroupManagementService {
 
         String url = groupManagementUrl + "/public-api/request" + parameters;
         restTemplate.exchange(url, POST, null, String.class);
+    }
+
+    @NotNull List<GroupManagementUser> getUsers() {
+
+        if (fakeLoginAllowed) {
+            String url = groupManagementUrl + "/public-api/users";
+            return restTemplate.exchange(url, GET, null, new ParameterizedTypeReference<List<GroupManagementUser>>() {}).getBody();
+        } else {
+            return Collections.emptyList();
+        }
     }
 }

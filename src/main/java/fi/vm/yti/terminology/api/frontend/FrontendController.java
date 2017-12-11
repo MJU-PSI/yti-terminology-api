@@ -38,6 +38,11 @@ public class FrontendController {
         this.namespaceRoot = namespaceRoot;
     }
 
+    @RequestMapping(value = "/fakeableUsers", method = GET, produces = APPLICATION_JSON_VALUE)
+    List<GroupManagementUser> isLoginFakeable() {
+        return groupManagementService.getUsers();
+    }
+
     @RequestMapping(value = "/namespaceInUse", method = GET, produces = APPLICATION_JSON_VALUE)
     boolean isNamespaceInUse(@RequestParam String prefix) {
         return termedService.isNamespaceInUse(prefix);
