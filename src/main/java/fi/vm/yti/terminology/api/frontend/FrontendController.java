@@ -39,7 +39,7 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/fakeableUsers", method = GET, produces = APPLICATION_JSON_VALUE)
-    List<GroupManagementUser> isLoginFakeable() {
+    List<GroupManagementUser> getFakeableUsers() {
         return groupManagementService.getUsers();
     }
 
