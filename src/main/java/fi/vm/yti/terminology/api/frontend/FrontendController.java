@@ -25,17 +25,25 @@ public class FrontendController {
     private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final String namespaceRoot;
+    private final String groupManagementUrl;
 
     public FrontendController(FrontendTermedService termedService,
                               FrontendElasticSearchService elasticSearchService,
                               FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
-                              @Value("${namespace.root}") String namespaceRoot) {
+                              @Value("${namespace.root}") String namespaceRoot,
+                              @Value("${groupmanagement.url}") String groupManagementUrl) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.namespaceRoot = namespaceRoot;
+        this.groupManagementUrl = groupManagementUrl;
+    }
+
+    @RequestMapping(value = "/groupManagementUrl", method = GET, produces = APPLICATION_JSON_VALUE)
+    String getGroupManagementUrl() {
+        return groupManagementUrl;
     }
 
     @RequestMapping(value = "/fakeableUsers", method = GET, produces = APPLICATION_JSON_VALUE)
