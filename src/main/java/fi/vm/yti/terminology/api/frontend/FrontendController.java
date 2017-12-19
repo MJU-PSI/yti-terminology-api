@@ -32,7 +32,7 @@ public class FrontendController {
                               FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
                               @Value("${namespace.root}") String namespaceRoot,
-                              @Value("${groupmanagement.url}") String groupManagementUrl) {
+                              @Value("${groupmanagement.public.url}") String groupManagementUrl) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
