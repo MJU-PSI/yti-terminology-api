@@ -54,7 +54,7 @@ public class FrontendTermedService {
 
     boolean isNamespaceInUse(String prefix) {
 
-        String namespace = namespaceRoot + prefix;
+        String namespace = formatNamespace(prefix);
 
         for (Graph graph : getGraphs()) {
             if (prefix.equals(graph.getCode()) || namespace.equals(graph.getUri())) {
@@ -278,7 +278,7 @@ public class FrontendTermedService {
 
         UUID graphId = UUID.randomUUID();
         String code = prefix;
-        String uri = namespaceRoot + prefix;
+        String uri = formatNamespace(prefix);
         List<String> roles = emptyList();
         Map<String, List<Permission>> permissions = emptyMap();
         Map<String, List<Attribute>> properties = singletonMap("prefLabel", prefLabel);
@@ -345,5 +345,9 @@ public class FrontendTermedService {
         Parameters params = Parameters.single("sync", "true");
         TermedUser termedUser = new TermedUser(user.getUsername(), USER_PASSWORD, "ADMIN");
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
+    }
+
+    private String formatNamespace(@NotNull String prefix) {
+        return this.namespaceRoot + prefix + '/';
     }
 }
