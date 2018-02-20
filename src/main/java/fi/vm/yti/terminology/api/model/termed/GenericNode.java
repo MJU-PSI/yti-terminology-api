@@ -93,6 +93,10 @@ public final class GenericNode implements Node {
         return type;
     }
 
+    public Identifier getIdentifier() {
+        return new Identifier(this.id, this.type);
+    }
+
     public Map<String, List<Attribute>> getProperties() {
         return properties;
     }

@@ -11,17 +11,19 @@ public final class GroupManagementOrganization {
     private final Map<String, String> prefLabel;
     private final Map<String, String> description;
     private final String url;
+    private final boolean removed;
 
     // Jackson constructor
     private GroupManagementOrganization() {
-        this(UUID.randomUUID(), emptyMap(), emptyMap(), "");
+        this(UUID.randomUUID(), emptyMap(), emptyMap(), "", false);
     }
 
-    GroupManagementOrganization(UUID uuid, Map<String, String> prefLabel, Map<String, String> description, String url) {
+    GroupManagementOrganization(UUID uuid, Map<String, String> prefLabel, Map<String, String> description, String url, boolean removed) {
         this.uuid = uuid;
         this.prefLabel = prefLabel;
         this.description = description;
         this.url = url;
+        this.removed = removed;
     }
 
     public UUID getUuid() {
@@ -38,5 +40,9 @@ public final class GroupManagementOrganization {
 
     public String getUrl() {
         return url;
+    }
+
+    public boolean isRemoved() {
+        return removed;
     }
 }

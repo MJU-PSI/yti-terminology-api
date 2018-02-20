@@ -46,6 +46,10 @@ public final class OrganizationNode implements Node {
         });
     }
 
+    public Identifier getIdentifier() {
+        return new Identifier(this.id, this.type);
+    }
+
     public UUID getId() {
         return id;
     }

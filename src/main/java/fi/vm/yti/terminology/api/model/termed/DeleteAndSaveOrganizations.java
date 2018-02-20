@@ -2,14 +2,13 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import java.util.List;
 
-import static java.util.Collections.emptyList;
+public class DeleteAndSaveOrganizations implements DeleteAndSave {
 
-public class UpdateOrganizations implements DeleteAndSave {
-
-    private final List<Identifier> delete = emptyList();
+    private final List<Identifier> delete;
     private final List<OrganizationNode> save;
 
-    public UpdateOrganizations(List<OrganizationNode> save) {
+    public DeleteAndSaveOrganizations(List<Identifier> delete, List<OrganizationNode> save) {
+        this.delete = delete;
         this.save = save;
     }
 
