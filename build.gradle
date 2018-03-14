@@ -10,19 +10,16 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'war'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'com.jfrog.artifactory'
 
 artifactoryPublish.skip = true
 
+jar.baseName = 'yti-terminology-api'
+
 configurations.all {
     resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
-
-war {
-    baseName = 'yti-terminology-api'
 }
 
 repositories {
@@ -48,7 +45,7 @@ dependencies {
     compile "io.springfox:springfox-swagger2:2.7.0"
     compile "io.springfox:springfox-swagger-ui:2.7.0"
 
-    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
+    compile("org.springframework.boot:spring-boot-starter-tomcat")
 }
 
 springBoot {
