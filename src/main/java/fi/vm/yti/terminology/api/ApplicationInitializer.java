@@ -2,7 +2,11 @@ package fi.vm.yti.terminology.api;
 
 import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
 import fi.vm.yti.terminology.api.exception.TermedEndpointException;
-import fi.vm.yti.terminology.api.index.*;
+import fi.vm.yti.terminology.api.index.BrokenTermedDataLinkException;
+import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
+import fi.vm.yti.terminology.api.index.IndexTermedService;
+import fi.vm.yti.terminology.api.migration.framework.MigrationInitializer;
+import fi.vm.yti.terminology.api.synchronization.SynchronizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +21,7 @@ public class ApplicationInitializer {
 
     private final IndexElasticSearchService elasticSearchService;
     private final IndexTermedService termedApiService;
+    private final SynchronizationService synchronizationService;
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -26,9 +31,13 @@ public class ApplicationInitializer {
     private String NOTIFY_HOOK_URL;
 
     @Autowired
-    public ApplicationInitializer(IndexElasticSearchService elasticSearchService, IndexTermedService termedApiService) {
+    public ApplicationInitializer(IndexElasticSearchService elasticSearchService,
+                                  IndexTermedService termedApiService,
+                                  SynchronizationService synchronizationService,
+                                  MigrationInitializer migrationInitializer /* XXX: dependency to enforce init order */) {
         this.elasticSearchService = elasticSearchService;
         this.termedApiService = termedApiService;
+        this.synchronizationService = synchronizationService;
     }
 
     @PostConstruct
@@ -40,6 +49,8 @@ public class ApplicationInitializer {
                 if (retryCount > 0) {
                     log.info("Retrying");
                 }
+
+                synchronizationService.synchronize();
 
                 this.elasticSearchService.initIndex();
 

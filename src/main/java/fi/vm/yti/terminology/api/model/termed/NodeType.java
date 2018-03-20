@@ -10,8 +10,7 @@ public enum NodeType {
     Collection,
     Group,
     Organization,
-    // TODO: fix meta!
-    Colleciton;
+    Schema;
 
     public static NodeType placeholder() {
         return Vocabulary;
