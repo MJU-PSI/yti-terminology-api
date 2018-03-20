@@ -58,7 +58,6 @@ public class SynchronizationService {
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
-        params.add("sync", "true");
 
         termedRequester.exchange("/nodes", POST, params, String.class, new DeleteAndSaveOrganizations(delete, save));
     }
