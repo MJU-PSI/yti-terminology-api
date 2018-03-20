@@ -40,7 +40,7 @@ public class NotificationController {
     }
 
     @RequestMapping("/notify")
-    public void notify(@RequestBody TermedNotification notification) throws IOException, InterruptedException {
+    public void notify(@RequestBody TermedNotification notification) {
         log.debug("Notification received");
 
         synchronized(this.lock) {
