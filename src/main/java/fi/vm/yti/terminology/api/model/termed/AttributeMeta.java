@@ -16,9 +16,20 @@ public final class AttributeMeta {
     private final Map<String, List<Permission>> permissions;
     private final Map<String, List<Property>> properties;
 
+    private static final String DEFAULT_ATTRIBUTE_REGEX = "(?s)^.*$";
+
     // Jackson constructor
     private AttributeMeta() {
         this("", "", "", 0L, TypeId.placeholder(), emptyMap(), emptyMap());
+    }
+
+    public AttributeMeta(String id,
+                         String uri,
+                         Long index,
+                         TypeId domain,
+                         Map<String, List<Permission>> permissions,
+                         Map<String, List<Property>> properties) {
+        this(DEFAULT_ATTRIBUTE_REGEX, id, uri, index, domain, permissions, properties);
     }
 
     public AttributeMeta(String regex,

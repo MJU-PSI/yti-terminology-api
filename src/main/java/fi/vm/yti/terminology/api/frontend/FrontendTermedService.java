@@ -113,7 +113,7 @@ public class FrontendTermedService {
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
 
         List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
-        List<Attribute> prefLabel = vocabularyNode.getProperties().get("prefLabel");
+        List<Property> prefLabel = mapToList(vocabularyNode.getProperties().get("prefLabel"), Attribute::asProperty);
 
         UUID graphId = createGraph(prefix, prefLabel);
         List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
@@ -274,14 +274,14 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<Identifier>>() {}));
     }
 
-    private UUID createGraph(String prefix, List<Attribute> prefLabel) {
+    private UUID createGraph(String prefix, List<Property> prefLabel) {
 
         UUID graphId = UUID.randomUUID();
         String code = prefix;
         String uri = formatNamespace(prefix);
         List<String> roles = emptyList();
         Map<String, List<Permission>> permissions = emptyMap();
-        Map<String, List<Attribute>> properties = singletonMap("prefLabel", prefLabel);
+        Map<String, List<Property>> properties = singletonMap("prefLabel", prefLabel);
 
         Graph graph = new Graph(graphId, code, uri, roles, permissions, properties);
 

@@ -15,14 +15,14 @@ public final class Graph {
 
     private final List<String> roles;
     private final Map<String, List<Permission>> permissions;
-    private final Map<String, List<Attribute>> properties;
+    private final Map<String, List<Property>> properties;
 
     // Jackson constructor
     private Graph() {
         this(randomUUID(), "", "", emptyList(), emptyMap(), emptyMap());
     }
 
-    public Graph(UUID id, String code, String uri, List<String> roles, Map<String, List<Permission>> permissions, Map<String, List<Attribute>> properties) {
+    public Graph(UUID id, String code, String uri, List<String> roles, Map<String, List<Permission>> permissions, Map<String, List<Property>> properties) {
         this.id = id;
         this.code = code;
         this.uri = uri;
@@ -51,7 +51,7 @@ public final class Graph {
         return permissions;
     }
 
-    public Map<String, List<Attribute>> getProperties() {
+    public Map<String, List<Property>> getProperties() {
         return properties;
     }
 }
