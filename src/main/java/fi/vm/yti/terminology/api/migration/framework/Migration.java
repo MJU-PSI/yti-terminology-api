@@ -45,7 +45,7 @@ public class Migration {
 
         log.info("Running migrations");
 
-        if (!schemaVersionAccessor.isInitialized()) {
+        if (!isSchemaInitialized()) {
             log.info("Schema version not initialized, initializing");
             schemaVersionAccessor.initialize();
             log.info("Schema version initialized");
@@ -57,6 +57,31 @@ public class Migration {
         }
 
         log.info("Migration finished");
+    }
+
+    private boolean isSchemaInitialized() {
+
+        for (int retryCount = 0; retryCount < 10; retryCount++) {
+            try {
+
+                if (retryCount > 0) {
+                    log.info("Retrying");
+                }
+
+                return schemaVersionAccessor.isInitialized();
+
+            } catch (InitializationException e) {
+                log.warn("Initialization failed (" + retryCount + "): " + e.getMessage(), e);
+                try {
+                    Thread.sleep(30000);
+                } catch (InterruptedException ie) {
+                    throw new RuntimeException(ie);
+                }
+            }
+        }
+
+        throw new RuntimeException("Cannot initialize");
+
     }
 
     private boolean isInConfiguredPackage(MigrationTask task) {

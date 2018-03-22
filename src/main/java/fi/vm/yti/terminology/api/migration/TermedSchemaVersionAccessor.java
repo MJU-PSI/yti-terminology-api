@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.migration;
 
+import fi.vm.yti.terminology.api.exception.TermedEndpointException;
+import fi.vm.yti.terminology.api.migration.framework.InitializationException;
 import fi.vm.yti.terminology.api.migration.framework.SchemaVersionAccessor;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.slf4j.Logger;
@@ -28,7 +30,11 @@ public class TermedSchemaVersionAccessor implements SchemaVersionAccessor {
 
     @Override
     public boolean isInitialized() {
-        return migrationService.isSchemaInitialized();
+        try {
+            return migrationService.isSchemaInitialized();
+        } catch (TermedEndpointException e) {
+            throw new InitializationException("Termed API has not started yet", e);
+        }
     }
 
     @Override
