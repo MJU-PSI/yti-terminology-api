@@ -2,7 +2,14 @@ package fi.vm.yti.terminology.api.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.*;
+import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseException;
+import org.elasticsearch.client.RestClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -10,22 +17,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PreDestroy;
 import java.io.*;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsJson;
+import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsString;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
-import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -33,8 +38,7 @@ public class IndexElasticSearchService {
 
     private static final Logger log = LoggerFactory.getLogger(IndexElasticSearchService.class);
 
-    private final RestTemplate restTemplate;
-    private String baseUrl;
+    private final RestClient esRestClient;
     private final String createIndexFilename;
     private final String createMappingsFilename;
     private final String indexName;
@@ -42,7 +46,7 @@ public class IndexElasticSearchService {
     private final boolean deleteIndexOnAppRestart;
 
     private final IndexTermedService termedApiService;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public IndexElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
@@ -62,20 +66,17 @@ public class IndexElasticSearchService {
         this.deleteIndexOnAppRestart = deleteIndexOnAppRestart;
         this.termedApiService = termedApiService;
         this.objectMapper = objectMapper;
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(1000);
-        requestFactory.setReadTimeout(1000);
-        this.restTemplate = new RestTemplate(requestFactory);
-        this.baseUrl = searchHostScheme + "://" + searchHostUrl + ":" + searchHostPort;
+        this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
     }
 
     public void initIndex() {
+
         if (deleteIndexOnAppRestart) {
             deleteIndex();
         }
 
         if (!indexExists() && createIndex() && createMapping()) {
-           doFullIndexing();
+            doFullIndexing();
         }
     }
 
@@ -139,62 +140,58 @@ public class IndexElasticSearchService {
 
     private void deleteIndex() {
         log.info("Deleting elasticsearch index: " + indexName);
-        boolean gotError = false;
-        try {
-            this.restTemplate.delete(baseUrl + "/" + indexName);
-        } catch (HttpClientErrorException e) {
-            gotError = true;
-            if (e.getRawStatusCode() == 404) {
-                log.info("Elasticsearch index not deleted because it did not exist, Http code 404 was returned.");
-            } else {
-                log.info("Elasticsearch index not deleted. Http code returned was " + e.getRawStatusCode());
-                log.info("The exception was " + e);
-            }
-        }
-        if (!gotError) {
+
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("DELETE", "/" + indexName));
+
+        if (isSuccess(response)) {
             log.info("Elasticsearch index deleted: " + indexName);
+        } else {
+            log.info("Elasticsearch index not deleted. Maybe because it did not exist?");
         }
     }
 
     private boolean indexExists() {
         log.info("Checking if elasticsearch index exists: " + indexName);
 
-        try {
-            this.restTemplate.headForHeaders(baseUrl + "/" + indexName);
-        } catch (HttpClientErrorException e) {
-            if (e.getRawStatusCode() == 404) {
-                log.info("Elasticsearch index does not exist: " + indexName);
-                return false;
-            }
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("HEAD", "/" + indexName));
+
+        if (response.getStatusLine().getStatusCode() == 404) {
+            log.info("Elasticsearch index does not exist: " + indexName);
+            return false;
+        } else {
+            return true;
         }
-        return true;
     }
 
     private boolean createIndex() {
+
         HttpEntity entity = createHttpEntity(createIndexFilename);
         log.info("Trying to create elasticsearch index: " + indexName);
-        try {
-            this.restTemplate.put(baseUrl + "/" + indexName, entity, singletonMap("pretty", "true"));
-        } catch (HttpClientErrorException e) {
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + indexName, singletonMap("pretty", "true"), entity));
+
+        if (isSuccess(response)) {
+            log.info("elasticsearch index successfully created: " + indexName);
+            return true;
+        } else {
             log.warn("Unable to create elasticsearch index: " + indexName);
             return false;
         }
-        log.info("elasticsearch index successfully created: " + indexName);
-        return true;
     }
 
     private boolean createMapping() {
+
         HttpEntity entity = createHttpEntity(createMappingsFilename);
         log.info("Trying to create elasticsearch index mapping type: " + indexMappingType);
-        try {
-            this.restTemplate.put(baseUrl + "/" + indexName + "/_mapping/" + indexMappingType, entity, singletonMap("pretty", "true"));
-        } catch (HttpClientErrorException e) {
-            log.warn("Unable to create elasticsearch index mapping type: " + indexMappingType + ". Http code was " + e.getRawStatusCode());
+
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + indexName + "/_mapping/" + indexMappingType, singletonMap("pretty", "true"), entity));
+
+        if (isSuccess(response)) {
+            log.info("elasticsearch index mapping type successfully created: " + indexMappingType);
+            return true;
+        } else {
+            log.warn("Unable to create elasticsearch index mapping type: " + indexMappingType);
             return false;
         }
-        log.info("elasticsearch index mapping type successfully created: " + indexMappingType);
-        return true;
-
     }
 
     private @NotNull String createBulkIndexMetaAndSource(@NotNull Concept concept) {
@@ -218,74 +215,61 @@ public class IndexElasticSearchService {
 
         String index = updateConcepts.stream().map(this::createBulkIndexMetaAndSource).collect(Collectors.joining("\n"));
         String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id)).collect(Collectors.joining("\n"));
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("application", "x-ndjson", StandardCharsets.UTF_8));
-        HttpEntity entity = new HttpEntity(index + delete, headers);
+        HttpEntity entity = new NStringEntity(index + delete, ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
+
         params.put("pretty", "true");
 
         if (waitForRefresh) {
             params.put("refresh", "wait_for");
         }
 
-        boolean gotError = false;
-        try {
-            this.restTemplate.postForLocation(baseUrl + "/_bulk", entity, params);
-        } catch (HttpClientErrorException e) {
-            log.warn("Unable to add or update document to elasticsearch index: " + updateConcepts.size());
-            log.warn("Unable to delete document from elasticsearch index: " + deleteConceptsIds.size());
-            gotError = true;
-        }
-        if (!gotError) {
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",  "/_bulk", params, entity));
+
+        if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
             log.info("Successfully deleted documents from elasticsearch index: " + deleteConceptsIds.size());
+        } else {
+            log.warn("Unable to add or update document to elasticsearch index: " + updateConcepts.size());
+            log.warn("Unable to delete document from elasticsearch index: " + deleteConceptsIds.size());
         }
     }
 
     private void deleteDocumentsFromIndexByGraphId(@NotNull UUID graphId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("application", "json", StandardCharsets.UTF_8));
-        HttpEntity body = new HttpEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", headers);
-        boolean gotError = false;
-        try {
-            this.restTemplate.postForLocation(baseUrl + "/" + indexName + "/" + indexMappingType + "/_delete_by_query", body, emptyMap());
-        } catch (HttpClientErrorException e) {
-            log.warn("Unable to delete documents from elasticsearch index", e);
-            gotError = true;
-        }
-        if (!gotError) {
+
+        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+
+        if (isSuccess(response)) {
+            log.info(responseContentAsString(response));
             log.info("Successfully deleted documents from elasticsearch index from graph: " + graphId);
+        } else {
+            log.warn("Unable to delete documents from elasticsearch index");
         }
     }
 
     private void deleteAllDocumentsFromIndex() {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("application", "json", StandardCharsets.UTF_8));
+        HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
 
-        HttpEntity body = new HttpEntity("{\"query\": { \"match_all\": {}}}", headers);
-
-        boolean gotError = false;
-        try {
-            this.restTemplate.postForLocation(baseUrl + "/" + indexName + "/" + indexMappingType + "/_delete_by_query", body, emptyMap());
-        } catch (HttpClientErrorException e) {
-            log.warn("Unable to delete documents from elasticsearch index", e);
-            gotError = true;
-        }
-        if (!gotError) {
+        if (isSuccess(response)) {
+            log.info(responseContentAsString(response));
             log.info("Successfully deleted all documents from elasticsearch index");
+        } else {
+            log.warn("Unable to delete documents from elasticsearch index");
         }
     }
 
     private @Nullable Concept getConceptFromIndex(@NotNull UUID graphId, @NotNull UUID conceptId) {
+
         String documentId = Concept.formDocumentId(graphId, conceptId);
-        URI uri = URI.create(baseUrl + "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source");
-        String resultAsJson = this.restTemplate.getForObject(uri, String.class);
-        try {
-            return Concept.createFromIndex(objectMapper, objectMapper.readTree(resultAsJson));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET", "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source"));
+
+        if (isSuccess(response)) {
+            return Concept.createFromIndex(objectMapper, responseContentAsJson(objectMapper, response));
+        } else {
+            return null;
         }
     }
 
@@ -298,12 +282,31 @@ public class IndexElasticSearchService {
                 .collect(toList());
     }
 
+    private @NotNull Response alsoUnsuccessful(@NotNull ResponseSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (ResponseException e) {
+            return e.getResponse();
+        } catch (IOException e) {
+            throw new ElasticEndpointException(e);
+        }
+    }
+
     private static @NotNull String urlEncode(@NotNull String str) {
         try {
             return URLEncoder.encode(str, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private interface ResponseSupplier {
+        @NotNull Response get() throws IOException;
+    }
+
+    private boolean isSuccess(@NotNull Response response) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        return statusCode >= 200 && statusCode < 400;
     }
 
     private @NotNull HttpEntity createHttpEntity(@NotNull String classPathResourceJsonFile) {
@@ -313,10 +316,19 @@ public class IndexElasticSearchService {
         try (InputStream is = resource.getInputStream()) {
             InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             JsonNode jsonNode = objectMapper.readTree(reader);
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            return new HttpEntity(jsonNode.toString(), headers);
+            return new NStringEntity(jsonNode.toString(), ContentType.APPLICATION_JSON);
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @PreDestroy
+    private void destroy() {
+        try {
+            log.info("Closing rest client");
+            this.esRestClient.close();
+        } catch (IOException e) {
+            log.warn("Unable to close rest client");
             throw new RuntimeException(e);
         }
     }
