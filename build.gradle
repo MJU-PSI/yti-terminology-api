@@ -50,6 +50,7 @@ dependencies {
     compile "io.springfox:springfox-swagger-ui:2.7.0"
 
     compile("org.springframework.boot:spring-boot-starter-tomcat")
+    compile "ch.qos.logback:logback-parent:1.1.7"
 }
 
 springBoot {
