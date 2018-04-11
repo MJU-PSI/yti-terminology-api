@@ -21,6 +21,17 @@ artifactoryPublish.skip = true
 
 jar.baseName = 'yti-terminology-api'
 
+
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Edgware.RELEASE"
+    }
+}
+
+
+
 configurations.all {
     resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
@@ -51,6 +62,8 @@ dependencies {
 
     compile("org.springframework.boot:spring-boot-starter-tomcat")
     compile "ch.qos.logback:logback-parent:1.1.7"
+
+    compile('org.springframework.cloud:spring-cloud-starter-sleuth')
 }
 
 springBoot {
