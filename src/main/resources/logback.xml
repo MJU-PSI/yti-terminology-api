@@ -2,7 +2,7 @@
 <configuration>
 
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
-    <property name="SERVICE_NAME" value="terminology_api"/>
+    <property name="SERVICE_NAME" value="yti-terminology-api"/>
     <property name="LOG_PATH" value="/data/logs/${SERVICE_NAME}"/>
 
     <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
