@@ -51,6 +51,8 @@ dependencies {
     compile "org.elasticsearch.client:rest:5.2.2"
     compile "com.google.code.findbugs:jsr305:3.0.2"
     compile "org.jetbrains:annotations:15.0"
+    compile "ch.qos.logback:logback-core"
+    compile "net.logstash.logback:logstash-logback-encoder:5.0"
 
     compile "org.springframework.security:spring-security-core"
     compile "org.springframework.security:spring-security-config"
