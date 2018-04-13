@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProfile name="dev,test,prod">
+        <include resource="org/springframework/boot/logging/logback/base.xml"/>
+        <property name="SERVICE_NAME" value="yti-terminology-api"/>
+        <property name="LOG_PATH" value="/data/logs/${SERVICE_NAME}"/>
+
+        <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${SERVICE_NAME}.log</file>
+
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/${SERVICE_NAME}.log-%d{yyyy-MM-dd}</fileNamePattern>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>3GB</totalSizeCap>
+            </rollingPolicy>
+
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                    </timestamp>
+                    <pattern>
+                        <pattern>
+                            {
+                            "severity": "%level",
+                            "service": "${SERVICE_NAME:-}",
+                            "trace": "%X{X-B3-TraceId:-}",
+                            "span": "%X{X-B3-SpanId:-}",
+                            "parent": "%X{X-B3-ParentSpanId:-}",
+                            "exportable": "%X{X-Span-Export:-}",
+                            "pid": "${PID:-}",
+                            "thread": "%thread",
+                            "class": "%logger{40}",
+                            "rest": "%message"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+
+        <logger name="org.apache" level="WARN"/>
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="fi.vm" level="DEBUG"/>
+
+        <root level="INFO">
+            <appender-ref ref="ROLLING"/>
+        </root>
+    </springProfile>
+    <springProfile name="local">
+        <include resource="org/springframework/boot/logging/logback/base.xml"/>
+        <logger name="org.apache" level="WARN"/>
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="fi.vm" level="DEBUG"/>
+    </springProfile>
+</configuration>
