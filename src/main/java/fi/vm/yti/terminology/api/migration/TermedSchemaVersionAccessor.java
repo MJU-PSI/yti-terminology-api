@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.UUID;
 
@@ -32,7 +33,7 @@ public class TermedSchemaVersionAccessor implements SchemaVersionAccessor {
     public boolean isInitialized() {
         try {
             return migrationService.isSchemaInitialized();
-        } catch (TermedEndpointException e) {
+        } catch (HttpClientErrorException | TermedEndpointException e) {
             throw new InitializationException("Termed API has not started yet", e);
         }
     }
