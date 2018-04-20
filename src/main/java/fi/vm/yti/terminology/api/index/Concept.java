@@ -25,6 +25,8 @@ final class Concept {
     private final List<UUID> narrowerIds;
     @Nullable
     private final String lastModifiedDate;
+    @Nullable
+    private final String uri;
 
     private Concept(UUID id,
                     Vocabulary vocabulary,
@@ -34,7 +36,8 @@ final class Concept {
                     @Nullable String status,
                     List<UUID> broaderIds,
                     List<UUID> narrowerIds,
-                    @Nullable String lastModifiedDate) {
+                    @Nullable String lastModifiedDate,
+                    @Nullable String uri) {
 
         this.id = id;
         this.vocabulary = vocabulary;
@@ -45,6 +48,7 @@ final class Concept {
         this.broaderIds = broaderIds;
         this.narrowerIds = narrowerIds;
         this.lastModifiedDate = lastModifiedDate;
+        this.uri = uri;
     }
 
     private static @NotNull Concept createFromTermedNodes(@NotNull JsonNode conceptJson,
@@ -80,7 +84,9 @@ final class Concept {
         List<UUID> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
         List<UUID> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
 
-        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate);
+        String uri = conceptJson.get("uri").asText();
+
+        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate, uri);
     }
 
     static @NotNull Concept createFromExtJson(@NotNull JsonNode json, @NotNull Vocabulary vocabulary) {
@@ -144,8 +150,9 @@ final class Concept {
         String lastModifiedDate = json.has("modified")  ? json.get("modified").textValue() : null;
         String status = json.has("status") ? json.get("status").textValue() : null;
         Vocabulary vocabulary = Vocabulary.createFromIndex(mapper, json.get("vocabulary"));
+        String uri = json.has("uri") ? json.get("uri").textValue() : null;
 
-        return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate);
+        return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate, uri);
     }
 
     private static @NotNull List<UUID> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName) {
@@ -209,6 +216,10 @@ final class Concept {
 
         if (status != null) {
             output.put("status", status);
+        }
+
+        if (uri != null) {
+            output.put("uri", uri);
         }
 
         output.set("vocabulary", vocabulary.toElasticSearchObject(mapper));

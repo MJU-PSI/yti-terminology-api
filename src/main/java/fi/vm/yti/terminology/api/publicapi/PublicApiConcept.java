@@ -1,18 +1,31 @@
 package fi.vm.yti.terminology.api.publicapi;
 
-import java.util.List;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 public class PublicApiConcept {
 
     private UUID id;
-    private Map<String, List<String>> label;
+    private HashMap<String, String> prefLabel;
+    private HashMap<String, String> definition;
+    private UUID vocabularyId;
+    private String uri;
+    private String url;
 
-    public PublicApiConcept(UUID id,
-                    Map<String, List<String>> label) {
-        this.id = id;
-        this.label = label;
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public UUID getId() {
@@ -23,11 +36,27 @@ public class PublicApiConcept {
         this.id = id;
     }
 
-    public Map<String, List<String>> getLabel() {
-        return label;
+    public HashMap<String, String> getPrefLabel() {
+        return prefLabel;
     }
 
-    public void setLabel(Map<String, List<String>> label) {
-        this.label = label;
+    public void setPrefLabel(HashMap<String, String> prefLabel) {
+        this.prefLabel = prefLabel;
+    }
+
+    public UUID getVocabularyId() {
+        return vocabularyId;
+    }
+
+    public void setVocabularyId(UUID vocabularyId) {
+        this.vocabularyId = vocabularyId;
+    }
+
+    public HashMap<String, String> getDefinition() {
+        return definition;
+    }
+
+    public void setDefinition(HashMap<String, String> definition) {
+        this.definition = definition;
     }
 }

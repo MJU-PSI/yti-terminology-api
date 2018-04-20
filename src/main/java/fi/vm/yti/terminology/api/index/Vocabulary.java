@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-final class Vocabulary {
+public final class Vocabulary {
 
     private final UUID graphId;
     private final Map<String, List<String>> label;
