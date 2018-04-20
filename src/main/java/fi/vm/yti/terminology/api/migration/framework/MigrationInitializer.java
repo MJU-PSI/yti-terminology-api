@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.migration.framework;
 
+import javax.annotation.PostConstruct;
+
 public class MigrationInitializer {
 
     private final Migration migration;
@@ -8,6 +10,7 @@ public class MigrationInitializer {
         this.migration = migration;
     }
 
+    @PostConstruct
     public void onInit() {
         migration.migrate();
     }

@@ -22,7 +22,6 @@ public class ApplicationInitializer {
     private final IndexElasticSearchService elasticSearchService;
     private final IndexTermedService termedApiService;
     private final SynchronizationService synchronizationService;
-    private final MigrationInitializer migrationInitializer;
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -35,17 +34,14 @@ public class ApplicationInitializer {
     public ApplicationInitializer(IndexElasticSearchService elasticSearchService,
                                   IndexTermedService termedApiService,
                                   SynchronizationService synchronizationService,
-                                  MigrationInitializer migrationInitializer) {
+                                  MigrationInitializer migrationInitializer /* XXX: dependency to enforce init order */) {
         this.elasticSearchService = elasticSearchService;
         this.termedApiService = termedApiService;
         this.synchronizationService = synchronizationService;
-        this.migrationInitializer = migrationInitializer;
     }
 
     @PostConstruct
     public void onInit() throws InterruptedException {
-
-        migrationInitializer.onInit();
 
         for (int retryCount = 0; retryCount < 10; retryCount++) {
             try {
