@@ -11,7 +11,8 @@ public class MigrationInitializer {
     }
 
     @PostConstruct
-    public void onInit() {
+    public void onInit() throws InterruptedException {
+        Thread.sleep(2000);
         migration.migrate();
     }
 }
