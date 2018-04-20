@@ -42,7 +42,6 @@ public class TermedRequester {
                                                     @NotNull HttpMethod method,
                                                     @NotNull Parameters parameters,
                                                     @NotNull Class<TResponse> responseType) {
-        log.info("In exchange");
         return exchange(path, method, parameters, responseType, null);
     }
 
