@@ -4,6 +4,8 @@ import fi.vm.yti.terminology.api.exception.TermedEndpointException;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -19,6 +21,7 @@ import java.util.function.Supplier;
 @Service
 public class TermedRequester {
 
+    private static Logger log = LoggerFactory.getLogger(TermedRequester.class);
     private final String termedUser;
     private final String termedPassword;
     private final String termedUrl;
@@ -39,6 +42,7 @@ public class TermedRequester {
                                                     @NotNull HttpMethod method,
                                                     @NotNull Parameters parameters,
                                                     @NotNull Class<TResponse> responseType) {
+        log.info("In exchange");
         return exchange(path, method, parameters, responseType, null);
     }
 

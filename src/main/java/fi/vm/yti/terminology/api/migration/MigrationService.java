@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.util.Parameters;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
@@ -22,6 +25,7 @@ import static org.springframework.http.HttpMethod.*;
 @Service
 public class MigrationService {
 
+    private static Logger log = LoggerFactory.getLogger(MigrationService.class);
     private final TermedRequester termedRequester;
     private final ObjectMapper objectMapper;
 
@@ -75,6 +79,7 @@ public class MigrationService {
     }
 
     public boolean isSchemaInitialized() {
+        log.info("Checking if schema is initialized!");
         return termedRequester.exchange("/graphs/" + SCHEMA_GRAPH_ID, GET, Parameters.empty(), Graph.class) != null;
     }
 
