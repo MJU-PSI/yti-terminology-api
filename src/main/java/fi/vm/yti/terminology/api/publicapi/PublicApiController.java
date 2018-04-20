@@ -1,9 +1,8 @@
 package fi.vm.yti.terminology.api.publicapi;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +13,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
-@RequestMapping("/publicapi")
+@RequestMapping("/terminology/publicapi")
 public class PublicApiController {
 
     private final PublicApiTermedService termedService;
@@ -34,9 +33,11 @@ public class PublicApiController {
         return termedService.getVocabularyList();
     }
 
-    @RequestMapping(value = "/searchconcept", method = POST, produces = APPLICATION_JSON_VALUE)
-    String searchConcept(@RequestBody JsonNode query) {
-        logger.info("POST /searchconcept requested with query: " + query.toString());
-        return publicApiElasticSearchService.searchConcept(query);
+    @RequestMapping(value = "/searchconcept/searchterm/{searchTerm}/vocabulary/{vocabularyId}", method = GET, produces = APPLICATION_JSON_VALUE)
+    List<PublicApiConcept> searchConcept(@PathVariable String searchTerm,
+                                         @PathVariable String vocabularyId) {
+
+        logger.info("GET /searchconcept/searchterm/{searchTerm}/vocabulary/{vocabularyId} requested");
+        return publicApiElasticSearchService.searchConcept(searchTerm, vocabularyId);
     }
 }

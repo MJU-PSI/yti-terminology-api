@@ -66,6 +66,9 @@
     "status": {
       "type": "keyword"
     },
+    "uri": {
+      "type": "keyword"
+    },
     "vocabulary": {
       "properties": {
         "id": {
