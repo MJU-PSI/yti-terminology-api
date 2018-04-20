@@ -51,6 +51,7 @@ public class Migration {
             log.info("Schema version initialized");
             runAllMigrations();
         } else {
+            log.info("Checking schema version.");
             int schemaVersion = schemaVersionAccessor.getSchemaVersion();
             log.info("Current schema at version: " + schemaVersion);
             runMigrationsAfter(schemaVersion);
