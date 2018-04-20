@@ -32,9 +32,17 @@ public class TermedSchemaVersionAccessor implements SchemaVersionAccessor {
     @Override
     public boolean isInitialized() {
         try {
-            return migrationService.isSchemaInitialized();
+            log.info("Checking from migrationService if Schema has been initialized");
+            final Boolean schemaInitialized = migrationService.isSchemaInitialized();
+            if (schemaInitialized != null) {
+                return schemaInitialized;
+            } else {
+                throw new InitializationException("Termed API connectivity issue, failing", new Exception());
+            }
         } catch (HttpClientErrorException | TermedEndpointException e) {
             throw new InitializationException("Termed API has not started yet", e);
+        } catch (Exception e) {
+            throw new InitializationException("Termed API connectivity issue", e);
         }
     }
 
