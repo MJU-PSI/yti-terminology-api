@@ -101,10 +101,15 @@ public class FrontendController {
     @RequestMapping(value = "/vocabulary", method = POST)
     UUID createVocabulary(@RequestParam UUID templateGraphId,
                           @RequestParam String prefix,
+                          @RequestParam(required = false) @Nullable UUID graphId,
                           @RequestBody GenericNode vocabularyNode) {
+
         logger.info("POST /vocabulary requested with params: templateGraphId: " +
                     templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
-        return termedService.createVocabulary(templateGraphId, prefix, vocabularyNode);
+
+        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+        termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId);
+        return predefinedOrGeneratedGraphId;
     }
 
     @RequestMapping(value = "/vocabulary", method = DELETE)

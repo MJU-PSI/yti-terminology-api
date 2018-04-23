@@ -108,20 +108,18 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    UUID createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode) {
+    void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId) {
 
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
 
         List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
         List<Property> prefLabel = mapToList(vocabularyNode.getProperties().get("prefLabel"), Attribute::asProperty);
 
-        UUID graphId = createGraph(prefix, prefLabel);
+        createGraph(prefix, prefLabel, graphId);
         List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
 
         updateTypes(graphId, graphMetaNodes);
         updateAndDeleteInternalNodes(new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))));
-
-        return graphId;
     }
 
     void deleteVocabulary(UUID graphId) {
@@ -274,9 +272,8 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<Identifier>>() {}));
     }
 
-    private UUID createGraph(String prefix, List<Property> prefLabel) {
+    private void createGraph(String prefix, List<Property> prefLabel, UUID graphId) {
 
-        UUID graphId = UUID.randomUUID();
         String code = prefix;
         String uri = formatNamespace(prefix);
         List<String> roles = emptyList();
@@ -286,8 +283,6 @@ public class FrontendTermedService {
         Graph graph = new Graph(graphId, code, uri, roles, permissions, properties);
 
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
-
-        return graphId;
     }
 
     private void updateAndDeleteInternalNodes(GenericDeleteAndSave deleteAndSave) {
