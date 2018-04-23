@@ -5,11 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.util.Parameters;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.SCHEMA_GRAPH_ID;
-import static fi.vm.yti.terminology.api.util.CollectionUtils.requireSingle;
 import static java.util.Objects.requireNonNull;
 import static org.springframework.http.HttpMethod.*;
 
@@ -84,23 +81,7 @@ public class MigrationService {
     }
 
     public GenericNode getNode(TypeId domain, UUID id) {
-
-        Parameters params = new Parameters();
-        params.add("select", "id");
-        params.add("select", "type");
-        params.add("select", "code");
-        params.add("select", "uri");
-        params.add("select", "createdBy");
-        params.add("select", "createdDate");
-        params.add("select", "lastModifiedBy");
-        params.add("select", "lastModifiedDate");
-        params.add("select", "properties.*");
-        params.add("select", "references.*");
-        params.add("select", "referrers.*");
-        params.add("where", "graph.id:" + domain.getGraphId());
-        params.add("where", "type.id:" + domain.getId().name());
-        params.add("where", "id:" + id);
-
-        return requireSingle(requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNode>>() {})));
+        String url = "/graphs/" + domain.getGraphId() + "/types/" + domain.getId().name() + "/nodes/" + id;
+        return requireNonNull(termedRequester.exchange(url, GET, Parameters.empty(), GenericNode.class));
     }
 }
