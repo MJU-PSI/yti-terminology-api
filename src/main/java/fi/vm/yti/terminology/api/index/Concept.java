@@ -84,9 +84,9 @@ final class Concept {
         List<UUID> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
         List<UUID> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
 
-        String uri = conceptJson.get("uri").asText();
+        JsonNode uri = conceptJson.get("uri");
 
-        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate, uri);
+        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate, uri != null ? uri.asText() : null);
     }
 
     static @NotNull Concept createFromExtJson(@NotNull JsonNode json, @NotNull Vocabulary vocabulary) {
