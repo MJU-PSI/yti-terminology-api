@@ -91,11 +91,8 @@ public class ApplicationInitializer {
     private void unRegisterNotificationUrl() {
         if (hookId != null) {
             log.info("Deleting change listener from termed API having id: " + hookId);
-            if (termedApiService.deleteChangeListener(hookId)) {
-                log.info("Deleted change listener successfully");
-            } else {
-                log.error("Unable to delete change listener from termed API using id: " + hookId);
-            }
+            termedApiService.deleteChangeListener(hookId);
+            log.info("Deleted change listener successfully");
         }
     }
 }

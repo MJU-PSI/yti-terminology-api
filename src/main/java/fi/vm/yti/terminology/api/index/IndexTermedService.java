@@ -36,18 +36,16 @@ public class IndexTermedService {
         this.termedRequester = termedRequester;
     }
 
-	public boolean deleteChangeListener(@NotNull String hookId) {
-        return termedRequester.exchange("/hooks/" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class) != null;
-	}
+	public void deleteChangeListener(@NotNull String hookId) {
+        termedRequester.exchange("/hooks/" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class);
+    }
 
 	public @Nullable String registerChangeListener(@NotNull String url) {
 
         String response = termedRequester.exchange("/hooks", HttpMethod.POST, Parameters.single("url", url), String.class);
 
         if (response != null) {
-            return response
-                    .replace("<string>", "")
-                    .replace("</string>", "");
+            return response.replace("\"", "");
         } else {
             return null;
         }
