@@ -108,7 +108,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId) {
+    void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId, boolean sync) {
 
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
 
@@ -119,7 +119,7 @@ public class FrontendTermedService {
         List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
 
         updateTypes(graphId, graphMetaNodes);
-        updateAndDeleteInternalNodes(new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))));
+        updateAndDeleteInternalNodes(new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))), sync);
     }
 
     void deleteVocabulary(UUID graphId) {
@@ -217,12 +217,12 @@ public class FrontendTermedService {
     }
 
 
-    void bulkChange(GenericDeleteAndSave deleteAndSave) {
+    void bulkChange(GenericDeleteAndSave deleteAndSave, boolean sync) {
 
         check(authorizationManager.canModifyNodes(deleteAndSave.getSave()));
         check(authorizationManager.canRemoveNodes(deleteAndSave.getDelete()));
 
-        updateAndDeleteInternalNodes(deleteAndSave);
+        updateAndDeleteInternalNodes(deleteAndSave, sync);
     }
 
     void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
@@ -285,11 +285,11 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
 
-    private void updateAndDeleteInternalNodes(GenericDeleteAndSave deleteAndSave) {
+    private void updateAndDeleteInternalNodes(GenericDeleteAndSave deleteAndSave, boolean sync) {
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
-        params.add("sync", "true");
+        params.add("sync", String.valueOf(sync));
 
         String username = ensureTermedUser();
 

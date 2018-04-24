@@ -102,13 +102,14 @@ public class FrontendController {
     UUID createVocabulary(@RequestParam UUID templateGraphId,
                           @RequestParam String prefix,
                           @RequestParam(required = false) @Nullable UUID graphId,
+                          @RequestParam(required = false, defaultValue = "true") boolean sync,
                           @RequestBody GenericNode vocabularyNode) {
 
         logger.info("POST /vocabulary requested with params: templateGraphId: " +
                     templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
         UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
-        termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId);
+        termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
         return predefinedOrGeneratedGraphId;
     }
 
@@ -151,7 +152,8 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/modify", method = POST)
-    void updateAndDeleteInternalNodes(@RequestBody GenericDeleteAndSave deleteAndSave) {
+    void updateAndDeleteInternalNodes(@RequestParam(required = false, defaultValue = "true") boolean sync,
+                                      @RequestBody GenericDeleteAndSave deleteAndSave) {
         logger.info("POST /modify requested with deleteAndSave: delete ids: ");
         for (int i = 0; i < deleteAndSave.getDelete().size(); i++) {
             logger.info(deleteAndSave.getDelete().get(i).getId().toString());
@@ -161,7 +163,7 @@ public class FrontendController {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
         }
 
-        termedService.bulkChange(deleteAndSave);
+        termedService.bulkChange(deleteAndSave, sync);
     }
 
     @RequestMapping(value = "/remove", method = DELETE)
