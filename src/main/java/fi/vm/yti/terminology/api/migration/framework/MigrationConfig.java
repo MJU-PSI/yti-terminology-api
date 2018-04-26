@@ -23,7 +23,7 @@ public class MigrationConfig {
 
     @Bean
     public MigrationInitializer migrationInitializer(Migration migration) {
-        return new MigrationInitializer(migration);
+        return new MigrationInitializer(migration, properties);
     }
 
     @PostConstruct
