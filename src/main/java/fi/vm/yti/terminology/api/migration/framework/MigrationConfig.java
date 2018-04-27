@@ -1,7 +1,6 @@
 package fi.vm.yti.terminology.api.migration.framework;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +10,6 @@ import javax.annotation.PostConstruct;
 
 @Configuration
 @ConditionalOnBean(SchemaVersionAccessor.class)
-@ConditionalOnProperty(prefix = "migration", name = "enabled", matchIfMissing = true)
 @EnableConfigurationProperties(MigrationProperties.class)
 public class MigrationConfig {
 
