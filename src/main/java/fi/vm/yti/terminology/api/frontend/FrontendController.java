@@ -80,7 +80,7 @@ public class FrontendController {
         return groupManagementService.getUserRequests();
     }
 
-    @RequestMapping(value = "/request", method = POST)
+    @RequestMapping(value = "/request", method = POST, produces = APPLICATION_JSON_VALUE)
     void sendRequest(@RequestParam UUID organizationId) {
         logger.info("POST /request requested with organizationID: " + organizationId.toString());
         groupManagementService.sendRequest(organizationId);
@@ -98,7 +98,7 @@ public class FrontendController {
         return termedService.getVocabularyList();
     }
 
-    @RequestMapping(value = "/vocabulary", method = POST)
+    @RequestMapping(value = "/vocabulary", method = POST, produces = APPLICATION_JSON_VALUE)
     UUID createVocabulary(@RequestParam UUID templateGraphId,
                           @RequestParam String prefix,
                           @RequestParam(required = false) @Nullable UUID graphId,
@@ -113,7 +113,7 @@ public class FrontendController {
         return predefinedOrGeneratedGraphId;
     }
 
-    @RequestMapping(value = "/vocabulary", method = DELETE)
+    @RequestMapping(value = "/vocabulary", method = DELETE, produces = APPLICATION_JSON_VALUE)
     void deleteVocabulary(@RequestParam UUID graphId) {
         logger.info("DELETE /vocabulary requested with graphId: " + graphId.toString());
         termedService.deleteVocabulary(graphId);
@@ -151,7 +151,7 @@ public class FrontendController {
         return termedService.getNodeListWithoutReferencesOrReferrers(Group);
     }
 
-    @RequestMapping(value = "/modify", method = POST)
+    @RequestMapping(value = "/modify", method = POST, produces = APPLICATION_JSON_VALUE)
     void updateAndDeleteInternalNodes(@RequestParam(required = false, defaultValue = "true") boolean sync,
                                       @RequestBody GenericDeleteAndSave deleteAndSave) {
         logger.info("POST /modify requested with deleteAndSave: delete ids: ");
@@ -166,7 +166,7 @@ public class FrontendController {
         termedService.bulkChange(deleteAndSave, sync);
     }
 
-    @RequestMapping(value = "/remove", method = DELETE)
+    @RequestMapping(value = "/remove", method = DELETE, produces = APPLICATION_JSON_VALUE)
     void removeNodes(@RequestParam boolean sync,
                      @RequestParam boolean disconnect,
                      @RequestBody List<Identifier> identifiers) {
