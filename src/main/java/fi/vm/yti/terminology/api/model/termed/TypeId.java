@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.model.termed;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.UUID;
 
 public final class TypeId {
@@ -35,6 +37,7 @@ public final class TypeId {
         return graph;
     }
 
+    @JsonIgnore
     public UUID getGraphId() {
         return graph != null ? graph.getId() : null;
     }

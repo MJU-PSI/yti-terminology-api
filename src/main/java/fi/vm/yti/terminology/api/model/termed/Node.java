@@ -8,10 +8,6 @@ public interface Node {
     TypeId getType();
     Map<String, List<Attribute>> getProperties();
 
-    default Map<String, List<Identifier>> getReferences() {
-        return null;
-    }
-
     default String getCode() {
         return null;
     }
@@ -38,9 +34,5 @@ public interface Node {
 
     default Date getLastModifiedDate() {
         return null;
-    }
-
-    default Map<String, List<Identifier>> getReferrers() {
-        return Collections.emptyMap();
     }
 }

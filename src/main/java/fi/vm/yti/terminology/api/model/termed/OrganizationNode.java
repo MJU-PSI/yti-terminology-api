@@ -63,9 +63,4 @@ public final class OrganizationNode implements Node {
     public Map<String, List<Attribute>> getProperties() {
         return properties;
     }
-
-    @Override
-    public Map<String, List<Identifier>> getReferences() {
-        return emptyMap();
-    }
 }

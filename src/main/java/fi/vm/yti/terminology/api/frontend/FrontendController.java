@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,8 @@ public class FrontendController {
     private final AuthenticatedUserProvider userProvider;
     private final String namespaceRoot;
     private final String groupManagementUrl;
+    private final boolean fakeLoginAllowed;
+
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
     public FrontendController(FrontendTermedService termedService,
@@ -35,13 +38,15 @@ public class FrontendController {
                               FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
                               @Value("${namespace.root}") String namespaceRoot,
-                              @Value("${groupmanagement.public.url}") String groupManagementUrl) {
+                              @Value("${groupmanagement.public.url}") String groupManagementUrl,
+                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.namespaceRoot = namespaceRoot;
         this.groupManagementUrl = groupManagementUrl;
+        this.fakeLoginAllowed = fakeLoginAllowed;
     }
 
     @RequestMapping(value = "/groupManagementUrl", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -53,7 +58,12 @@ public class FrontendController {
     @RequestMapping(value = "/fakeableUsers", method = GET, produces = APPLICATION_JSON_VALUE)
     List<GroupManagementUser> getFakeableUsers() {
         logger.info("GET /fakeableUsers requested");
-        return groupManagementService.getUsers();
+
+        if (fakeLoginAllowed) {
+            return groupManagementService.getUsers();
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     @RequestMapping(value = "/namespaceInUse", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -87,7 +97,7 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/vocabulary", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabulary(@RequestParam UUID graphId) {
+    GenericNodeInlined getVocabulary(@RequestParam UUID graphId) {
         logger.info("GET /vocabulary requested with graphId: " + graphId.toString());
         return termedService.getVocabulary(graphId);
     }
@@ -120,15 +130,15 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/concept", method = GET, produces = APPLICATION_JSON_VALUE)
-    @Nullable JsonNode getConcept(@RequestParam UUID graphId,
-                                  @RequestParam UUID conceptId) {
+    @Nullable GenericNodeInlined getConcept(@RequestParam UUID graphId,
+                                            @RequestParam UUID conceptId) {
         logger.info("GET /concept requested with params: graphId: " + graphId.toString() + ", conceptId: " + conceptId.toString());
         return termedService.getConcept(graphId, conceptId);
     }
 
     @RequestMapping(value = "/collection", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getCollection(@RequestParam UUID graphId,
-                           @RequestParam UUID collectionId) {
+    GenericNodeInlined getCollection(@RequestParam UUID graphId,
+                                     @RequestParam UUID collectionId) {
         logger.info("GET /collection requested with params: graphId: " + graphId.toString() + ", collectionId: " + collectionId.toString());
         return termedService.getCollection(graphId, collectionId);
     }

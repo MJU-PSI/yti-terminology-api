@@ -19,15 +19,17 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import static fi.vm.yti.security.AuthorizationException.check;
 import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.TerminologicalVocabulary;
 import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.Vocabulary;
 import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
-import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
-import static fi.vm.yti.terminology.api.util.JsonUtils.requireSingle;
+import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
@@ -35,18 +37,22 @@ import static org.springframework.http.HttpMethod.POST;
 public class FrontendTermedService {
 
     private static final String USER_PASSWORD = "user";
+    private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private final TermedRequester termedRequester;
+    private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
 
     @Autowired
     public FrontendTermedService(TermedRequester termedRequester,
+                                 FrontendGroupManagementService groupManagementService,
                                  AuthenticatedUserProvider userProvider,
                                  AuthorizationManager authorizationManager,
                                  @Value("${namespace.root}") String namespaceRoot) {
         this.termedRequester = termedRequester;
+        this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.authorizationManager = authorizationManager;
         this.namespaceRoot = namespaceRoot;
@@ -65,7 +71,7 @@ public class FrontendTermedService {
         return false;
     }
 
-    @NotNull JsonNode getVocabulary(UUID graphId) {
+    @NotNull GenericNodeInlined getVocabulary(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -86,7 +92,14 @@ public class FrontendTermedService {
 
         params.add("max", "-1");
 
-        return requireSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
+        List<GenericNodeInlined> result =
+                requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
+
+        if (result.size() == 0) {
+            throw new NotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
+        } else {
+            return userNameToEmail(result.get(0));
+        }
     }
 
     @NotNull JsonNode getVocabularyList() {
@@ -131,7 +144,7 @@ public class FrontendTermedService {
         deleteGraph(graphId);
     }
 
-    @NotNull JsonNode getConcept(UUID graphId, UUID conceptId) {
+    @NotNull GenericNodeInlined getConcept(UUID graphId, UUID conceptId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -151,17 +164,17 @@ public class FrontendTermedService {
         params.add("where", "id:" + conceptId);
         params.add("max", "-1");
 
-        JsonNode response = termedRequester.exchange("/node-trees", GET, params, JsonNode.class);
-        JsonNode concept = findSingle(response);
+        List<GenericNodeInlined> result =
+                requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
 
-        if (concept == null) {
+        if (result.size() == 0) {
             throw new NotFoundException(graphId, conceptId);
+        } else {
+            return userNameToEmail(result.get(0));
         }
-
-        return concept;
     }
 
-    @NotNull JsonNode getCollection(UUID graphId, UUID collectionId) {
+    @NotNull GenericNodeInlined getCollection(UUID graphId, UUID collectionId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -179,14 +192,14 @@ public class FrontendTermedService {
         params.add("where", "id:" + collectionId);
         params.add("max", "-1");
 
-        JsonNode response = termedRequester.exchange("/node-trees", GET, params, JsonNode.class);
-        JsonNode collection = findSingle(response);
+        List<GenericNodeInlined> result =
+                requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
 
-        if (collection == null) {
+        if (result.size() == 0) {
             throw new NotFoundException(graphId, collectionId);
+        } else {
+            return userNameToEmail(result.get(0));
         }
-
-        return collection;
     }
 
     @NotNull JsonNode getCollectionList(UUID graphId) {
@@ -234,9 +247,9 @@ public class FrontendTermedService {
         params.add("disconnect", Boolean.toString(disconnect));
         params.add("sync", Boolean.toString(sync));
 
-        String username = ensureTermedUser();
+        UUID username = ensureTermedUser();
 
-        termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username, USER_PASSWORD);
+        termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(), USER_PASSWORD);
     }
 
     @NotNull List<MetaNode> getTypes(UUID graphId) {
@@ -291,9 +304,9 @@ public class FrontendTermedService {
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
 
-        String username = ensureTermedUser();
+        UUID username = ensureTermedUser();
 
-        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username, USER_PASSWORD);
+        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
 
     private void deleteGraph(UUID graphId) {
@@ -316,7 +329,7 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, metaNodes);
     }
 
-    private String ensureTermedUser() {
+    private UUID ensureTermedUser() {
 
         YtiUser user = userProvider.getUser();
 
@@ -328,21 +341,65 @@ public class FrontendTermedService {
             createTermedUser(user);
         }
 
-        return user.getEmail();
+        return user.getId();
     }
 
     private @Nullable TermedUser findTermedUser(YtiUser user) {
-        Parameters params = Parameters.single("username", user.getEmail());
+        Parameters params = Parameters.single("username", user.getId().toString());
         return termedRequester.exchange("/users", GET, params, TermedUser.class);
     }
 
     private void createTermedUser(YtiUser user) {
         Parameters params = Parameters.single("sync", "true");
-        TermedUser termedUser = new TermedUser(user.getUsername(), USER_PASSWORD, "ADMIN");
+        TermedUser termedUser = new TermedUser(user.getId().toString(), USER_PASSWORD, "ADMIN");
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 
     private String formatNamespace(@NotNull String prefix) {
         return this.namespaceRoot + prefix + '/';
+    }
+
+    private GenericNodeInlined userNameToEmail(GenericNodeInlined node) {
+
+        return new GenericNodeInlined(
+                node.getId(),
+                node.getCode(),
+                node.getUri(),
+                node.getNumber(),
+                userIdToEmail(node.getCreatedBy()),
+                node.getCreatedDate(),
+                userIdToEmail(node.getLastModifiedBy()),
+                node.getLastModifiedDate(),
+                node.getType(),
+                node.getProperties(),
+                mapMapValues(node.getReferences(), this::userNameToEmail),
+                mapMapValues(node.getReferrers(), this::userNameToEmail)
+        );
+    }
+
+    private static <K, V> Map<K, List<V>> mapMapValues(Map<K, List<V>> map, Function<V, V> mapper) {
+        return map.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> mapToList(e.getValue(), mapper)));
+    }
+
+    private static boolean isUUID(String s) {
+        return UUID_PATTERN.matcher(s).matches();
+    }
+
+    private String userIdToEmail(String userId) {
+
+        // TODO cache
+        // FIXME authorization
+
+        if (!isUUID(userId)) {
+            return "";
+        }
+
+        GroupManagementUser user = groupManagementService.findUser(userId);
+
+        if (user != null) {
+            return user.getEmail();
+        } else {
+            return "";
+        }
     }
 }

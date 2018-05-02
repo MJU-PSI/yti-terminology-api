@@ -1,10 +1,12 @@
 package fi.vm.yti.terminology.api.frontend;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@JsonIgnoreProperties(value = { "superuser", "newlyCreated", "creationDateTime", "organization" })
 public class GroupManagementUser {
 
     private final UUID id;
@@ -47,6 +49,7 @@ public class GroupManagementUser {
         return lastName;
     }
 
+    @Nullable
     public LocalDateTime getRemovalDateTime() {
         return removalDateTime;
     }

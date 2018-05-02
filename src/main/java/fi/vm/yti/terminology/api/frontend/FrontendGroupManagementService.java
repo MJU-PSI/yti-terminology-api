@@ -5,12 +5,14 @@ import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,18 +23,27 @@ import static org.springframework.http.HttpMethod.POST;
 public class FrontendGroupManagementService {
 
     private final String groupManagementUrl;
-    private final boolean fakeLoginAllowed;
     private final RestTemplate restTemplate;
     private final AuthenticatedUserProvider userProvider;
 
     public FrontendGroupManagementService(@Value("${groupmanagement.url}") String groupManagementUrl,
-                                          @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed,
                                           RestTemplate restTemplate,
                                           AuthenticatedUserProvider userProvider) {
         this.groupManagementUrl = groupManagementUrl;
-        this.fakeLoginAllowed = fakeLoginAllowed;
         this.restTemplate = restTemplate;
         this.userProvider = userProvider;
+    }
+
+    public @Nullable GroupManagementUser findUser(@NotNull String userId) {
+        try {
+            return restTemplate.exchange(groupManagementUrl + "/public-api/user" + Parameters.single("id", userId), GET, null, GroupManagementUser.class).getBody();
+        } catch (HttpClientErrorException ex)   {
+            if (ex.getStatusCode() != HttpStatus.NOT_FOUND) {
+                throw ex;
+            } else {
+                return null;
+            }
+        }
     }
 
     @NotNull List<GroupManagementUserRequest> getUserRequests() {
@@ -66,11 +77,7 @@ public class FrontendGroupManagementService {
 
     @NotNull List<GroupManagementUser> getUsers() {
 
-        if (fakeLoginAllowed) {
-            String url = groupManagementUrl + "/public-api/users";
-            return restTemplate.exchange(url, GET, null, new ParameterizedTypeReference<List<GroupManagementUser>>() {}).getBody();
-        } else {
-            return Collections.emptyList();
-        }
+        String url = groupManagementUrl + "/public-api/users";
+        return restTemplate.exchange(url, GET, null, new ParameterizedTypeReference<List<GroupManagementUser>>() {}).getBody();
     }
 }
