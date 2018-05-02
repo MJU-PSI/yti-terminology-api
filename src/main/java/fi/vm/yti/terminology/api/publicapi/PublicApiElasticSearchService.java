@@ -70,8 +70,9 @@ public class PublicApiElasticSearchService {
             PublicApiConcept concept = new PublicApiConcept();
             concept.setId(UUID.fromString(jsonNode.path("_source").path("id").asText()));
             concept.setVocabularyId(UUID.fromString(jsonNode.path("_source").path("vocabulary").path("id").asText()));
-            concept.setPrefLabel(extractLocalizableFromGivenField(jsonNode, "label"));
-            concept.setDefinition(extractLocalizableFromGivenField(jsonNode, "definition"));
+            concept.setPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source"), "label"));
+            concept.setDefinition(extractLocalizableFromGivenField(jsonNode.path("_source"), "definition"));
+            concept.setVocabularyPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source").path("vocabulary"),"label"));
             concept.setUri(jsonNode.path("_source").path("uri").asText());
             result.add(concept);
         }
@@ -81,9 +82,9 @@ public class PublicApiElasticSearchService {
     public  HashMap<String, String> extractLocalizableFromGivenField(JsonNode node, String fieldName) {
         HashMap<String, String> result = new HashMap<>();
 
-        result.put("fi", node.path("_source").get(fieldName).get("fi") == null ? "" : node.path("_source").get(fieldName).get("fi").get(0).textValue());
-        result.put("sv", node.path("_source").get(fieldName).get("sv") == null ? "" : node.path("_source").get(fieldName).get("sv").get(0).textValue());
-        result.put("en", node.path("_source").get(fieldName).get("en") == null ? "" : node.path("_source").get(fieldName).get("en").get(0).textValue());
+        result.put("fi", node.get(fieldName).get("fi") == null ? "" : node.get(fieldName).get("fi").get(0).textValue());
+        result.put("sv", node.get(fieldName).get("sv") == null ? "" : node.get(fieldName).get("sv").get(0).textValue());
+        result.put("en", node.get(fieldName).get("en") == null ? "" : node.get(fieldName).get("en").get(0).textValue());
 
         return result;
     }
