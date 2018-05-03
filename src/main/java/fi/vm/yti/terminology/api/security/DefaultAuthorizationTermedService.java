@@ -41,7 +41,7 @@ public class DefaultAuthorizationTermedService implements AuthorizationTermedSer
 
         Parameters params = new Parameters();
         params.add("select", "id");
-        params.add("select", "references.publisher");
+        params.add("select", "references.contributor");
         params.add("where",
                 "graph.id:" + graphId +
                 " AND (type.id:" + Vocabulary +
@@ -52,6 +52,6 @@ public class DefaultAuthorizationTermedService implements AuthorizationTermedSer
 
         GenericNode vocabularyNode = requireSingle(result);
 
-        return mapToSet(vocabularyNode.getReferences().getOrDefault("publisher", emptyList()), Identifier::getId);
+        return mapToSet(vocabularyNode.getReferences().getOrDefault("contributor", emptyList()), Identifier::getId);
     }
 }

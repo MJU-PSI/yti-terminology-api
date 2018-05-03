@@ -108,7 +108,7 @@ public class FrontendTermedService {
         params.add("select", "id");
         params.add("select", "type");
         params.add("select", "properties.*");
-        params.add("select", "references.publisher");
+        params.add("select", "references.contributor");
         params.add("select", "references.inGroup");
 
         params.add("where",

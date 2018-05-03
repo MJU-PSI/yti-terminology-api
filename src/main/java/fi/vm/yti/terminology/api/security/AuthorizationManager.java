@@ -45,7 +45,7 @@ public class AuthorizationManager {
     public boolean canCreateVocabulary(GenericNode vocabularyNode) {
 
         Set<UUID> organizationIds =
-                mapToSet(vocabularyNode.getReferences().getOrDefault("publisher", emptyList()), Identifier::getId);
+                mapToSet(vocabularyNode.getReferences().getOrDefault("contributor", emptyList()), Identifier::getId);
 
         return canModifyAllOrganizations(organizationIds);
     }
