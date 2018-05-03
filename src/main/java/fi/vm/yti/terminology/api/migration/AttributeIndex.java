@@ -11,40 +11,6 @@ import static java.util.Collections.emptyMap;
 public final class AttributeIndex {
 
     @NotNull
-    public static AttributeMeta prefLabelSkos(TypeId domain, long index) {
-        return prefLabel(domain, index, "http://www.w3.org/2004/02/skos/core#prefLabel");
-    }
-
-    @NotNull
-    public static AttributeMeta prefLabelRdfSchema(TypeId domain, long index) {
-        return prefLabel(domain, index, "http://www.w3.org/2000/01/rdf-schema#label");
-    }
-
-    @NotNull
-    public static AttributeMeta prefLabelDcTitle(TypeId domain, long index) {
-        return prefLabel(domain, index, "http://purl.org/dc/terms/title");
-    }
-
-    @NotNull
-    public static AttributeMeta prefLabel(TypeId domain, long index, String uri) {
-
-        return new AttributeMeta(
-                "prefLabel",
-                uri,
-                index,
-                domain,
-                emptyMap(),
-                merge(
-                        PropertyIndex.prefLabel(
-                                "Nimi",
-                                "Title"
-                        ),
-                        type("localizable:single")
-                )
-        );
-    }
-
-    @NotNull
     public static AttributeMeta prefLabelTerm(TypeId domain, long index) {
 
         return new AttributeMeta(
@@ -107,6 +73,24 @@ public final class AttributeIndex {
                         PropertyIndex.prefLabel(
                                 "Määritelmä",
                                 "Definition"
+                        ),
+                        type("localizable:multiple,area" + (linkable ? ",xml" : ""))
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta note(TypeId domain, long index, boolean linkable) {
+        return new AttributeMeta(
+                "note",
+                "http://www.w3.org/2004/02/skos/core#note",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Huomautus",
+                                "Note"
                         ),
                         type("localizable:multiple,area" + (linkable ? ",xml" : ""))
                 )
@@ -185,7 +169,7 @@ public final class AttributeIndex {
     @NotNull
     public static AttributeMeta source(TypeId domain, long index) {
         return new AttributeMeta(
-                "Source",
+                "source",
                 "http://purl.org/dc/terms/source",
                 index,
                 domain,
@@ -203,8 +187,8 @@ public final class AttributeIndex {
     @NotNull
     public static AttributeMeta scope(TypeId domain, long index) {
         return new AttributeMeta(
-                "Scope",
-                "http://iow.csc.fi/ns/st#scope",
+                "scope",
+                "http://uri.suomi.fi/datamodel/ns/iow#scope",
                 index,
                 domain,
                 emptyMap(),
@@ -214,6 +198,24 @@ public final class AttributeIndex {
                                 "Scope"
                         ),
                         type("string:single,area")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta priority(TypeId domain, long index) {
+        return new AttributeMeta(
+                "priority",
+                "http://uri.suomi.fi/datamodel/ns/iow#priority",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Ensisijainen järjestysnimi",
+                                "Priority name"
+                        ),
+                        type("string:single")
                 )
         );
     }
@@ -248,24 +250,6 @@ public final class AttributeIndex {
                         PropertyIndex.prefLabel(
                                 "Käyttöesimerkki",
                                 "Example"
-                        ),
-                        type("localizable:multiple,area")
-                )
-        );
-    }
-
-    @NotNull
-    public static AttributeMeta note(TypeId domain, long index) {
-        return new AttributeMeta(
-                "note",
-                "http://www.w3.org/2004/02/skos/core#note",
-                index,
-                domain,
-                emptyMap(),
-                merge(
-                        PropertyIndex.prefLabel(
-                                "Huomautus",
-                                "Note"
                         ),
                         type("localizable:multiple,area")
                 )

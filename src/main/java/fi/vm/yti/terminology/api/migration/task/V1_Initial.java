@@ -36,8 +36,8 @@ public class V1_Initial implements MigrationTask {
     public void migrate() {
         initializeGroups();
         initializeOrganizations();
-        initializeVocabularyTemplate();
         initializeTerminologicalVocabularyTemplate();
+        initializeVocabularyTemplate();
     }
 
     private void initializeGroups() {
@@ -62,7 +62,7 @@ public class V1_Initial implements MigrationTask {
                         "Classification"
                 ),
                 asList(
-                        AttributeIndex.prefLabelSkos(domain, 0),
+                        AttributeIndex.prefLabelTerm(domain, 0),
                         AttributeIndex.definition(domain, 1, false),
                         AttributeIndex.order(domain, 2),
                         AttributeIndex.notation(domain, 3,
@@ -99,7 +99,7 @@ public class V1_Initial implements MigrationTask {
                         "Organization"
                 ),
                 singletonList(
-                        AttributeIndex.prefLabelSkos(domain, 0)
+                        AttributeIndex.prefLabelTerm(domain, 0)
                 ),
                 emptyList()
         ));
@@ -163,10 +163,10 @@ public class V1_Initial implements MigrationTask {
                         type("abstract")
                 ),
                 asList(
-                        AttributeIndex.prefLabelSkos(domain, 0),
+                        AttributeIndex.prefLabelTerm(domain, 0),
                         new AttributeMeta(
                                 "vocabularyLabel",
-                                "http://iow.csc.fi/ns/st#vocabularyLabel",
+                                "http://uri.suomi.fi/datamodel/ns/st#vocabularyLabel",
                                 1L,
                                 domain,
                                 emptyMap(),
@@ -181,7 +181,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetId",
-                                "http://iow.csc.fi/ns/st#targetId",
+                                "http://uri.suomi.fi/datamodel/ns/st#targetId",
                                 2L,
                                 domain,
                                 emptyMap(),
@@ -193,7 +193,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetGraph",
-                                "http://iow.csc.fi/ns/st#targetUri",
+                                "http://uri.suomi.fi/datamodel/ns/st#targetUri",
                                 3L,
                                 domain,
                                 emptyMap(),
@@ -224,7 +224,7 @@ public class V1_Initial implements MigrationTask {
                 ),
                 asList(
                         AttributeIndex.definition(domain, 2, true),
-                        AttributeIndex.note(domain, 3),
+                        AttributeIndex.note(domain, 3, true),
                         AttributeIndex.editorialNote(domain, 4),
                         AttributeIndex.example(domain, 5),
                         AttributeIndex.changeNote(domain, 6),
@@ -255,7 +255,7 @@ public class V1_Initial implements MigrationTask {
                         new ReferenceMeta(
                                 TERM_DOMAIN,
                                 "altLabelXl",
-                                "http://iow.csc.fi/ns/st#synonym",
+                                "http://uri.suomi.fi/datamodel/ns/st#synonym",
                                 1L,
                                 domain,
                                 emptyMap(),
@@ -295,10 +295,10 @@ public class V1_Initial implements MigrationTask {
                 asList(
                         AttributeIndex.prefLabelTerm(domain, 0),
                         AttributeIndex.altLabel(domain, 1),
-                        AttributeIndex.hiddenLabel(domain, 2),
-                        AttributeIndex.note(domain, 3),
-                        AttributeIndex.scopeNote(domain, 4),
-                        AttributeIndex.definition(domain, 5, false),
+                        AttributeIndex.definition(domain, 2, false),
+                        AttributeIndex.note(domain, 3, false),
+                        AttributeIndex.hiddenLabel(domain, 4),
+                        AttributeIndex.scopeNote(domain, 5),
                         AttributeIndex.example(domain, 6),
                         AttributeIndex.historyNote(domain, 7),
                         AttributeIndex.editorialNote(domain, 8),
@@ -377,7 +377,7 @@ public class V1_Initial implements MigrationTask {
                         "Collection"
                 ),
                 asList(
-                        AttributeIndex.prefLabelDcTitle(domain, 0),
+                        AttributeIndex.prefLabelTerm(domain, 0),
                         AttributeIndex.definition(domain, 1, false)
                 ),
                 asList(
@@ -385,7 +385,7 @@ public class V1_Initial implements MigrationTask {
                                 TERMINOLOGICAL_CONCEPT_DOMAIN,
                                 "broader",
                                 "http://www.w3.org/2004/02/skos/core#broader",
-                                0L,
+                                2L,
                                 domain,
                                 emptyMap(),
                                 merge(
@@ -396,7 +396,7 @@ public class V1_Initial implements MigrationTask {
                                         type("reference:single")
                                 )
                         ),
-                        ReferenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_DOMAIN, 1)
+                        ReferenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_DOMAIN, 3)
                 )
         );
     }
@@ -418,18 +418,12 @@ public class V1_Initial implements MigrationTask {
                 ),
                 asList(
                         AttributeIndex.prefLabelTerm(domain, 1),
-                        AttributeIndex.altLabel(domain, 1),
-                        AttributeIndex.hiddenLabel(domain, 2),
-                        AttributeIndex.note(domain, 3),
-                        AttributeIndex.scopeNote(domain, 4),
-                        AttributeIndex.definition(domain, 5, false),
-                        AttributeIndex.example(domain, 6),
-                        AttributeIndex.historyNote(domain, 7),
-                        AttributeIndex.editorialNote(domain, 8),
-                        AttributeIndex.changeNote(domain, 9)
+                        AttributeIndex.definition(domain, 2, false),
+                        AttributeIndex.description(domain, 3),
+                        AttributeIndex.notation(domain, 4, "Koodiarvo", "Code value")
                 ),
                 singletonList(
-                        ReferenceIndex.member(domain, CONCEPT_DOMAIN, 10)
+                        ReferenceIndex.member(domain, CONCEPT_DOMAIN, 5)
                 )
         );
     }
@@ -450,17 +444,18 @@ public class V1_Initial implements MigrationTask {
                         "Terminological Dictionary"
                 ),
                 asList(
-                        AttributeIndex.prefLabelDcTitle(domain, 0),
+                        AttributeIndex.prefLabelTerm(domain, 0),
                         AttributeIndex.language(domain, 1),
                         AttributeIndex.status(domain, 2,
                                 "Sanaston tila",
                                 "Terminology status"
                         ),
-                        AttributeIndex.description(domain, 3)
+                        AttributeIndex.description(domain, 3),
+                        AttributeIndex.priority(domain, 4)
                 ),
                 asList(
-                        ReferenceIndex.publisher(domain, 0),
-                        ReferenceIndex.group(domain, 1)
+                        ReferenceIndex.contributor(domain, 5),
+                        ReferenceIndex.group(domain, 6)
                 )
         );
     }
@@ -481,18 +476,18 @@ public class V1_Initial implements MigrationTask {
                         "Thesaurus"
                 ),
                 asList(
-                        AttributeIndex.prefLabelRdfSchema(domain, 0),
+                        AttributeIndex.prefLabelTerm(domain, 0),
                         AttributeIndex.description(domain, 1),
                         AttributeIndex.language(domain, 2),
                         AttributeIndex.status(domain, 3,
                                 "Sanaston tila",
                                 "Terminology status"
-                        )
-
+                        ),
+                        AttributeIndex.priority(domain, 4)
                 ),
                 asList(
-                        ReferenceIndex.publisher(domain, 0),
-                        ReferenceIndex.group(domain, 1)
+                        ReferenceIndex.contributor(domain, 5),
+                        ReferenceIndex.group(domain, 6)
                 )
         );
     }

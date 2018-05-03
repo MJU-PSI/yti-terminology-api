@@ -14,17 +14,17 @@ import static java.util.Collections.emptyMap;
 public final class ReferenceIndex {
 
     @NotNull
-    public static ReferenceMeta publisher(TypeId domain, long index) {
+    public static ReferenceMeta contributor(TypeId domain, long index) {
         return new ReferenceMeta(
                 ORGANIZATION_DOMAIN,
-                "publisher",
-                "http://purl.org/dc/terms/publisher",
+                "contributor",
+                "http://purl.org/dc/terms/contributor",
                 index,
                 domain,
                 emptyMap(),
                 prefLabel(
-                        "Julkaisija",
-                        "Publisher"
+                        "Sisällöntuottaja",
+                        "Contributor"
                 )
         );
     }
