@@ -98,7 +98,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
         } else {
-            return userNameToEmail(result.get(0));
+            return userNameToDisplayName(result.get(0));
         }
     }
 
@@ -170,7 +170,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, conceptId);
         } else {
-            return userNameToEmail(result.get(0));
+            return userNameToDisplayName(result.get(0));
         }
     }
 
@@ -198,7 +198,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, collectionId);
         } else {
-            return userNameToEmail(result.get(0));
+            return userNameToDisplayName(result.get(0));
         }
     }
 
@@ -359,21 +359,21 @@ public class FrontendTermedService {
         return this.namespaceRoot + prefix + '/';
     }
 
-    private GenericNodeInlined userNameToEmail(GenericNodeInlined node) {
+    private GenericNodeInlined userNameToDisplayName(GenericNodeInlined node) {
 
         return new GenericNodeInlined(
                 node.getId(),
                 node.getCode(),
                 node.getUri(),
                 node.getNumber(),
-                userIdToEmail(node.getCreatedBy()),
+                userIdToDisplayName(node.getCreatedBy()),
                 node.getCreatedDate(),
-                userIdToEmail(node.getLastModifiedBy()),
+                userIdToDisplayName(node.getLastModifiedBy()),
                 node.getLastModifiedDate(),
                 node.getType(),
                 node.getProperties(),
-                mapMapValues(node.getReferences(), this::userNameToEmail),
-                mapMapValues(node.getReferrers(), this::userNameToEmail)
+                mapMapValues(node.getReferences(), this::userNameToDisplayName),
+                mapMapValues(node.getReferrers(), this::userNameToDisplayName)
         );
     }
 
@@ -385,10 +385,9 @@ public class FrontendTermedService {
         return UUID_PATTERN.matcher(s).matches();
     }
 
-    private String userIdToEmail(String userId) {
+    private String userIdToDisplayName(String userId) {
 
         // TODO cache
-        // FIXME authorization
 
         if (!isUUID(userId)) {
             return "";
@@ -397,7 +396,7 @@ public class FrontendTermedService {
         GroupManagementUser user = groupManagementService.findUser(userId);
 
         if (user != null) {
-            return user.getEmail();
+            return user.getDisplayName();
         } else {
             return "";
         }

@@ -53,4 +53,8 @@ public class GroupManagementUser {
     public LocalDateTime getRemovalDateTime() {
         return removalDateTime;
     }
+
+    public String getDisplayName() {
+        return firstName + " " + lastName;
+    }
 }
