@@ -16,6 +16,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -98,7 +99,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
         } else {
-            return userNameToDisplayName(result.get(0));
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }
     }
 
@@ -170,7 +171,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, conceptId);
         } else {
-            return userNameToDisplayName(result.get(0));
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }
     }
 
@@ -198,7 +199,7 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NotFoundException(graphId, collectionId);
         } else {
-            return userNameToDisplayName(result.get(0));
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }
     }
 
@@ -359,21 +360,21 @@ public class FrontendTermedService {
         return this.namespaceRoot + prefix + '/';
     }
 
-    private GenericNodeInlined userNameToDisplayName(GenericNodeInlined node) {
+    private GenericNodeInlined userNameToDisplayName(GenericNodeInlined node, UserIdToDisplayNameMapper userIdToDisplayNameMapper) {
 
         return new GenericNodeInlined(
                 node.getId(),
                 node.getCode(),
                 node.getUri(),
                 node.getNumber(),
-                userIdToDisplayName(node.getCreatedBy()),
+                userIdToDisplayNameMapper.map(node.getCreatedBy()),
                 node.getCreatedDate(),
-                userIdToDisplayName(node.getLastModifiedBy()),
+                userIdToDisplayNameMapper.map(node.getLastModifiedBy()),
                 node.getLastModifiedDate(),
                 node.getType(),
                 node.getProperties(),
-                mapMapValues(node.getReferences(), this::userNameToDisplayName),
-                mapMapValues(node.getReferrers(), this::userNameToDisplayName)
+                mapMapValues(node.getReferences(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper)),
+                mapMapValues(node.getReferrers(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper))
         );
     }
 
@@ -385,20 +386,28 @@ public class FrontendTermedService {
         return UUID_PATTERN.matcher(s).matches();
     }
 
-    private String userIdToDisplayName(String userId) {
+    // XXX consider cache spanning to multiple requests
+    private class UserIdToDisplayNameMapper {
 
-        // TODO cache
+        private final Map<String, String> cache = new HashMap<>();
 
-        if (!isUUID(userId)) {
-            return "";
+        private String map(String userId) {
+            return cache.computeIfAbsent(userId, this::mapRemote);
         }
 
-        GroupManagementUser user = groupManagementService.findUser(userId);
+        private String mapRemote(String userId) {
 
-        if (user != null) {
-            return user.getDisplayName();
-        } else {
-            return "";
+            if (!isUUID(userId)) {
+                return "";
+            }
+
+            GroupManagementUser user = groupManagementService.findUser(userId);
+
+            if (user != null) {
+                return user.getDisplayName();
+            } else {
+                return "";
+            }
         }
     }
 }
