@@ -11,7 +11,7 @@ import static java.util.Collections.emptyMap;
 public final class AttributeIndex {
 
     @NotNull
-    public static AttributeMeta prefLabelTerm(TypeId domain, long index) {
+    public static AttributeMeta prefLabelTerm(TypeId domain, long index, String fi, String en) {
 
         return new AttributeMeta(
                 "prefLabel",
@@ -20,10 +20,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
-                                "Ensisijainen termi",
-                                "Preferred label"
-                        ),
+                        PropertyIndex.prefLabel(fi, en),
                         type("localizable:single")
                 )
         );
