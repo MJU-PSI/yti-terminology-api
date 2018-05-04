@@ -343,7 +343,7 @@ public final class AttributeIndex {
                 emptyMap(),
                 merge(
                         PropertyIndex.prefLabel(fi, en),
-                        type("string,single")
+                        type("string:single")
                 )
         );
     }
