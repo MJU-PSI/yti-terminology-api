@@ -7,6 +7,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.RestClient;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -81,11 +83,9 @@ public class PublicApiElasticSearchService {
 
     public  HashMap<String, String> extractLocalizableFromGivenField(JsonNode node, String fieldName) {
         HashMap<String, String> result = new HashMap<>();
-
-        result.put("fi", node.get(fieldName).get("fi") == null ? "" : node.get(fieldName).get("fi").get(0).textValue());
-        result.put("sv", node.get(fieldName).get("sv") == null ? "" : node.get(fieldName).get("sv").get(0).textValue());
-        result.put("en", node.get(fieldName).get("en") == null ? "" : node.get(fieldName).get("en").get(0).textValue());
-
+        result.put("fi", Jsoup.clean(node.get(fieldName).get("fi") == null ? "" : node.get(fieldName).get("fi").get(0).textValue(), Whitelist.none()));
+        result.put("sv", Jsoup.clean(node.get(fieldName).get("sv") == null ? "" : node.get(fieldName).get("sv").get(0).textValue(), Whitelist.none()));
+        result.put("en", Jsoup.clean(node.get(fieldName).get("en") == null ? "" : node.get(fieldName).get("en").get(0).textValue(), Whitelist.none()));
         return result;
     }
 }
