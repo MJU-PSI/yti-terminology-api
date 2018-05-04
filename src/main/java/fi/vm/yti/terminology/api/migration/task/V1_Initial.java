@@ -62,7 +62,7 @@ public class V1_Initial implements MigrationTask {
                         "Classification"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Nimi", "Name"),
+                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
                         AttributeIndex.definition(domain, 1, false),
                         AttributeIndex.order(domain, 2),
                         AttributeIndex.notation(domain, 3,
@@ -99,7 +99,7 @@ public class V1_Initial implements MigrationTask {
                         "Organization"
                 ),
                 singletonList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Nimi", "Name")
+                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name")
                 ),
                 emptyList()
         ));
@@ -155,15 +155,12 @@ public class V1_Initial implements MigrationTask {
                 4L,
                 domain.getGraph(),
                 emptyMap(),
-                merge(
-                        prefLabel(
-                                "Linkitetty käsite",
-                                "Linked concept"
-                        ),
-                        type("abstract")
+                prefLabel(
+                        "Linkitetty käsite",
+                        "Linked concept"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Suositettava termi", "Preferred label"),
+                        AttributeIndex.prefLabel(domain, 0, "Suositettava termi", "Preferred label"),
                         new AttributeMeta(
                                 "vocabularyLabel",
                                 "http://uri.suomi.fi/datamodel/ns/st#vocabularyLabel",
@@ -185,9 +182,12 @@ public class V1_Initial implements MigrationTask {
                                 2L,
                                 domain,
                                 emptyMap(),
-                                prefLabel(
-                                        "Viitatun käsitteen id",
-                                        "Target identifier"
+                                merge(
+                                        prefLabel(
+                                                "Viitatun käsitteen id",
+                                                "Target identifier"
+                                        ),
+                                        type("string:single")
                                 )
 
                         ),
@@ -197,9 +197,12 @@ public class V1_Initial implements MigrationTask {
                                 3L,
                                 domain,
                                 emptyMap(),
-                                prefLabel(
-                                        "Viitatun käsitteen uri",
-                                        "Target uri"
+                                merge(
+                                        prefLabel(
+                                                "Viitatun käsitteen uri",
+                                                "Target uri"
+                                        ),
+                                        type("string:single")
                                 )
                         )
                 ),
@@ -293,7 +296,7 @@ public class V1_Initial implements MigrationTask {
                         "Concept"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0,"Suositettava termi", "Preferred label"),
+                        AttributeIndex.prefLabel(domain, 0,"Suositettava termi", "Preferred label"),
                         AttributeIndex.altLabel(domain, 1),
                         AttributeIndex.definition(domain, 2, false),
                         AttributeIndex.note(domain, 3, false),
@@ -334,18 +337,7 @@ public class V1_Initial implements MigrationTask {
                         "Term"
                 ),
                 asList(
-                        new AttributeMeta(
-                                "prefLabel",
-                                "http://www.w3.org/2008/05/skos-xl#literalForm",
-                                0L,
-                                domain,
-                                emptyMap(),
-                                prefLabel(
-                                        "Termin arvo",
-                                        "Term literal value"
-                                )
-
-                        ),
+                        AttributeIndex.prefLabelXl(domain,0),
                         AttributeIndex.source(domain, 1),
                         AttributeIndex.scope(domain, 2),
                         AttributeIndex.editorialNote(domain, 3),
@@ -377,7 +369,7 @@ public class V1_Initial implements MigrationTask {
                         "Collection"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Nimi", "Name"),
+                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
                         AttributeIndex.definition(domain, 1, false)
                 ),
                 asList(
@@ -417,7 +409,7 @@ public class V1_Initial implements MigrationTask {
                         "Collection"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 1, "Nimi", "Name"),
+                        AttributeIndex.prefLabel(domain, 1, "Nimi", "Name"),
                         AttributeIndex.definition(domain, 2, false),
                         AttributeIndex.description(domain, 3),
                         AttributeIndex.notation(domain, 4, "Koodiarvo", "Code value")
@@ -444,7 +436,7 @@ public class V1_Initial implements MigrationTask {
                         "Terminological Dictionary"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Nimi", "Name"),
+                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
                         AttributeIndex.language(domain, 1),
                         AttributeIndex.status(domain, 2,
                                 "Sanaston tila",
@@ -476,7 +468,7 @@ public class V1_Initial implements MigrationTask {
                         "Thesaurus"
                 ),
                 asList(
-                        AttributeIndex.prefLabelTerm(domain, 0, "Nimi", "Name"),
+                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
                         AttributeIndex.description(domain, 1),
                         AttributeIndex.language(domain, 2),
                         AttributeIndex.status(domain, 3,

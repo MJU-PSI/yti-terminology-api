@@ -11,7 +11,7 @@ import static java.util.Collections.emptyMap;
 public final class AttributeIndex {
 
     @NotNull
-    public static AttributeMeta prefLabelTerm(TypeId domain, long index, String fi, String en) {
+    public static AttributeMeta prefLabel(TypeId domain, long index, String fi, String en) {
 
         return new AttributeMeta(
                 "prefLabel",
@@ -21,7 +21,27 @@ public final class AttributeIndex {
                 emptyMap(),
                 merge(
                         PropertyIndex.prefLabel(fi, en),
-                        type("localizable:single")
+                        type("localizable:single,required")
+                )
+        );
+    }
+
+
+    @NotNull
+    public static AttributeMeta prefLabelXl(TypeId domain, long index) {
+
+        return new AttributeMeta(
+                "prefLabel",
+                "http://www.w3.org/2008/05/skos-xl#literalForm",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Termin arvo",
+                                "Term literal value"
+                        ),
+                        type("localizable:single,required")
                 )
         );
     }
@@ -35,9 +55,12 @@ public final class AttributeIndex {
                 index,
                 domain,
                 emptyMap(),
-                PropertyIndex.prefLabel(
-                        "Vaihtoehtoinen termi",
-                        "Alternative label"
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Vaihtoehtoinen termi",
+                                "Alternative label"
+                        ),
+                        type("localizable:multiple")
                 )
         );
     }
@@ -51,9 +74,12 @@ public final class AttributeIndex {
                 index,
                 domain,
                 emptyMap(),
-                PropertyIndex.prefLabel(
-                        "Piilotettu termi",
-                        "Hidden label"
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Piilotettu termi",
+                                "Hidden label"
+                        ),
+                        type("localizable:multiple")
                 )
         );
     }
@@ -315,7 +341,10 @@ public final class AttributeIndex {
                 index,
                 domain,
                 emptyMap(),
-                PropertyIndex.prefLabel(fi, en)
+                merge(
+                        PropertyIndex.prefLabel(fi, en),
+                        type("string,single")
+                )
         );
     }
 
@@ -327,9 +356,12 @@ public final class AttributeIndex {
                 index,
                 domain,
                 emptyMap(),
-                PropertyIndex.prefLabel(
-                        "Järjestysnumero",
-                        "Order index"
+                merge(
+                        PropertyIndex.prefLabel(
+                                "Järjestysnumero",
+                                "Order index"
+                        ),
+                        type("string:single")
                 )
         );
     }
