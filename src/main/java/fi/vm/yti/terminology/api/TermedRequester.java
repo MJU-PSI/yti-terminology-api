@@ -4,8 +4,6 @@ import fi.vm.yti.terminology.api.exception.TermedEndpointException;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -21,7 +19,8 @@ import java.util.function.Supplier;
 @Service
 public class TermedRequester {
 
-    private static Logger log = LoggerFactory.getLogger(TermedRequester.class);
+    private static TermedContentType DEFAULT_CONTENT_TYPE = TermedContentType.JSON;
+
     private final String termedUser;
     private final String termedPassword;
     private final String termedUrl;
@@ -42,14 +41,30 @@ public class TermedRequester {
                                                     @NotNull HttpMethod method,
                                                     @NotNull Parameters parameters,
                                                     @NotNull Class<TResponse> responseType) {
-        return exchange(path, method, parameters, responseType, null);
+        return exchange(path, method, parameters, responseType, null, termedUser, termedPassword, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
+                                                    @NotNull Class<TResponse> responseType,
+                                                    @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, null, termedUser, termedPassword, contentType);
     }
 
     public <TResponse> @Nullable TResponse exchange(@NotNull String path,
                                                     @NotNull HttpMethod method,
                                                     @NotNull Parameters parameters,
                                                     @NotNull ParameterizedTypeReference<TResponse> responseType) {
-        return exchange(path, method, parameters, responseType, null);
+        return exchange(path, method, parameters, responseType, null, termedUser, termedPassword, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
+                                                    @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                    @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, null, termedUser, termedPassword, contentType);
     }
 
     public <TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -58,7 +73,17 @@ public class TermedRequester {
                                                     @NotNull Class<TResponse> responseType,
                                                     @NotNull String username,
                                                     @NotNull String password) {
-        return exchange(path, method, parameters, responseType, null, username, password);
+        return exchange(path, method, parameters, responseType, null, username, password, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
+                                                    @NotNull Class<TResponse> responseType,
+                                                    @NotNull String username,
+                                                    @NotNull String password,
+                                                    @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, null, username, password, contentType);
     }
 
     public <TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -67,7 +92,17 @@ public class TermedRequester {
                                                     @NotNull ParameterizedTypeReference<TResponse> responseType,
                                                     @NotNull String username,
                                                     @NotNull String password) {
-        return exchange(path, method, parameters, responseType, null, username, password);
+        return exchange(path, method, parameters, responseType, null, username, password, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                    @NotNull HttpMethod method,
+                                                    @NotNull Parameters parameters,
+                                                    @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                    @NotNull String username,
+                                                    @NotNull String password,
+                                                    @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, null, username, password, contentType);
     }
 
     public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -75,7 +110,16 @@ public class TermedRequester {
                                                               @NotNull Parameters parameters,
                                                               @NotNull Class<TResponse> responseType,
                                                               @Nullable TRequest body) {
-        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword);
+        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull Class<TResponse> responseType,
+                                                              @Nullable TRequest body,
+                                                              @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword, contentType);
     }
 
     public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -83,7 +127,16 @@ public class TermedRequester {
                                                               @NotNull Parameters parameters,
                                                               @NotNull ParameterizedTypeReference<TResponse> responseType,
                                                               @Nullable TRequest body) {
-        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword);
+        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                              @Nullable TRequest body,
+                                                              @NotNull TermedContentType contentType) {
+        return exchange(path, method, parameters, responseType, body, termedUser, termedPassword, contentType);
     }
 
     public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -93,7 +146,18 @@ public class TermedRequester {
                                                               @Nullable TRequest body,
                                                               @NotNull String username,
                                                               @NotNull String password) {
-        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password)), responseType).getBody());
+        return exchange(path, method, parameters, responseType, body, username, password, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull Class<TResponse> responseType,
+                                                              @Nullable TRequest body,
+                                                              @NotNull String username,
+                                                              @NotNull String password,
+                                                              @NotNull TermedContentType contentType) {
+        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password, contentType)), responseType).getBody());
     }
 
     public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
@@ -103,7 +167,18 @@ public class TermedRequester {
                                                               @Nullable TRequest body,
                                                               @NotNull String username,
                                                               @NotNull String password) {
-        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password)), responseType).getBody());
+        return exchange(path, method, parameters, responseType, body, username, password, DEFAULT_CONTENT_TYPE);
+    }
+
+    public <TRequest, TResponse> @Nullable TResponse exchange(@NotNull String path,
+                                                              @NotNull HttpMethod method,
+                                                              @NotNull Parameters parameters,
+                                                              @NotNull ParameterizedTypeReference<TResponse> responseType,
+                                                              @Nullable TRequest body,
+                                                              @NotNull String username,
+                                                              @NotNull String password,
+                                                              @NotNull TermedContentType contentType) {
+        return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password, contentType)), responseType).getBody());
     }
 
     private static <T> T mapExceptions(Supplier<T> supplier) {
@@ -120,9 +195,10 @@ public class TermedRequester {
         }
     }
 
-    private @NotNull HttpHeaders createHeaders(String username, String password) {
+    private @NotNull HttpHeaders createHeaders(String username, String password, TermedContentType contentType) {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.AUTHORIZATION, createAuthorizationHeaderValue(username, password));
+        headers.add(HttpHeaders.ACCEPT, contentType.getContentType());
         return headers;
     }
 

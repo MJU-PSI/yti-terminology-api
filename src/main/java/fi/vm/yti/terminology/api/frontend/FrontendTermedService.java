@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
-import fi.vm.yti.terminology.api.exception.NotFoundException;
+import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.Parameters;
@@ -97,7 +97,7 @@ public class FrontendTermedService {
                 requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
 
         if (result.size() == 0) {
-            throw new NotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
+            throw new NodeNotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
         } else {
             return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }
@@ -169,7 +169,7 @@ public class FrontendTermedService {
                 requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
 
         if (result.size() == 0) {
-            throw new NotFoundException(graphId, conceptId);
+            throw new NodeNotFoundException(graphId, conceptId);
         } else {
             return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }
@@ -197,7 +197,7 @@ public class FrontendTermedService {
                 requireNonNull(termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<GenericNodeInlined>>() {}));
 
         if (result.size() == 0) {
-            throw new NotFoundException(graphId, collectionId);
+            throw new NodeNotFoundException(graphId, collectionId);
         } else {
             return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
         }

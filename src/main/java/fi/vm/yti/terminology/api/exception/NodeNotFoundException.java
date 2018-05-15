@@ -10,13 +10,13 @@ import java.util.UUID;
 import static java.util.stream.Collectors.joining;
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class NotFoundException extends RuntimeException {
+public class NodeNotFoundException extends RuntimeException {
 
-    public NotFoundException(UUID graphId, UUID nodeId) {
+    public NodeNotFoundException(UUID graphId, UUID nodeId) {
         super("Node " + nodeId + " not found in graph " + graphId);
     }
 
-    public NotFoundException(UUID graphId, Collection<NodeType> nodeTypes) {
+    public NodeNotFoundException(UUID graphId, Collection<NodeType> nodeTypes) {
         super("Node type " + nodeTypes.stream().map(Enum::name).collect(joining(",")) + " not found in graph " + graphId);
     }
 }
