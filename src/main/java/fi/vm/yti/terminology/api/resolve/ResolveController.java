@@ -32,7 +32,7 @@ public class ResolveController {
         ResolvedResource resource = urlResolverService.resolveResource(uri);
         ResolvableContentType contentType = ResolvableContentType.fromString(acceptHeader);
 
-        return applicationUrl + formatPath(resource, contentType);
+        return "redirect:" + applicationUrl + formatPath(resource, contentType);
     }
 
     private static String formatPath(ResolvedResource resource, ResolvableContentType contentType) {
