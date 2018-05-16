@@ -1,20 +1,50 @@
 package fi.vm.yti.terminology.api.resolve;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
+
 final class ResolvedResource {
 
-    private final String frontEndPath;
-    private final String apiResourcePath;
-
-    ResolvedResource(String frontEndPath, String apiResourcePath) {
-        this.frontEndPath = frontEndPath;
-        this.apiResourcePath = apiResourcePath;
+    enum Type {
+        VOCABULARY,
+        CONCEPT,
+        COLLECTION
     }
 
-    String getFrontEndPath() {
-        return frontEndPath;
+    @NotNull
+    private final UUID graphId;
+    @NotNull
+    private final Type type;
+    @Nullable
+    private final UUID id;
+
+    ResolvedResource(@NotNull UUID graphId,
+                     @NotNull Type type) {
+        this(graphId, type, null);
     }
 
-    String getApiResourcePath() {
-        return apiResourcePath;
+    ResolvedResource(@NotNull UUID graphId,
+                     @NotNull Type type,
+                     @Nullable UUID id) {
+        this.graphId = graphId;
+        this.type = type;
+        this.id = id;
+    }
+
+    @NotNull
+    public UUID getGraphId() {
+        return graphId;
+    }
+
+    @NotNull
+    public Type getType() {
+        return type;
+    }
+
+    @Nullable
+    public UUID getId() {
+        return id;
     }
 }

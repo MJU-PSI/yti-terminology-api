@@ -1,5 +1,6 @@
 package fi.vm.yti.terminology.api.resolve;
 
+import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.ResourceNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
@@ -18,42 +19,28 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static org.springframework.http.HttpMethod.GET;
 
 @Service
-public class UrlResolverService {
+public class ResolveService {
 
     private final TermedRequester termedRequester;
     private final String namespaceRoot;
-    private final String applicationUrl;
 
     private static final Pattern PREFIX_PATTERN = Pattern.compile("^(?<prefix>\\w+)$");
     private static final Pattern PREFIX_AND_RESOURCE_PATTERN = Pattern.compile("^(?<prefix>\\w+)/(?<resource>\\w+)$");
 
     @Autowired
-    UrlResolverService(TermedRequester termedRequester,
-                       @Value("${namespace.root}") String namespaceRoot,
-                       @Value("${application.public.url}") String applicationUrl) {
+    ResolveService(TermedRequester termedRequester,
+                   @Value("${namespace.root}") String namespaceRoot) {
         this.termedRequester = termedRequester;
         this.namespaceRoot = namespaceRoot;
-        this.applicationUrl = applicationUrl;
     }
 
-    @NotNull
-    String resolveResourceUrl(@NotNull String uri, @NotNull ResolvableContentType contentType) {
-
-        ResolvedResource resolvedResource = resolveResource(uri);
-
-        if (contentType.isHandledByFrontend()) {
-            return applicationUrl + resolvedResource.getFrontEndPath();
-        } else {
-            return applicationUrl + resolvedResource.getApiResourcePath();
-        }
-    }
-
-    private ResolvedResource resolveResource(String uri) {
+    ResolvedResource resolveResource(String uri) {
 
         if (!uri.startsWith(namespaceRoot)) {
             throw new RuntimeException("Unsupported URI namespace: " + uri);
@@ -68,10 +55,7 @@ public class UrlResolverService {
             String prefix = prefixMatcher.group("prefix");
             UUID graphId = findGraphIdForPrefix(prefix);
 
-            return new ResolvedResource(
-                    "/concepts/" + graphId,
-                    "/api/vocabulary?graphId=" + graphId
-            );
+            return new ResolvedResource(graphId, ResolvedResource.Type.VOCABULARY);
         }
 
         Matcher prefixAndResourceMatcher = PREFIX_AND_RESOURCE_PATTERN.matcher(path);
@@ -85,16 +69,12 @@ public class UrlResolverService {
             UUID conceptId = findConceptId(graphId, resource);
 
             if (conceptId != null) {
-                return new ResolvedResource(
-                        "/concepts/" + graphId + "/concept/" + conceptId,
-                        "/api/concept/?graphId=" + graphId + "&id=" + conceptId);
+                return new ResolvedResource(graphId, ResolvedResource.Type.CONCEPT, conceptId);
             } else {
                 UUID collectionId = findCollectionId(graphId, resource);
 
                 if (collectionId != null) {
-                    return new ResolvedResource(
-                            "/concepts/" + graphId + "/collection/" + collectionId,
-                            "/api/collection/?graphId=" + graphId + "&id=" + collectionId);
+                    return new ResolvedResource(graphId, ResolvedResource.Type.COLLECTION, collectionId);
                 } else {
                     throw new ResourceNotFoundException(prefix, resource);
                 }
@@ -143,5 +123,28 @@ public class UrlResolverService {
                 .stream().filter(g -> g.getCode().equalsIgnoreCase(prefix))
                 .findFirst().orElseThrow(() -> new VocabularyNotFoundException(prefix))
                 .getId();
+    }
+
+    String getResource(@NotNull UUID graphId, @NotNull List<NodeType> types, TermedContentType contentType, @Nullable UUID resourceId) {
+
+        Parameters params = new Parameters();
+        params.add("select", "*");
+        params.add("select", "properties.*");
+        params.add("select", "references.*");
+        params.add("where", formatWhereClause(graphId, types, resourceId));
+
+        return requireNonNull(termedRequester.exchange("/node-trees", GET, params, String.class, contentType));
+    }
+
+    private static @NotNull String formatWhereClause(@NotNull UUID graphId, @NotNull List<NodeType> types, @Nullable UUID resourceId) {
+
+        if (types.size() == 0) {
+            throw new IllegalArgumentException("Must include at least one type");
+        }
+
+        String typeClause = types.stream().map(t -> "type.id:" + t.name()).collect(Collectors.joining(" OR "));
+
+        return "graph.id:" + graphId +
+                " AND (" + typeClause + ")" + (resourceId != null ? " AND id:" + resourceId : "");
     }
 }
