@@ -1,10 +1,10 @@
 package fi.vm.yti.terminology.api.migration.task;
 
+import fi.vm.yti.migration.MigrationTask;
 import fi.vm.yti.terminology.api.migration.AttributeIndex;
 import fi.vm.yti.terminology.api.migration.MigrationService;
 import fi.vm.yti.terminology.api.migration.PropertyIndex;
 import fi.vm.yti.terminology.api.migration.ReferenceIndex;
-import fi.vm.yti.terminology.api.migration.framework.MigrationTask;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;

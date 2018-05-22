@@ -1,8 +1,8 @@
 package fi.vm.yti.terminology.api.migration;
 
+import fi.vm.yti.migration.InitializationException;
+import fi.vm.yti.migration.SchemaVersionAccessor;
 import fi.vm.yti.terminology.api.exception.TermedEndpointException;
-import fi.vm.yti.terminology.api.migration.framework.InitializationException;
-import fi.vm.yti.terminology.api.migration.framework.SchemaVersionAccessor;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

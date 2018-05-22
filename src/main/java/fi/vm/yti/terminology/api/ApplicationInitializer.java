@@ -1,11 +1,11 @@
 package fi.vm.yti.terminology.api;
 
+import fi.vm.yti.migration.MigrationInitializer;
 import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
 import fi.vm.yti.terminology.api.exception.TermedEndpointException;
 import fi.vm.yti.terminology.api.index.BrokenTermedDataLinkException;
 import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
 import fi.vm.yti.terminology.api.index.IndexTermedService;
-import fi.vm.yti.terminology.api.migration.framework.MigrationInitializer;
 import fi.vm.yti.terminology.api.synchronization.SynchronizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
