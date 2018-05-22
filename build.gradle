@@ -40,6 +40,17 @@ configurations.all {
 repositories {
     mavenLocal()
     jcenter()
+
+    // put your artifactory parameters to $HOME/.gradle/gradle.properties
+    if (project.hasProperty('artifactoryUrl')) {
+        maven {
+            url "$artifactoryUrl"
+            credentials {
+                username "$artifactoryUsername"
+                password "$artifactoryPassword"
+            }
+        }
+    }
 }
 
 sourceCompatibility = 1.8
