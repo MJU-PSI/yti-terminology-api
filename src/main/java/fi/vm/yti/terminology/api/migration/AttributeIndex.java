@@ -4,8 +4,7 @@ import fi.vm.yti.terminology.api.model.termed.AttributeMeta;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 import org.jetbrains.annotations.NotNull;
 
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.type;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Collections.emptyMap;
 
 public final class AttributeIndex {
@@ -20,12 +19,11 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(fi, en),
+                        PropertyUtil.prefLabel(fi, en),
                         type("localizable:single,required")
                 )
         );
     }
-
 
     @NotNull
     public static AttributeMeta prefLabelXl(TypeId domain, long index) {
@@ -37,7 +35,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Termin arvo",
                                 "Term literal value"
                         ),
@@ -56,7 +54,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Vaihtoehtoinen termi",
                                 "Alternative label"
                         ),
@@ -75,7 +73,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Piilotettu termi",
                                 "Hidden label"
                         ),
@@ -93,7 +91,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Määritelmä",
                                 "Definition"
                         ),
@@ -111,7 +109,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Huomautus",
                                 "Note"
                         ),
@@ -129,7 +127,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Kuvaus",
                                 "Description"
                         ),
@@ -147,7 +145,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Kieli",
                                 "Language"
                         ),
@@ -165,7 +163,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(fi, en),
+                        PropertyUtil.prefLabel(fi, en),
                         type("status")
                 )
         );
@@ -180,7 +178,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Luonnosvaiheen kommentti",
                                 "Draft comment"
                         ),
@@ -198,7 +196,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Lähde",
                                 "Source"
                         ),
@@ -216,7 +214,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Käyttöala",
                                 "Scope"
                         ),
@@ -234,7 +232,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Ensisijainen järjestysnimi",
                                 "Priority name"
                         ),
@@ -252,7 +250,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Käyttöala",
                                 "Scope note"
                         ),
@@ -270,7 +268,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Käyttöesimerkki",
                                 "Example"
                         ),
@@ -288,7 +286,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Ylläpitäjän muistiinpano",
                                 "Editorial note"
                         ),
@@ -306,7 +304,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Käytön historiatieto",
                                 "History note"
                         ),
@@ -324,7 +322,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Muutoshistoriatieto",
                                 "Change note"
                         ),
@@ -342,7 +340,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(fi, en),
+                        PropertyUtil.prefLabel(fi, en),
                         type("string:single")
                 )
         );
@@ -357,7 +355,7 @@ public final class AttributeIndex {
                 domain,
                 emptyMap(),
                 merge(
-                        PropertyIndex.prefLabel(
+                        PropertyUtil.prefLabel(
                                 "Järjestysnumero",
                                 "Order index"
                         ),

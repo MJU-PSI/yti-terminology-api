@@ -3,7 +3,6 @@ package fi.vm.yti.terminology.api.migration.task;
 import fi.vm.yti.migration.MigrationTask;
 import fi.vm.yti.terminology.api.migration.AttributeIndex;
 import fi.vm.yti.terminology.api.migration.MigrationService;
-import fi.vm.yti.terminology.api.migration.PropertyIndex;
 import fi.vm.yti.terminology.api.migration.ReferenceIndex;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.NotNull;
@@ -15,10 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.*;
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.prefLabel;
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.type;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.localizable;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 
@@ -45,7 +41,7 @@ public class V1_Initial implements MigrationTask {
         TypeId domain = GROUP_DOMAIN;
 
         Graph graph = new Graph(domain.getGraphId(), null, "http://urn.fi/URN:NBN:fi:au:ptvl:", emptyList(), emptyMap(), merge(
-                PropertyIndex.prefLabel("Termed ryhmät"),
+                prefLabel("Termed ryhmät"),
                 localizable("note", "Termed ryhmäjaottelu vastaa Julkisten palvelujen luokitusta: http://finto.fi/ptvl")
         ));
 

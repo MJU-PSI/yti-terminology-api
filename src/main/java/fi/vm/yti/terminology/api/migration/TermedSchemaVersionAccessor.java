@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.SCHEMA_DOMAIN;
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.prefLabel;
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
 import static java.util.Collections.*;
 
 @Service

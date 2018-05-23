@@ -6,8 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.prefLabel;
-import static fi.vm.yti.terminology.api.migration.PropertyIndex.type;
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
 import static java.util.Collections.emptyMap;
 
