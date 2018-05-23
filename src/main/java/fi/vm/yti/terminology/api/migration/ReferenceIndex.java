@@ -96,7 +96,7 @@ public final class ReferenceIndex {
                 domain,
                 emptyMap(),
                 prefLabel(
-                        "Partitiivinen koostumussuhde",
+                        "Koostumussuhteinen yläkäsite",
                         "Is part of concept"
                 )
         );
