@@ -2,10 +2,12 @@ package fi.vm.yti.terminology.api.migration;
 
 import fi.vm.yti.terminology.api.model.termed.Property;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static fi.vm.yti.terminology.api.util.CollectionUtils.filterToList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -66,10 +68,34 @@ public final class PropertyUtil {
         Map<String, List<Property>> result = new HashMap<>();
 
         for (Map<String, List<Property>> property : properties) {
-            for (String propertyName : property.keySet()) {
-                result.put(propertyName, property.get(propertyName));
-            }
+            result = merge(result, property);
         }
+
+        return result;
+    }
+
+    public static Map<String, List<Property>> merge(Map<String, List<Property>> properties, Map<String, List<Property>> updatedProperties) {
+
+        HashMap<String, List<Property>> result = new HashMap<>(properties);
+
+        for (Map.Entry<String, List<Property>> updatedProperty : updatedProperties.entrySet()) {
+
+            String name = updatedProperty.getKey();
+            List<Property> value = updatedProperty.getValue();
+            result.merge(name, value, PropertyUtil::merge);
+        }
+
+        return result;
+    }
+
+    public static List<Property> merge(List<Property> properties, List<Property> updatedProperties) {
+
+        List<Property> unchangedProperties = filterToList(properties, property ->
+                updatedProperties.stream().noneMatch(updatedProperty -> property.getLang().equals(updatedProperty.getLang())));
+
+        List<Property> result = new ArrayList<>(properties.size() + updatedProperties.size());
+        result.addAll(unchangedProperties);
+        result.addAll(updatedProperties);
 
         return result;
     }
