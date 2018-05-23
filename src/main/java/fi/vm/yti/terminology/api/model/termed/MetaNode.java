@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.model.termed;
 
+import fi.vm.yti.terminology.api.migration.PropertyUtil;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -72,6 +74,14 @@ public final class MetaNode {
 
     public List<ReferenceMeta> getReferenceAttributes() {
         return referenceAttributes;
+    }
+
+    public void updateProperties(Map<String, List<Property>> updatedProperties) {
+
+        Map<String, List<Property>> newProperties = PropertyUtil.merge(this.properties, updatedProperties);
+
+        properties.clear();
+        properties.putAll(newProperties);
     }
 
     public MetaNode copyToGraph(UUID graphId) {
