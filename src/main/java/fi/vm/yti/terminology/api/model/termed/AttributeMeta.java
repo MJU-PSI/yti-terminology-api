@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.type;
 import static java.util.Collections.emptyMap;
 
 public final class AttributeMeta {
@@ -77,6 +79,14 @@ public final class AttributeMeta {
 
     public Map<String, List<Property>> getProperties() {
         return properties;
+    }
+
+    public void updateLabel(String fi, String en) {
+        updateProperties(prefLabel(fi, en));
+    }
+
+    public void updateType(String type) {
+        updateProperties(type(type));
     }
 
     public void updateProperties(Map<String, List<Property>> updatedProperties) {

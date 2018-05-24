@@ -16,15 +16,17 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.SCHEMA_GRAPH_ID;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
 import static fi.vm.yti.terminology.api.util.CollectionUtils.filterToList;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
-import static org.springframework.http.HttpMethod.*;
+import static java.util.stream.Collectors.toList;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @Service
 /*
@@ -43,47 +45,6 @@ public class MigrationService {
         this.objectMapper = objectMapper;
     }
 
-    public void changeMetaLabel(VocabularyNodeType vocabularyType, NodeType nodeType, String fi, String en) {
-        changeMetaLabel(findGraphsForVocabularyType(vocabularyType), nodeType, fi, en);
-    }
-
-    public void changeMetaLabel(List<Graph> graphs, NodeType nodeType, String fi, String en) {
-
-        for (Graph graph : graphs) {
-            MetaNode type = getType(new TypeId(nodeType, new GraphId(graph.getId())));
-            type.updateProperties(prefLabel(fi, en));
-            updateType(graph.getId(), type);
-        }
-    }
-
-    public void changeMetaLabel(VocabularyNodeType vocabularyType, NodeType nodeType, String attributeName, String fi, String en) {
-        changeMetaLabel(findGraphsForVocabularyType(vocabularyType), nodeType, attributeName, fi, en);
-    }
-
-    public void changeMetaLabel(List<Graph> graphs, NodeType nodeType, String attributeName, String fi, String en) {
-
-        for (Graph graph : graphs) {
-
-            MetaNode type = getType(new TypeId(nodeType, new GraphId(graph.getId())));
-
-            Optional<AttributeMeta> textAttribute = type.getTextAttributes().stream().filter(a -> a.getId().equals(attributeName)).findAny();
-
-            if (textAttribute.isPresent()) {
-                textAttribute.get().updateProperties(prefLabel(fi, en));
-            } else {
-                Optional<ReferenceMeta> referenceAttribute = type.getReferenceAttributes().stream().filter(a -> a.getId().equals(attributeName)).findAny();
-
-                if (!referenceAttribute.isPresent()) {
-                    throw new RuntimeException("Attribute not found with name: " + attributeName);
-                }
-
-                referenceAttribute.get().updateProperties(prefLabel(fi, en));
-            }
-
-            updateType(graph.getId(), type);
-        }
-    }
-
     public void createGraph(Graph graph) {
         termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
     }
@@ -97,18 +58,6 @@ public class MigrationService {
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave);
     }
 
-    public void updateTypes(UUID graphId, List<MetaNode> metaNodes) {
-
-        Parameters params = new Parameters();
-        params.add("batch", "true");
-
-        termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
-    }
-
-    public void updateType(UUID graphId, MetaNode metaNode) {
-        termedRequester.exchange("/graphs/" + graphId + "/types/" + metaNode.getId(), PUT, Parameters.empty(), String.class, metaNode);
-    }
-
     public @Nullable MetaNode findType(TypeId typeId) {
 
         Parameters params = new Parameters();
@@ -119,12 +68,61 @@ public class MigrationService {
         return termedRequester.exchange(path, GET, params, MetaNode.class);
     }
 
+    public void updateTypes(VocabularyNodeType vocabularyNodeType, Consumer<MetaNode> modifier) {
+        findGraphIdsForVocabularyType(vocabularyNodeType)
+                .forEach(graphId -> updateTypes(graphId, modifier));
+    }
+
+    public void updateTypes(VocabularyNodeType vocabularyNodeType, NodeType nodeType, Consumer<MetaNode> modifier) {
+        findGraphIdsForVocabularyType(vocabularyNodeType)
+                .forEach(graphId -> updateTypes(graphId, nodeType, modifier));
+    }
+
+    public void updateTypes(UUID graphId, Consumer<MetaNode> modifier) {
+        updateTypes(graphId, type -> true, modifier);
+    }
+
+    public void updateTypes(UUID graphId, NodeType nodeType, Consumer<MetaNode> modifier) {
+        updateTypes(graphId, type -> type.getId().equals(nodeType.name()), modifier);
+    }
+
+    public void updateTypes(UUID graphId, Predicate<MetaNode> filter, Consumer<MetaNode> modifier) {
+
+        List<MetaNode> types = filterToList(getTypes(graphId), filter);
+
+        for (MetaNode metaNode : types) {
+            modifier.accept(metaNode);
+        }
+
+        updateTypes(graphId, types);
+    }
+
+    public void updateTypes(UUID graphId, List<MetaNode> metaNodes) {
+
+        Parameters params = new Parameters();
+        params.add("batch", "true");
+
+        termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
+    }
+
+    public @NotNull List<MetaNode> getTypes(UUID graphId) {
+
+        Parameters params = new Parameters();
+        params.add("max", "-1");
+
+        String path = graphId != null ? "/graphs/" + graphId + "/types" : "/types";
+
+        return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<MetaNode>>() {}));
+    }
+
     public @NotNull MetaNode getType(TypeId typeId) {
         return requireNonNull(findType(typeId));
     }
 
-    public List<Graph> findGraphsForVocabularyType(VocabularyNodeType vocabularyType) {
-        return filterToList(getGraphs(), g -> findType(new TypeId(vocabularyType.asNodeType(), new GraphId(g.getId()))) != null);
+    public List<UUID> findGraphIdsForVocabularyType(VocabularyNodeType vocabularyType) {
+        return getGraphs().stream().filter(g -> findType(new TypeId(vocabularyType.asNodeType(), new GraphId(g.getId()))) != null)
+                .map(Graph::getId)
+                .collect(toList());
     }
 
     public List<Graph> getGraphs() {

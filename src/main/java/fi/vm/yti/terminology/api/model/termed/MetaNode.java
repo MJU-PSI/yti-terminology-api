@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
 import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -72,8 +73,26 @@ public final class MetaNode {
         return textAttributes;
     }
 
+    public AttributeMeta getAttribute(String name) {
+        return textAttributes.stream()
+                .filter(x -> x.getId().equals(name))
+                .findAny()
+                .orElseThrow(() -> new RuntimeException("Attribute not found with name: " + name));
+    }
+
     public List<ReferenceMeta> getReferenceAttributes() {
         return referenceAttributes;
+    }
+
+    public ReferenceMeta getReference(String name) {
+        return referenceAttributes.stream()
+                .filter(x -> x.getId().equals(name))
+                .findAny()
+                .orElseThrow(() -> new RuntimeException("Reference not found with name: " + name));
+    }
+
+    public void updateLabel(String fi, String en) {
+        updateProperties(prefLabel(fi, en));
     }
 
     public void updateProperties(Map<String, List<Property>> updatedProperties) {

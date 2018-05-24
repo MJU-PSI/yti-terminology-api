@@ -17,12 +17,8 @@ public class V2_UpdateMeta implements MigrationTask {
 
     @Override
     public void migrate() {
-
-        migrationService.changeMetaLabel(
-                VocabularyNodeType.TerminologicalVocabulary,
-                NodeType.Concept,
-                "isPartOf",
-                "Koostumussuhteinen yläkäsite",
-                "Is part of concept");
+        migrationService.updateTypes(VocabularyNodeType.TerminologicalVocabulary, NodeType.Concept, meta ->
+                meta.getReference("isPartOf")
+                        .updateLabel("Koostumussuhteinen yläkäsite", "Is part of concept"));
     }
 }

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
 import static java.util.Collections.emptyMap;
 
 public final class ReferenceMeta {
@@ -65,6 +66,10 @@ public final class ReferenceMeta {
 
     public Map<String, List<Property>> getProperties() {
         return properties;
+    }
+
+    public void updateLabel(String fi, String en) {
+        updateProperties(prefLabel(fi, en));
     }
 
     public void updateProperties(Map<String, List<Property>> updatedProperties) {
