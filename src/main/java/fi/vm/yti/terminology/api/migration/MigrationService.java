@@ -78,6 +78,11 @@ public class MigrationService {
                 .forEach(graphId -> updateTypes(graphId, nodeType, modifier));
     }
 
+    public void updateTypes(VocabularyNodeType vocabularyNodeType, Predicate<MetaNode> filter, Consumer<MetaNode> modifier) {
+        findGraphIdsForVocabularyType(vocabularyNodeType)
+                .forEach(graphId -> updateTypes(graphId, filter, modifier));
+    }
+
     public void updateTypes(UUID graphId, Consumer<MetaNode> modifier) {
         updateTypes(graphId, type -> true, modifier);
     }
