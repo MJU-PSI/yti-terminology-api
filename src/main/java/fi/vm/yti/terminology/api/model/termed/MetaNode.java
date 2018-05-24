@@ -53,6 +53,10 @@ public final class MetaNode {
         return uri;
     }
 
+    public TypeId getDomain() {
+        return new TypeId(NodeType.valueOf(id), graph, uri);
+    }
+
     public Long getIndex() {
         return index;
     }
@@ -80,6 +84,14 @@ public final class MetaNode {
                 .orElseThrow(() -> new RuntimeException("Attribute not found with name: " + name));
     }
 
+    public void addAttribute(AttributeMeta attribute) {
+        this.textAttributes.add(attribute);
+    }
+
+    public void removeAttribute(String name) {
+        textAttributes.remove(getAttribute(name));
+    }
+
     public List<ReferenceMeta> getReferenceAttributes() {
         return referenceAttributes;
     }
@@ -89,6 +101,14 @@ public final class MetaNode {
                 .filter(x -> x.getId().equals(name))
                 .findAny()
                 .orElseThrow(() -> new RuntimeException("Reference not found with name: " + name));
+    }
+
+    public void addReference(ReferenceMeta reference) {
+        this. referenceAttributes.add(reference);
+    }
+
+    public void removeReference(String name) {
+        referenceAttributes.remove(getReference(name));
     }
 
     public void updateLabel(String fi, String en) {
