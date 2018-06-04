@@ -14,7 +14,7 @@ public final class ReferenceMeta {
     private final TypeId range;
     private final String id;
     private final String uri;
-    private final Long index;
+    private Long index;
     private final TypeId domain;
     private final Map<String, List<Permission>> permissions;
     private final Map<String, List<Property>> properties;
@@ -54,6 +54,18 @@ public final class ReferenceMeta {
 
     public Long getIndex() {
         return index;
+    }
+
+    void setIndex(Long newIndex) {
+        index = newIndex;
+    }
+
+    void decrementIndex() {
+        index--;
+    }
+
+    void incrementIndex() {
+        index++;
     }
 
     public TypeId getDomain() {

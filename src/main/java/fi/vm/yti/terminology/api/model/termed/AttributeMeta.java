@@ -15,7 +15,7 @@ public final class AttributeMeta {
     private final String regex;
     private final String id;
     private final String uri;
-    private final Long index;
+    private Long index;
     private final TypeId domain;
     private final Map<String, List<Permission>> permissions;
     private final Map<String, List<Property>> properties;
@@ -67,6 +67,18 @@ public final class AttributeMeta {
 
     public Long getIndex() {
         return index;
+    }
+
+    void setIndex(Long newIndex) {
+        index = newIndex;
+    }
+
+    void incrementIndex() {
+        index++;
+    }
+
+    void decrementIndex() {
+        index--;
     }
 
     public TypeId getDomain() {

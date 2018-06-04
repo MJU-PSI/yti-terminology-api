@@ -84,12 +84,36 @@ public final class MetaNode {
                 .orElseThrow(() -> new RuntimeException("Attribute not found with name: " + name));
     }
 
-    public void addAttribute(AttributeMeta attribute) {
-        this.textAttributes.add(attribute);
+    public void addAttribute(AttributeMeta attributeToAdd) {
+
+        if (attributeToAdd.getIndex() != null) {
+            incrementIndicesAfter(attributeToAdd.getIndex());
+        }
+
+        this.textAttributes.add(attributeToAdd);
     }
 
     public void removeAttribute(String name) {
-        textAttributes.remove(getAttribute(name));
+
+        AttributeMeta attributeToRemove = getAttribute(name);
+
+        if (attributeToRemove.getIndex() != null) {
+            decrementIndicesAfter(attributeToRemove.getIndex());
+        }
+
+        textAttributes.remove(attributeToRemove);
+    }
+
+    public void changeAttributeIndex(String name, long newIndex) {
+
+        AttributeMeta attribute = getAttribute(name);
+
+        if (attribute.getIndex() != null) {
+            decrementIndicesAfter(attribute.getIndex());
+        }
+
+        incrementIndicesAfter(newIndex);
+        attribute.setIndex(newIndex);
     }
 
     public List<ReferenceMeta> getReferenceAttributes() {
@@ -103,12 +127,64 @@ public final class MetaNode {
                 .orElseThrow(() -> new RuntimeException("Reference not found with name: " + name));
     }
 
-    public void addReference(ReferenceMeta reference) {
-        this. referenceAttributes.add(reference);
+    public void addReference(ReferenceMeta referenceToAdd) {
+
+        if (referenceToAdd.getIndex() != null) {
+            incrementIndicesAfter(referenceToAdd.getIndex());
+        }
+
+        this.referenceAttributes.add(referenceToAdd);
     }
 
     public void removeReference(String name) {
-        referenceAttributes.remove(getReference(name));
+
+        ReferenceMeta referenceToRemove = getReference(name);
+
+        if (referenceToRemove.getIndex() != null) {
+            decrementIndicesAfter(referenceToRemove.getIndex());
+        }
+
+        referenceAttributes.remove(referenceToRemove);
+    }
+
+    public void changeReferenceIndex(String name, long newIndex) {
+
+        ReferenceMeta reference = getReference(name);
+
+        if (reference.getIndex() != null) {
+            decrementIndicesAfter(reference.getIndex());
+        }
+
+        incrementIndicesAfter(newIndex);
+        reference.setIndex(newIndex);
+    }
+
+    private void incrementIndicesAfter(long index) {
+        for (AttributeMeta attribute : textAttributes) {
+            if (attribute.getIndex() != null && attribute.getIndex() >= index) {
+                attribute.incrementIndex();
+            }
+        }
+
+        for (ReferenceMeta reference : referenceAttributes) {
+            if (reference.getIndex() != null && reference.getIndex() >= index) {
+                reference.incrementIndex();
+            }
+        }
+    }
+
+    private void decrementIndicesAfter(long index) {
+        for (AttributeMeta attribute : textAttributes) {
+            if (attribute.getIndex() != null && attribute.getIndex() >= index) {
+                attribute.decrementIndex();
+            }
+        }
+
+        for (ReferenceMeta reference : referenceAttributes) {
+            if (reference.getIndex() != null && reference.getIndex() >= index) {
+                reference.decrementIndex();
+            }
+        }
     }
 
     public void updateLabel(String fi, String en) {
@@ -129,5 +205,9 @@ public final class MetaNode {
         List<ReferenceMeta> newReferences = mapToList(referenceAttributes, referenceAttribute -> referenceAttribute.copyToGraph(graphId));
 
         return new MetaNode(id, uri, index, new GraphId(graphId), permissions, properties, newAttributes, newReferences);
+    }
+
+    public boolean isOfType(NodeType nodeType) {
+        return this.id.equals(nodeType.name());
     }
 }
