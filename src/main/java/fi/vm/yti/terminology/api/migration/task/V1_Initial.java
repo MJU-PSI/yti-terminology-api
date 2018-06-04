@@ -239,30 +239,8 @@ public class V1_Initial implements MigrationTask {
                         AttributeIndex.source(domain, 10)
                 ),
                 asList(
-                        new ReferenceMeta(
-                                TERM_DOMAIN,
-                                "prefLabelXl",
-                                "http://www.w3.org/2008/05/skos-xl#prefLabel",
-                                0L,
-                                domain,
-                                emptyMap(),
-                                prefLabel(
-                                        "Suositettava termi",
-                                        "Preferred term"
-                                )
-                        ),
-                        new ReferenceMeta(
-                                TERM_DOMAIN,
-                                "altLabelXl",
-                                "http://uri.suomi.fi/datamodel/ns/st#synonym",
-                                1L,
-                                domain,
-                                emptyMap(),
-                                prefLabel(
-                                        "Synonyymi",
-                                        "Synonym"
-                                )
-                        ),
+                        ReferenceIndex.prefLabelXl(domain, 0),
+                        ReferenceIndex.altLabelXl(domain, 1),
                         ReferenceIndex.broader(domain, 11,
                                 "Hierarkkinen yläkäsite",
                                 "Broader concept"

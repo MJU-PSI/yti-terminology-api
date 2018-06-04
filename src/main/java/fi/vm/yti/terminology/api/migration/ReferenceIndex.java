@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
+import static fi.vm.yti.terminology.api.migration.DomainIndex.TERM_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
 import static java.util.Collections.emptyMap;
@@ -171,6 +172,38 @@ public final class ReferenceIndex {
                 prefLabel(
                         "Valikoimaan kuuluva käsite",
                         "Member"
+                )
+        );
+    }
+
+    @NotNull
+    public static ReferenceMeta prefLabelXl(TypeId domain, long index) {
+        return new ReferenceMeta(
+                TERM_DOMAIN,
+                "prefLabelXl",
+                "http://www.w3.org/2008/05/skos-xl#prefLabel",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Suositettava termi",
+                        "Preferred term"
+                )
+        );
+    }
+
+    @NotNull
+    public static ReferenceMeta altLabelXl(TypeId domain, long index) {
+        return new ReferenceMeta(
+                TERM_DOMAIN,
+                "altLabelXl",
+                "http://uri.suomi.fi/datamodel/ns/st#synonym",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Synonyymi",
+                        "Synonym"
                 )
         );
     }
