@@ -208,6 +208,38 @@ public final class ReferenceIndex {
         );
     }
 
+    @NotNull
+    public static ReferenceMeta notRecommendedSynonym(TypeId domain, long index) {
+        return new ReferenceMeta(
+                TERM_DOMAIN,
+                "notRecommendedSynonym",
+                "http://uri.suomi.fi/datamodel/ns/st#notRecommendedSynonym",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Ei-suositeltava synonyymi",
+                        "Non-recommended synonym"
+                )
+        );
+    }
+
+    @NotNull
+    public static ReferenceMeta hiddenTerm(TypeId domain, long index) {
+        return new ReferenceMeta(
+                TERM_DOMAIN,
+                "hiddenTerm",
+                "http://uri.suomi.fi/datamodel/ns/st#hiddenTerm",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Ohjaustermi",
+                        "Hidden term"
+                )
+        );
+    }
+
     // prevent construction
     private ReferenceIndex() {
     }

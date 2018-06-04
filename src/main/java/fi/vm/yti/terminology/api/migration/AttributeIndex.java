@@ -364,6 +364,114 @@ public final class AttributeIndex {
         );
     }
 
+    @NotNull
+    public static AttributeMeta conceptWordClass(TypeId domain, long index) {
+        return new AttributeMeta(
+                "wordClass",
+                "http://uri.suomi.fi/datamodel/ns/st#conceptWordClass",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Sanaluokka",
+                                "Word class"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termWordClass(TypeId domain, long index) {
+        return new AttributeMeta(
+                "wordClass",
+                "http://uri.suomi.fi/datamodel/ns/st#termWordClass",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Sanaluokka",
+                                "Word class"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termStyle(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termStyle",
+                "http://uri.suomi.fi/datamodel/ns/st#termStyle",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termin tyyli",
+                                "Term style"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termFamily(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termFamily",
+                "http://uri.suomi.fi/datamodel/ns/st#termFamily",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termin suku",
+                                "Term family"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termConjugation(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termConjugation",
+                "http://uri.suomi.fi/datamodel/ns/st#termConjugation",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termin luku",
+                                "Term conjugation"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termEquivalency(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termEquivalency",
+                "http://uri.suomi.fi/datamodel/ns/st#termEquivalency",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termin vastaavuus",
+                                "Term equivalency"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
     // prevent construction
     private AttributeIndex() {
     }
