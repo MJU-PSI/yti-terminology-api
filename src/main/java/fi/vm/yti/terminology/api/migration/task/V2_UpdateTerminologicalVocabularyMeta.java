@@ -41,6 +41,10 @@ public class V2_UpdateTerminologicalVocabularyMeta implements MigrationTask {
                 meta.addAttribute(AttributeIndex.termConjugation(domain, 5));
                 meta.addAttribute(AttributeIndex.termEquivalency(domain, 6));
                 meta.addAttribute(AttributeIndex.termWordClass(domain, 7));
+
+            } else if (meta.isOfType(NodeType.TerminologicalVocabulary)) {
+
+                meta.changeAttributeIndex("description", 1);
             }
         });
     }
