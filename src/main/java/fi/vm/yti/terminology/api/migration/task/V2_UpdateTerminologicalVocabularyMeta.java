@@ -28,8 +28,8 @@ public class V2_UpdateTerminologicalVocabularyMeta implements MigrationTask {
 
                 meta.addAttribute(AttributeIndex.conceptWordClass(domain, 6));
 
-                meta.addReference(ReferenceIndex.notRecommendedSynonym(domain, 3));
-                meta.addReference(ReferenceIndex.hiddenTerm(domain, 4));
+                meta.addReference(ReferenceIndex.notRecommendedSynonym(domain, 2));
+                meta.addReference(ReferenceIndex.hiddenTerm(domain, 3));
 
                 meta.getReference("isPartOf")
                         .updateLabel("Koostumussuhteinen yläkäsite", "Is part of concept");
