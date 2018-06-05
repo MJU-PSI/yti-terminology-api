@@ -74,11 +74,11 @@ public final class AttributeMeta {
     }
 
     void incrementIndex() {
-        index++;
+        index = index + 1;
     }
 
     void decrementIndex() {
-        index--;
+        index = index - 1;
     }
 
     public TypeId getDomain() {

@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import fi.vm.yti.terminology.api.migration.PropertyUtil;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -91,6 +92,7 @@ public final class MetaNode {
         }
 
         this.textAttributes.add(attributeToAdd);
+        sortAttributes();
     }
 
     public void removeAttribute(String name) {
@@ -102,6 +104,7 @@ public final class MetaNode {
         }
 
         textAttributes.remove(attributeToRemove);
+        sortAttributes();
     }
 
     public void changeAttributeIndex(String name, long newIndex) {
@@ -114,6 +117,7 @@ public final class MetaNode {
 
         incrementIndicesAfter(newIndex);
         attribute.setIndex(newIndex);
+        sortAttributes();
     }
 
     public List<ReferenceMeta> getReferenceAttributes() {
@@ -134,6 +138,7 @@ public final class MetaNode {
         }
 
         this.referenceAttributes.add(referenceToAdd);
+        sortReferences();
     }
 
     public void removeReference(String name) {
@@ -145,6 +150,7 @@ public final class MetaNode {
         }
 
         referenceAttributes.remove(referenceToRemove);
+        sortReferences();
     }
 
     public void changeReferenceIndex(String name, long newIndex) {
@@ -157,6 +163,7 @@ public final class MetaNode {
 
         incrementIndicesAfter(newIndex);
         reference.setIndex(newIndex);
+        sortReferences();
     }
 
     private void incrementIndicesAfter(long index) {
@@ -185,6 +192,14 @@ public final class MetaNode {
                 reference.decrementIndex();
             }
         }
+    }
+
+    private void sortAttributes() {
+        this.textAttributes.sort(Comparator.comparing(AttributeMeta::getIndex));
+    }
+
+    private void sortReferences() {
+        this.referenceAttributes.sort(Comparator.comparing(ReferenceMeta::getIndex));
     }
 
     public void updateLabel(String fi, String en) {
