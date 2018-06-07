@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api;
 
+import org.springframework.util.StringUtils;
+
 public enum TermedContentType {
 
     JSON("application/json"),
@@ -16,11 +18,15 @@ public enum TermedContentType {
         return contentType;
     }
 
-    public static TermedContentType fromString(String contentType) {
+    public static TermedContentType fromString(String... contentTypes) {
 
-        for (TermedContentType value : values()) {
-            if (contentType.contains(value.contentType)) {
-                return value;
+        for (String contentType : contentTypes) {
+            if (!StringUtils.isEmpty(contentType)) {
+                for (TermedContentType value : values()) {
+                    if (contentType.contains(value.contentType)) {
+                        return value;
+                    }
+                }
             }
         }
 

@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.resolve;
 
+import org.springframework.util.StringUtils;
+
 public enum ResolvableContentType {
 
     HTML("text/html"),
@@ -21,14 +23,18 @@ public enum ResolvableContentType {
         return this == HTML;
     }
 
-    public static ResolvableContentType fromString(String contentType) {
+    public static ResolvableContentType fromString(String... contentTypes) {
 
-        for (ResolvableContentType value : values()) {
-            if (contentType.contains(value.mediaType)) {
-                return value;
+        for (String contentType : contentTypes) {
+            if (!StringUtils.isEmpty(contentType)) {
+                for (ResolvableContentType value : values()) {
+                    if (contentType.contains(value.mediaType)) {
+                        return value;
+                    }
+                }
             }
         }
 
-        throw new RuntimeException("Unsupported content type: " + contentType);
+        throw new RuntimeException("Unsupported content types: " + contentTypes);
     }
 }

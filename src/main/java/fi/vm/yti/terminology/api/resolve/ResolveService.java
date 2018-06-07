@@ -46,7 +46,8 @@ public class ResolveService {
             throw new RuntimeException("Unsupported URI namespace: " + uri);
         }
 
-        String path = uri.substring(namespaceRoot.length());
+        String uriWithoutParameters = uri.replaceFirst("\\?.*$", "");
+        String path = uriWithoutParameters.substring(namespaceRoot.length());
 
         Matcher prefixMatcher = PREFIX_PATTERN.matcher(path);
 
