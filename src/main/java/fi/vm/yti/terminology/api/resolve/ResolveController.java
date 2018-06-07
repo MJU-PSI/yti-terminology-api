@@ -38,7 +38,7 @@ public class ResolveController {
         return "redirect:"
                 + applicationUrl
                 + formatPath(resource, contentType)
-                + (!contentType.isHandledByFrontend() && StringUtils.isEmpty(format) ? "" : "&format=" + format);
+                + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" : "&format=" + format);
     }
 
     private static String formatPath(ResolvedResource resource, ResolvableContentType contentType) {
