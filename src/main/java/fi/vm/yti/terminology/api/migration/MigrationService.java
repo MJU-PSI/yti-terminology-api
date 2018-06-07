@@ -88,7 +88,7 @@ public class MigrationService {
     }
 
     public void updateTypes(UUID graphId, NodeType nodeType, Consumer<MetaNode> modifier) {
-        updateTypes(graphId, type -> type.getId().equals(nodeType.name()), modifier);
+        updateTypes(graphId, type -> type.isOfType(nodeType), modifier);
     }
 
     public void updateTypes(UUID graphId, Predicate<MetaNode> filter, Consumer<MetaNode> modifier) {
