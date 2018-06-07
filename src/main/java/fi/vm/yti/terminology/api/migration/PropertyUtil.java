@@ -58,6 +58,18 @@ public final class PropertyUtil {
         return localizable("prefLabel", fi, en, sv);
     }
 
+    public static Map<String, List<Property>> description(String fi) {
+        return localizable("description", fi);
+    }
+
+    public static Map<String, List<Property>> description(String fi, String en) {
+        return localizable("description", fi, en);
+    }
+
+    public static Map<String, List<Property>> description(String fi, String en, String sv) {
+        return localizable("description", fi, en, sv);
+    }
+
     public static Map<String, List<Property>> type(String value) {
         return literal("type", value);
     }
