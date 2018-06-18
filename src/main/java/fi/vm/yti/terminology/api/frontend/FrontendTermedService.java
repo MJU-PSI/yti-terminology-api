@@ -208,6 +208,8 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("select", "id");
         params.add("select", "type");
+        params.add("select", "code");
+        params.add("select", "uri");
         params.add("select", "properties.prefLabel");
         params.add("select", "properties.status");
         params.add("select", "lastModifiedDate");
