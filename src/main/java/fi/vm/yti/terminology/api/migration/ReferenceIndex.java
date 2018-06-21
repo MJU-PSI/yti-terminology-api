@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
-import static fi.vm.yti.terminology.api.migration.DomainIndex.TERM_DOMAIN;
+import static fi.vm.yti.terminology.api.migration.DomainIndex.TERM_TEMPLATE_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
 import static java.util.Collections.emptyMap;
@@ -179,7 +179,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta prefLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_DOMAIN,
+                TERM_TEMPLATE_DOMAIN,
                 "prefLabelXl",
                 "http://www.w3.org/2008/05/skos-xl#prefLabel",
                 index,
@@ -195,7 +195,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta altLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_DOMAIN,
+                TERM_TEMPLATE_DOMAIN,
                 "altLabelXl",
                 "http://uri.suomi.fi/datamodel/ns/st#synonym",
                 index,
@@ -211,7 +211,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta notRecommendedSynonym(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_DOMAIN,
+                TERM_TEMPLATE_DOMAIN,
                 "notRecommendedSynonym",
                 "http://uri.suomi.fi/datamodel/ns/st#notRecommendedSynonym",
                 index,
@@ -227,7 +227,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta hiddenTerm(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_DOMAIN,
+                TERM_TEMPLATE_DOMAIN,
                 "hiddenTerm",
                 "http://uri.suomi.fi/datamodel/ns/st#hiddenTerm",
                 index,

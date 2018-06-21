@@ -106,7 +106,7 @@ public class V1_Initial implements MigrationTask {
 
     private void initializeVocabularyTemplate() {
 
-        Graph graph = new Graph(VOCABULARY_GRAPH_ID, null, null, emptyList(), emptyMap(), merge(
+        Graph graph = new Graph(VOCABULARY_TEMPLATE_GRAPH_ID, null, null, emptyList(), emptyMap(), merge(
                 prefLabel("Asiasanasto"),
                 type("Metamodel")
         ));
@@ -123,7 +123,7 @@ public class V1_Initial implements MigrationTask {
 
     private void initializeTerminologicalVocabularyTemplate() {
 
-        Graph graph = new Graph(TERMINOLOGICAL_VOCABULARY_GRAPH_ID, null, null, emptyList(), emptyMap(), merge(
+        Graph graph = new Graph(TERMINOLOGICAL_VOCABULARY_TEMPLATE_GRAPH_ID, null, null, emptyList(), emptyMap(), merge(
                 prefLabel("Terminologinen sanasto"),
                 type("Metamodel")
         ));
@@ -143,7 +143,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createTerminologicalConceptLinkMeta() {
 
-        TypeId domain = TERMINOLOGICAL_CONCEPT_LINK_DOMAIN;
+        TypeId domain = TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "ConceptLink",
@@ -209,7 +209,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createTerminologicalConceptMeta() {
 
-        TypeId domain = TERMINOLOGICAL_CONCEPT_DOMAIN;
+        TypeId domain = TERMINOLOGICAL_CONCEPT_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "Concept",
@@ -247,9 +247,9 @@ public class V1_Initial implements MigrationTask {
                         ),
                         ReferenceIndex.relatedConcept(domain, 12),
                         ReferenceIndex.partOfConcept(domain, 13),
-                        ReferenceIndex.relatedMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_DOMAIN,14),
-                        ReferenceIndex.exactMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_DOMAIN, 15),
-                        ReferenceIndex.closeMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_DOMAIN, 16)
+                        ReferenceIndex.relatedMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN,14),
+                        ReferenceIndex.exactMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 15),
+                        ReferenceIndex.closeMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 16)
                 )
         );
     }
@@ -298,7 +298,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createTermMeta() {
 
-        TypeId domain = TERM_DOMAIN;
+        TypeId domain = TERM_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "Term",
@@ -330,7 +330,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createTerminologicalCollectionMeta() {
 
-        TypeId domain = TERMINOLOGICAL_COLLECTION_DOMAIN;
+        TypeId domain = TERMINOLOGICAL_COLLECTION_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "Collection",
@@ -348,7 +348,7 @@ public class V1_Initial implements MigrationTask {
                 ),
                 asList(
                         new ReferenceMeta(
-                                TERMINOLOGICAL_CONCEPT_DOMAIN,
+                                TERMINOLOGICAL_CONCEPT_TEMPLATE_DOMAIN,
                                 "broader",
                                 "http://www.w3.org/2004/02/skos/core#broader",
                                 2L,
@@ -362,7 +362,7 @@ public class V1_Initial implements MigrationTask {
                                         type("reference:single")
                                 )
                         ),
-                        ReferenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_DOMAIN, 3)
+                        ReferenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_TEMPLATE_DOMAIN, 3)
                 )
         );
     }
@@ -370,7 +370,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createCollectionMeta() {
 
-        TypeId domain = COLLECTION_DOMAIN;
+        TypeId domain = COLLECTION_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "Collection",
@@ -397,7 +397,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createTerminologicalVocabularyMeta() {
 
-        TypeId domain = TERMINOLOGICAL_VOCABULARY_DOMAIN;
+        TypeId domain = TERMINOLOGICAL_VOCABULARY_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "TerminologicalVocabulary",
@@ -429,7 +429,7 @@ public class V1_Initial implements MigrationTask {
     @NotNull
     private MetaNode createVocabularyMeta() {
 
-        TypeId domain = VOCABULARY_DOMAIN;
+        TypeId domain = VOCABULARY_TEMPLATE_DOMAIN;
 
         return new MetaNode(
                 "Vocabulary",
