@@ -1,17 +1,20 @@
 package fi.vm.yti.terminology.api.migration;
 
+import fi.vm.yti.terminology.api.model.termed.NodeType;
 import fi.vm.yti.terminology.api.model.termed.ReferenceMeta;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 import org.jetbrains.annotations.NotNull;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
-import static fi.vm.yti.terminology.api.migration.DomainIndex.TERM_TEMPLATE_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
 import static java.util.Collections.emptyMap;
 
 public final class ReferenceIndex {
+
+    private static final TypeId termDomainFromConceptDomain(TypeId conceptDomain) {
+        return new TypeId(NodeType.Term, conceptDomain.getGraph());
+    }
 
     @NotNull
     public static ReferenceMeta contributor(TypeId domain, long index) {
@@ -179,7 +182,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta prefLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_TEMPLATE_DOMAIN,
+                termDomainFromConceptDomain(domain),
                 "prefLabelXl",
                 "http://www.w3.org/2008/05/skos-xl#prefLabel",
                 index,
@@ -195,7 +198,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta altLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_TEMPLATE_DOMAIN,
+                termDomainFromConceptDomain(domain),
                 "altLabelXl",
                 "http://uri.suomi.fi/datamodel/ns/st#synonym",
                 index,
@@ -211,7 +214,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta notRecommendedSynonym(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_TEMPLATE_DOMAIN,
+                termDomainFromConceptDomain(domain),
                 "notRecommendedSynonym",
                 "http://uri.suomi.fi/datamodel/ns/st#notRecommendedSynonym",
                 index,
@@ -227,7 +230,7 @@ public final class ReferenceIndex {
     @NotNull
     public static ReferenceMeta hiddenTerm(TypeId domain, long index) {
         return new ReferenceMeta(
-                TERM_TEMPLATE_DOMAIN,
+                termDomainFromConceptDomain(domain),
                 "hiddenTerm",
                 "http://uri.suomi.fi/datamodel/ns/st#hiddenTerm",
                 index,
