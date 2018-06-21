@@ -12,7 +12,7 @@ import static java.util.Collections.emptyMap;
 
 public final class ReferenceMeta {
 
-    private final TypeId range;
+    private TypeId range;
     private final String id;
     private final String uri;
     private Long index;
@@ -43,6 +43,10 @@ public final class ReferenceMeta {
 
     public TypeId getRange() {
         return range;
+    }
+
+    public void setRange(TypeId range) {
+        this.range = range;
     }
 
     public String getId() {
