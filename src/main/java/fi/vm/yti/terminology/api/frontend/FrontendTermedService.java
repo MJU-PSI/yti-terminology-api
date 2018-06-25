@@ -227,6 +227,8 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("select", "id");
         params.add("select", "type");
+        params.add("select", "code");
+        params.add("select", "uri");
         params.add("select", "properties.*");
         params.add("where", "type.id:" + nodeType);
         params.add("max", "-1");
