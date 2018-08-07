@@ -224,6 +224,24 @@ public final class AttributeIndex {
     }
 
     @NotNull
+    public static AttributeMeta conceptScope(TypeId domain, long index) {
+        return new AttributeMeta(
+                "conceptScope",
+                "http://uri.suomi.fi/datamodel/ns/iow#conceptScope",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Käyttöala",
+                                "Concept scope"
+                        ),
+                        type("string:single,area")
+                )
+        );
+    }
+
+    @NotNull
     public static AttributeMeta priority(TypeId domain, long index) {
         return new AttributeMeta(
                 "priority",
