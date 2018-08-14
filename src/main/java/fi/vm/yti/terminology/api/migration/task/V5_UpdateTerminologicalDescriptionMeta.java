@@ -68,13 +68,13 @@ public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
             updateTextAttributeDescription(meta, "prefLabel", "Termin tekstimuotoinen kuvaus/nimi (merkkijono)");
             updateTextAttributeDescription(meta, "status", "Termin valmiusastetta kuvaava tila");
             // should we use term instead of käsite???'
-            updateTextAttributeDescription(meta, "source", "Käsitteen määrittelyssä käytetyt lähteet");
+            updateTextAttributeDescription(meta, "source", "Termin määrittelyssä käytetyt lähteet");
             updateTextAttributeDescription(meta, "scope", "Ala jossa termi on käytössä");
             updateTextAttributeDescription(meta, "termStyle", "Tyylilaji (esim. puhekieli)");
             updateTextAttributeDescription(meta, "termFamily", "maskuliini/neutri/feminiini");
             updateTextAttributeDescription(meta, "termConjugation", "Yksikkö tai monikko");
             updateTextAttributeDescription(meta, "termEquivalency", "<,>,~");
-            updateTextAttributeDescription(meta, "wordClass", "Merkitään, jos termi on eri  sanaluokasta kuin muunkieliset termit");
+            updateTextAttributeDescription(meta, "wordClass", "Merkitään, jos termi on eri sanaluokasta kuin muunkieliset termit");
             updateTextAttributeDescription(meta, "editorialNote", "Ylläpitäjille tai kääntäjille tarkoitettu huomio");
             updateTextAttributeDescription(meta, "draftComment", "Luonnosvaiheessa näkyväksi tarkoitettu kommentti");
             updateTextAttributeDescription(meta, "historyNote", "Termin aiempi merkitys tai käyttö");
@@ -88,7 +88,7 @@ public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
             updateTextAttributeDescription(meta, "example", "Esimerkki käsitteen käytöstä");
             updateTextAttributeDescription(meta, "conceptScope", "Ala, jossa käsite on käytössä");
             updateTextAttributeDescription(meta, "status", "Käsitteen valmiusastetta kuvaava tila");
-            updateTextAttributeDescription(meta, "source", "Käsitteen määrittelyssä käytetyt  lähteet");
+            updateTextAttributeDescription(meta, "source", "Käsitteen määrittelyssä käytetyt lähteet");
             updateTextAttributeDescription(meta, "wordClass", "Merkitään tarvittaessa käsitteelle, jos se on adjektiivi tai verbi");
             updateTextAttributeDescription(meta, "changeNote", "Merkintä käsitteeseen tehdystä yksittäisestä muutoksesta");
             updateTextAttributeDescription(meta, "historyNote", "Käsitteen aiempi merkitys tai käyttö");
