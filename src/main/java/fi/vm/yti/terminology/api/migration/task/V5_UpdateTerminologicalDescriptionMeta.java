@@ -18,6 +18,9 @@ import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.type;
 
+/**
+ * Migration for YTI-797, add descriptions to meta model and fix on typo in prefLabel.
+ */
 @Component
 public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
 
@@ -89,7 +92,7 @@ public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
             updateTextAttributeDescription(meta, "wordClass", "Merkitään tarvittaessa käsitteelle, jos se on adjektiivi tai verbi");
             updateTextAttributeDescription(meta, "changeNote", "Merkintä käsitteeseen tehdystä yksittäisestä muutoksesta");
             updateTextAttributeDescription(meta, "historyNote", "Käsitteen aiempi merkitys tai käyttö");
-            updateTextAttributeDescription(meta, "notation", "Merkintä, jolla käsitteet voidaan jäsentää eri järjestykseen tai joukkoihin");
+            updateNotationTextAttribute(meta, "notation", "Merkintä, jolla käsitteet voidaan jäsentää eri järjestykseen tai joukkoihin");
 
             // ReferenceAttributes
             updateReferenceAttributeDescription(meta, "prefLabelXl", "Termi, joka on sopivin kuvaamaan kyseistä käsitettä");
@@ -135,6 +138,7 @@ public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
         }
         return rv;
     }
+
     /**
      * Update individual description for reference-attributes
      * @param meta
@@ -164,4 +168,36 @@ public class V5_UpdateTerminologicalDescriptionMeta implements MigrationTask {
         return rv;
     }
 
+    /**
+     * Update concept textAttribute named notation. Fix type in  button label and add description
+     * @param meta
+     * @param attributeName
+     * @param description
+     * @return
+     */
+    boolean updateNotationTextAttribute(MetaNode meta, String attributeName, String description){
+        boolean rv = false;
+        // Add description
+        rv = updateTextAttributeDescription(meta, "notation", "Merkintä, jolla käsitteet voidaan jäsentää eri järjestykseen tai joukkoihin");
+
+        // Fix notatation- string from prefLabel
+
+        List<AttributeMeta> ta = meta.getTextAttributes().stream().filter(item -> item.getId().equals("notation")).collect(Collectors.toList());
+        if(!ta.isEmpty()){
+            if(ta.size()>1){
+                System.err.println("Error, several example attributes in same node ");
+            } else {
+                AttributeMeta att = ta.get(0);
+                // check if description exist and add new one
+                Property desc = new Property("fi", description);
+                if (att.getProperties().get(desc)!=null) {
+                    System.err.println("Description property exists already");
+                } else {
+                    att.updateProperties(PropertyUtil.merge(att.getProperties(),PropertyUtil.prefLabel("Systemaattinen merkintätapa","Notation")));
+                    rv = true;
+                }
+            }
+        }
+        return rv;
+    }
 }
