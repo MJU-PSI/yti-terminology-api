@@ -3,20 +3,34 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.model.ntrf.*;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import javax.xml.bind.JAXBElement;
+import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static java.util.Collections.emptyMap;
+import static java.util.UUID.randomUUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
@@ -24,6 +38,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.*;
 public class FrontendController {
 
     private final FrontendTermedService termedService;
+    private final FrontendImportService importService;
     private final FrontendElasticSearchService elasticSearchService;
     private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
@@ -34,6 +49,7 @@ public class FrontendController {
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
     public FrontendController(FrontendTermedService termedService,
+                              FrontendImportService importService,
                               FrontendElasticSearchService elasticSearchService,
                               FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
@@ -41,6 +57,7 @@ public class FrontendController {
                               @Value("${groupmanagement.public.url}") String groupManagementUrl,
                               @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
         this.termedService = termedService;
+        this.importService = importService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
@@ -118,7 +135,7 @@ public class FrontendController {
         logger.info("POST /vocabulary requested with params: templateGraphId: " +
                     templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
-        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : randomUUID();
         termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
         return predefinedOrGeneratedGraphId;
     }
@@ -213,5 +230,12 @@ public class FrontendController {
     String searchConcept(@RequestBody JsonNode query) {
         logger.info("POST /searchConcept requested with query: " + query.toString());
         return elasticSearchService.searchConcept(query);
+    }
+
+    @RequestMapping(value = "/import/{format}", method = POST, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity importTerms(@PathVariable("format") String format,
+                               @RequestParam UUID vocabularityId,
+                               @RequestBody VOCABULARYType ntrfDocument) {
+        return importService.handleNtrfDocument(format,vocabularityId, ntrfDocument);
     }
 }

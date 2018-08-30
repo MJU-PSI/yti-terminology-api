@@ -57,6 +57,45 @@ public final class GenericNode implements Node {
         this.referrers = referrers;
     }
 
+    /**
+     * Used for import. No given UUID so random uuid is created on upon call
+     * @param code
+     * @param uri
+     * @param number
+     * @param createdBy
+     * @param createdDate
+     * @param lastModifiedBy
+     * @param lastModifiedDate
+     * @param type
+     * @param properties
+     * @param references
+     * @param referrers
+     */
+    public GenericNode(String code,
+                       String uri,
+                       Long number,
+                       String createdBy,
+                       Date createdDate,
+                       String lastModifiedBy,
+                       Date lastModifiedDate,
+                       TypeId type,
+                       Map<String, List<Attribute>> properties,
+                       Map<String, List<Identifier>> references,
+                       Map<String, List<Identifier>> referrers) {
+        this.id = randomUUID();
+        this.code = code;
+        this.uri = uri;
+        this.number = number;
+        this.createdBy = createdBy;
+        this.createdDate = createdDate;
+        this.lastModifiedBy = lastModifiedBy;
+        this.lastModifiedDate = lastModifiedDate;
+        this.type = type;
+        this.properties = properties;
+        this.references = references;
+        this.referrers = referrers;
+    }
+
     public UUID getId() {
         return id;
     }

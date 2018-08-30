@@ -222,6 +222,15 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
+    @NotNull List<GenericNode> getNodes(UUID graphId) {
+        Parameters params = new Parameters();
+        params.add("max", "-1");
+
+        String path = graphId != null ? "/graphs/" + graphId + "/nodes" : "/nodes";
+
+        return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<GenericNode>>() {}));
+   }
+
     @NotNull JsonNode getNodeListWithoutReferencesOrReferrers(NodeType nodeType) {
 
         Parameters params = new Parameters();
