@@ -401,38 +401,33 @@ public class FrontendImportService {
     }
 
     private Attribute  handleDEF( DEFType def, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
-        System.out.println(" Construct definition string and references " + def.getContent());
-
+        logger.debug("handleDEF-part:"+def.getContent());
         String defString="";
 
         List<Serializable> defItems = def.getContent();
         for(Serializable de:defItems) {
             if(de instanceof  String) {
-                System.out.println("  def-string"+de.toString());
                 defString =defString.concat(de.toString());
             }
             else {
                 if(de instanceof JAXBElement){
                     JAXBElement j = (JAXBElement)de;
-                    System.out.println("  def-elem <" + j.getName()+">");
                     if(j.getName().toString().equalsIgnoreCase("RCON")){
-                        System.out.println("RCON------");
                         // <NCON href="#tmpOKSAID122" typr="partitive">koulutuksesta (2)</NCON> ->
                         // <a href="http://uri.suomi.fi/terminology/oksa/tmpOKSAID122" data-typr="partitive">koulutuksesta (2)</a>
                         // <DEF>suomalaista <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON> vastaava <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON> <BCON href="#tmpOKSAID1401" typr="generic">tutkinto</BCON>, joka suoritetaan kaksivuotisen <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON> päätteeksi<SOURF>opintoluotsi + rk + tr34</SOURF></DEF>
                         RCONType rc=(RCONType)j.getValue();
-                        System.out.println("RCON-HREF <a href=\""+vocabularity.getUri()+rc.getHref()+"\" data-typr=\"" + rc.getTypr() + "\"  >"+rc.getContent().get(0)+ "</a>");
-                        defString = defString.concat("<a href=\""+
+                        defString = defString.concat("<a href='"+
                                 vocabularity.getUri());
                         // Remove # from uri
                         if(rc.getHref().startsWith("#")) {
-                            defString = defString.concat(rc.getHref().substring(1) + "\"");
+                            defString = defString.concat(rc.getHref().substring(1) + "'");
                         } else
-                            defString = defString.concat(rc.getHref() + "\"");
+                            defString = defString.concat(rc.getHref() + "'");
                         System.out.println("TYPER="+rc.getTypr());
                         if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
-                            defString = defString.concat(" data-typr =\"" +
-                                    rc.getTypr()+"\"");
+                            defString = defString.concat(" data-typr ='" +
+                                    rc.getTypr()+"'");
                         }
                         defString = defString.concat(">"+rc.getContent().get(0)+ "</a>");
                     }
@@ -445,7 +440,7 @@ public class FrontendImportService {
                     } else
                         System.out.println("  def-class" + de.getClass().getName());
                 }
-                System.out.println("  def-String=" + defString);
+                logger.info("Definition="+defString);
             }
         };
         Attribute att = new Attribute(lang, defString);
@@ -454,15 +449,15 @@ public class FrontendImportService {
     }
 
     private Attribute  handleNOTE( NOTEType note, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
-        System.out.println(" Construct note string and references " + note.getContent());
+        logger.debug("handleNOTE-part"+note.getContent());
 
-        String defString="";
+        String noteString="";
 
         List<Serializable> noteItems = note.getContent();
         for(Serializable de:noteItems) {
             if(de instanceof  String) {
                 System.out.println("  note-string"+de.toString());
-                defString =defString.concat(de.toString());
+                noteString =noteString.concat(de.toString());
             }
             else {
                 if(de instanceof JAXBElement){
@@ -474,34 +469,34 @@ public class FrontendImportService {
                         // <a href="http://uri.suomi.fi/terminology/oksa/tmpOKSAID122" data-typr="partitive">koulutuksesta (2)</a>
                         // <DEF>suomalaista <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON> vastaava <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON> <BCON href="#tmpOKSAID1401" typr="generic">tutkinto</BCON>, joka suoritetaan kaksivuotisen <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON> päätteeksi<SOURF>opintoluotsi + rk + tr34</SOURF></DEF>
                         RCONType rc=(RCONType)j.getValue();
-                        System.out.println("RCON-HREF <a href=\""+vocabularity.getUri()+rc.getHref()+"\" data-typr=\"" + rc.getTypr() + "\"  >"+rc.getContent().get(0)+ "</a>");
-                        defString = defString.concat("<a href=\""+
+                        System.out.println("RCON-HREF <a href='"+vocabularity.getUri()+rc.getHref()+"' data-typr='" + rc.getTypr() + "'>"+rc.getContent().get(0)+ "</a>");
+                        noteString = noteString.concat("<a href='"+
                                 vocabularity.getUri());
                         // Remove # from uri
                         if(rc.getHref().startsWith("#")) {
-                            defString = defString.concat(rc.getHref().substring(1) + "\"");
+                            noteString = noteString.concat(rc.getHref().substring(1) + "'");
                         } else
-                            defString = defString.concat(rc.getHref() + "\"");
+                            noteString = noteString.concat(rc.getHref() + "'");
                         System.out.println("TYPER="+rc.getTypr());
                         if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
-                            defString = defString.concat(" data-typr =\"" +
-                                    rc.getTypr()+"\"");
+                            noteString = noteString.concat(" data-typr ='" +
+                                    rc.getTypr()+"'");
                         }
-                        defString = defString.concat(">"+rc.getContent().get(0)+ "</a>");
+                        noteString = noteString.concat(">"+rc.getContent().get(0)+ "</a>");
                     }
                     else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
                         NOTEType.SOURF sf = (NOTEType.SOURF)j.getValue();
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
                             System.out.println("-----SOURF=" + sf.getContent());
-                            defString = defString.concat(" "+sf.getContent());
+                            noteString = noteString.concat(" "+sf.getContent());
                         }
                     } else
                         System.out.println("  note-class" + de.getClass().getName());
                 }
-                System.out.println("  note-String=" + defString);
+                System.out.println("  note-String=" + noteString);
             }
         };
-        Attribute att = new Attribute(lang, defString);
+        Attribute att = new Attribute(lang, noteString);
         addProperty("note", parentProperties,  att);
         return att;
     }
