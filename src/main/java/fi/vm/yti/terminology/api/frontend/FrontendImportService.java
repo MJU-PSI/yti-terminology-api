@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
 import java.io.Serializable;
 import java.security.MessageDigest;
@@ -63,7 +64,7 @@ public class FrontendImportService {
     private final String namespaceRoot;
 
     /**
-     * Map containing metadata types. usef  when creating nodes.
+     * Map containing metadata types. used  when creating nodes.
      */
     private HashMap<String,MetaNode> typeMap = new HashMap<>();
     /**
@@ -71,6 +72,10 @@ public class FrontendImportService {
      * them instead of creating new ones
      */
     private HashMap<String,UUID> idMap = new HashMap<>();
+    /**
+     * Map binding togerher reference string and external URL fromn ntrf SOURF-element
+     */
+    private HashMap<String,HashMap<String,String>> referenceMap = new HashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendImportService.class);
 
@@ -106,9 +111,15 @@ public class FrontendImportService {
         // Get statistic of terms
         List<?> l = ntrfDocument.getHEADEROrDIAGOrHEAD();
         System.out.println("Incoming objects count=" + l.size());
+
+        // Get all reference-elements and build reference-url-map
+        List<REFERENCESType> referencesTypeList = l.stream().filter(o -> o instanceof REFERENCESType).map(o -> (REFERENCESType) o).collect(Collectors.toList());
+        handleReferences(referencesTypeList,referenceMap);
+        logger.info("Incoming reference count=" + referencesTypeList.size());
+
         // Get all records (mapped to terms) from incoming ntrf-document. Check object type and typecast matching objects to  list<>
         List<RECORDType> records = l.stream().filter(o -> o instanceof RECORDType).map(o -> (RECORDType) o).collect(Collectors.toList());
-        System.out.println("Incoming records count=" + records.size());
+        logger.info("Incoming records count=" + records.size());
 
         List<GenericNode> addNodeList = new ArrayList<>();
 
@@ -116,25 +127,18 @@ public class FrontendImportService {
         for(RECORDType o:records){
             handleRecord(vocabularity, o, addNodeList);
             flushCount++;
-            if(flushCount >100){
+            if(flushCount >400){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-                System.out.println("------------------------------------");
-//                JsonUtils.prettyPrintJson(operation);
-                System.out.println("------------------------------------");
+                if(logger.isDebugEnabled())
+                    logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
                 termedService.bulkChange(operation,true);
                 addNodeList.clear();
             }
         }
-        /*
-        records.forEach(o -> {
-                handleRecord(vocabularity, o, addNodeList);
-        });
-        */
         GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-        System.out.println("------------------------------------");
-        JsonUtils.prettyPrintJson(operation);
-        System.out.println("------------------------------------");
+        if(logger.isDebugEnabled())
+            logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         termedService.bulkChange(operation,true);
 
         Long endTime = new Date().getTime();
@@ -156,13 +160,52 @@ public class FrontendImportService {
         // Create hashmap to store information  between code/URI and UUID so that we can update values upon same vocabularity
         List<GenericNode> nodeList = termedService.getNodes(vocabularityId);
         nodeList.forEach(o->{
-            System.out.println(" Code:"+o.getCode() +" UUID:"+o.getId().toString()+" URI:"+o.getUri());
+            if(logger.isDebugEnabled())
+                logger.debug(" Code:"+o.getCode() +" UUID:"+o.getId().toString()+" URI:"+o.getUri());
             if(!o.getCode().isEmpty()){
                 idMap.put(o.getCode(),o.getId());
             }
             if(!o.getUri().isEmpty()){
                 idMap.put(o.getUri(),o.getId());
             }
+        });
+    }
+
+    private void handleReferences(List<REFERENCESType>referencesTypeList, HashMap<String,HashMap<String,String>> refMap){
+        referencesTypeList.forEach(reftypes -> {
+            List<REFType> refs = reftypes.getREFOrREFHEAD().stream().filter(o -> o instanceof REFType).map(o -> (REFType) o).collect(Collectors.toList());
+            refs.forEach(r -> {
+                // Filter all JAXBElements
+                List<JAXBElement> elems = r.getContent().stream().filter(o -> o instanceof JAXBElement).map(o -> (JAXBElement) o).collect(Collectors.toList());
+                HashMap<String, String> fields = new HashMap<>();
+                String name = "";
+                for(JAXBElement o:elems){
+                    String text = null;
+                    String url = null;
+                    if (o.getName().toString().equalsIgnoreCase("REFNAME")) {
+                        name = o.getValue().toString();
+                    }
+                    if (o.getName().toString().equalsIgnoreCase("REFTEXT")) {
+                        REFType.REFTEXT rt = (REFType.REFTEXT) o.getValue();
+                        text = rt.getContent().toString();
+                        fields.put("text", text);
+                    }
+                    if (o.getName().toString().equalsIgnoreCase("REFLINK")) {
+                        if (!o.getValue().toString().isEmpty()) {
+                            url = o.getValue().toString();
+                            fields.put("url", url);
+                        }
+                    }
+                    if(logger.isDebugEnabled())
+                        logger.debug(" Cache incoming external references: field=" +fields);
+                };
+                // add fields ro referenceMap
+                // for instance
+                if(name != null) {
+                    System.out.println("PUT REFMAP id:" + name + " value:" + fields);
+                    refMap.put(name, fields);
+                }
+            });
         });
     }
 
@@ -250,8 +293,11 @@ public class FrontendImportService {
         elems.forEach(o -> {
             System.out.println(" Found ELEM: " + o.getName().toString());
         });
+
         // Attributes  are stored to property-list
         Map<String, List<Attribute>> properties = new HashMap<>();
+        // references synomyms and preferred tems and so on
+        Map<String, List<Identifier>> references = new HashMap<>();
 
         // Resolve terms and  collect list of them for insert.
         List<GenericNode> terms = new ArrayList<>();
@@ -259,7 +305,14 @@ public class FrontendImportService {
         List<LANGType> langs = elems.stream().filter(o -> o.getName().toString().equals("LANG")).map(o -> (LANGType)o.getValue()).collect(Collectors.toList());
         langs.forEach(o -> {
             // RECORD/LANG/TE/TERM -> prefLabel
-            terms.add(hadleLang(o, properties, vocabularity));
+            hadleLang(terms, o, properties, references, vocabularity);
+        });
+        // Filter CLAS elemets as list
+        List<String> clas = elems.stream().filter(o -> o.getName().toString().equals("CLAS")).map(o -> (String)o.getValue()).collect(Collectors.toList());
+        clas.forEach(o -> {
+            System.out.println("--CLAS=" + o);
+            //RECORD/CLAS ->
+            handleClas(o, properties);
         });
         // Filter CHECK elemets as list
         List<String> check = elems.stream().filter(o -> o.getName().toString().equals("CHECK")).map(o -> (String)o.getValue()).collect(Collectors.toList());
@@ -269,30 +322,25 @@ public class FrontendImportService {
             handleStatus(o, properties);
         });
 
-        TypeId typeId = typeMap.get("Concept").getDomain();
+        TypeId typeId = null;
+//        if(r.getStat() != null && r.getStat().equalsIgnoreCase("ulottuvuus"))
+//            typeId = typeMap.get("Collection").getDomain();
+//        else
+            typeId = typeMap.get("Concept").getDomain();
         GenericNode node = null;
         // Check if we update concept
         if(idMap.get(code) != null){
-            System.out.println(" UPDATE operation!!!!!!!!!");
-            node = new GenericNode(idMap.get(code),code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
+            System.out.println(" UPDATE operation!!!!!!!!! refcount="+ references.size());
+            node = new GenericNode(idMap.get(code),code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, references, emptyMap());
         } else {
-            node = new GenericNode(code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
-            System.out.println(" CREATE NEW operation!!!!!!");
+            node = new GenericNode(code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, references, emptyMap());
+            System.out.println(" CREATE NEW operation!!!!!! refcount="+ references.size());
         }
         // Send item to termed-api
         // First add terms
         terms.forEach(t->{addNodeList.add(t);});
         // then concept itself
         addNodeList.add(node);
-
-        /*
-        GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addedNodes);
-        System.out.println("------------------------------------");
-        JsonUtils.prettyPrintJson(operation);
-        System.out.println("------------------------------------");
-        termedService.bulkChange(operation,true);
-        return addedNodes;
-        */
     }
 
     /**
@@ -300,6 +348,7 @@ public class FrontendImportService {
      * should be stored under parent concept
      * prefLabel value is found under LANG/TE/TERM
      * parent.definition is  under LANG/TE/DEF
+     * parent.source-elements are found under LANG/TE/SOURF, LANG/TE/DEF/SOURF and LANG/TE/NOTE/SOURF all of them are mapped to same source-list
      * Incoming NTRF:
      *     <LANG value="fi">
      *       <TE>
@@ -312,10 +361,22 @@ public class FrontendImportService {
      *       <NOTE>Englannin käsite education on laajempi kuin suomen opetus (1), niin että termillä education viitataan opetuksen (1) lisäksi muun muassa <RCON href="#tmpOKSAID116">kasvatukseen</RCON>, <RCON href="#tmpOKSAID121">koulutukseen (1)</RCON> ja sivistykseen.<SOURF>rk + KatriSeppala</SOURF></NOTE>
      *       <NOTE>Käsitteen tunnus: tmpOKSAID117</NOTE>
      *     </LANG>
+     *     <LANG value="en">
+     *       <TE>
+     *         <EQUI value="broader"></EQUI>
+     *         <TERM>education</TERM>
+     *         <HOGR>1</HOGR>
+     *         <SOURF>ophall_sanasto</SOURF>
+     *       </TE>
+     *       <SY>
+     *         <TERM>upbringing</TERM>
+     *         <SOURF>MOT_englanti</SOURF>
+     *       </SY>
+     *     </LANG>
      * @param o LANGType containing incoming NTRF-block
      * @param vocabularity Graph-element containing  information of  parent vocabularity like id and base-uri
      */
-    private GenericNode hadleLang(LANGType o, Map<String, List<Attribute>> parentProperties, Graph vocabularity)  {
+    private int hadleLang(List<GenericNode> termsList, LANGType o, Map<String, List<Attribute>> parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity)  {
          // generate random UUID as a code and use it as part if the generated URI
          String code = UUID.randomUUID().toString();
 
@@ -327,44 +388,65 @@ public class FrontendImportService {
         // Filter TE elemets as list and add mapped elements as properties under node
         List<TEType> terms = e.stream().filter(t -> t instanceof TEType).map(t -> (TEType)t).collect(Collectors.toList());
         for(TEType i:terms){
-            logger.info("Handle Term:"+i.getTERM().getContent().toString());
+            if(logger.isDebugEnabled())
+                logger.debug("Handle Term:"+i.getTERM().getContent().toString());
             List<Serializable> li = i.getTERM().getContent();
             if(!li.isEmpty()) { // if value exist
-//                String value = i.getTERM().getContent().get(0).toString();
                 String value = getAttributeContent(i.getTERM().getContent());
                 Attribute att = new Attribute(o.getValueAttribute(), value);
                 addProperty("prefLabel", properties,  att);
             }
-
         };
+
         //DEFINITION
         List<DEFType> def = e.stream().filter(t -> t instanceof DEFType).map(t -> (DEFType)t).collect(Collectors.toList());
         // Definition is complex multi-line object which needs to be resolved
         for(DEFType d:def){
-            System.out.println(" Found Definition: " + d.getContent().toString());
             handleDEF(d, o.getValueAttribute(), parentProperties,vocabularity);
         }
 
         // NOTE
         List<NOTEType> notes = e.stream().filter(t -> t instanceof NOTEType).map(t -> (NOTEType)t).collect(Collectors.toList());
         for(NOTEType n:notes){
-            System.out.println(" Found Definition: " + n.getContent().toString());
             handleNOTE(n, o.getValueAttribute(), parentProperties,vocabularity);
+        }
+
+        // SOURF
+        List<DEFType.SOURF> sources = e.stream().filter(t -> t instanceof DEFType.SOURF).map(t -> (DEFType.SOURF)t).collect(Collectors.toList());
+        for(DEFType.SOURF s:sources){
+            handleSOURF(s, o.getValueAttribute(), parentProperties,vocabularity);
+        }
+
+        // SY (synonym)
+        List<SYType> synonym = e.stream().filter(t -> t instanceof SYType).map(t -> (SYType)t).collect(Collectors.toList());
+        for(SYType s:synonym){
+            System.out.println("Synonym:"+s.toString());
+            handleSynonyms(termsList, s, o.getValueAttribute(), parentProperties,vocabularity);
         }
 
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
         GenericNode node = null;
         if(idMap.get(code) != null) {
-            logger.debug("Update Term");
+            if(logger.isDebugEnabled())
+                logger.debug("Update Term");
             System.out.println("Update TERM!!!! ");
             node = new GenericNode(idMap.get(code),code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
         }
         else {
-            logger.debug("Create Term");
             node = new GenericNode(code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
+            // Set just created term as preferred term for concept
+
+            List<Identifier> ref;
+            if(parentReferences.get("prefLabelXl") != null)
+                ref = parentReferences.get("prefLabelXl");
+            else
+                ref = new ArrayList<>();
+            ref.add(new Identifier(node.getId(),typeId));
+            parentReferences.put("prefLabelXl",ref);
         }
-        return node;
+        termsList.add(node);
+        return termsList.size();
     }
 
     private String getAttributeContent( List<Serializable> li) {
@@ -400,10 +482,18 @@ public class FrontendImportService {
         return att;
     }
 
-    private Attribute  handleDEF( DEFType def, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
-        logger.debug("handleDEF-part:"+def.getContent());
-        String defString="";
+    private Attribute  handleClas( String o, Map<String, List<Attribute>> properties){
+        System.out.println(" Set clas: " + o);
+        Attribute att = new Attribute("", o);
+        addProperty("conceptClass", properties, att);
+        return att;
+    }
 
+    private Attribute  handleDEF( DEFType def, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
+        if(logger.isDebugEnabled())
+            logger.debug("handleDEF-part:"+def.getContent());
+
+        String defString="";
         List<Serializable> defItems = def.getContent();
         for(Serializable de:defItems) {
             if(de instanceof  String) {
@@ -424,7 +514,6 @@ public class FrontendImportService {
                             defString = defString.concat(rc.getHref().substring(1) + "'");
                         } else
                             defString = defString.concat(rc.getHref() + "'");
-                        System.out.println("TYPER="+rc.getTypr());
                         if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
                             defString = defString.concat(" data-typr ='" +
                                     rc.getTypr()+"'");
@@ -434,22 +523,27 @@ public class FrontendImportService {
                     else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
                         DEFType.SOURF sf = (DEFType.SOURF)j.getValue();
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
-                            System.out.println("-----SOURF=" + sf.getContent());
-                            defString = defString.concat(" "+sf.getContent());
+                            // Add  refs as sources-part.
+                            updateSources(sf.getContent(), lang, parentProperties);
                         }
-                    } else
-                        System.out.println("  def-class" + de.getClass().getName());
+                    }
                 }
-                logger.info("Definition="+defString);
             }
         };
-        Attribute att = new Attribute(lang, defString);
-        addProperty("definition", parentProperties,  att);
-        return att;
+        if(logger.isDebugEnabled())
+            logger.debug("Definition="+defString);
+        // Add definition if exist.
+        if(!defString.isEmpty()) {
+            Attribute att = new Attribute(lang, defString);
+            addProperty("definition", parentProperties, att);
+            return att;
+        } else
+            return null;
     }
 
     private Attribute  handleNOTE( NOTEType note, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
-        logger.debug("handleNOTE-part"+note.getContent());
+        if(logger.isDebugEnabled())
+            logger.debug("handleNOTE-part"+note.getContent());
 
         String noteString="";
 
@@ -464,12 +558,7 @@ public class FrontendImportService {
                     JAXBElement j = (JAXBElement)de;
                     System.out.println("  note-elem <" + j.getName()+">");
                     if(j.getName().toString().equalsIgnoreCase("RCON")){
-                        System.out.println("RCON------");
-                        // <NCON href="#tmpOKSAID122" typr="partitive">koulutuksesta (2)</NCON> ->
-                        // <a href="http://uri.suomi.fi/terminology/oksa/tmpOKSAID122" data-typr="partitive">koulutuksesta (2)</a>
-                        // <DEF>suomalaista <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON> vastaava <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON> <BCON href="#tmpOKSAID1401" typr="generic">tutkinto</BCON>, joka suoritetaan kaksivuotisen <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON> päätteeksi<SOURF>opintoluotsi + rk + tr34</SOURF></DEF>
                         RCONType rc=(RCONType)j.getValue();
-                        System.out.println("RCON-HREF <a href='"+vocabularity.getUri()+rc.getHref()+"' data-typr='" + rc.getTypr() + "'>"+rc.getContent().get(0)+ "</a>");
                         noteString = noteString.concat("<a href='"+
                                 vocabularity.getUri());
                         // Remove # from uri
@@ -477,7 +566,6 @@ public class FrontendImportService {
                             noteString = noteString.concat(rc.getHref().substring(1) + "'");
                         } else
                             noteString = noteString.concat(rc.getHref() + "'");
-                        System.out.println("TYPER="+rc.getTypr());
                         if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
                             noteString = noteString.concat(" data-typr ='" +
                                     rc.getTypr()+"'");
@@ -487,18 +575,215 @@ public class FrontendImportService {
                     else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
                         NOTEType.SOURF sf = (NOTEType.SOURF)j.getValue();
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
-                            System.out.println("-----SOURF=" + sf.getContent());
-                            noteString = noteString.concat(" "+sf.getContent());
+                            noteString.concat(sf.getContent().toString());
+                            // Add  refs as string and  construct lines four sources-part.
+                            updateSources(sf.getContent(), lang, parentProperties);
                         }
+                    } else if(j.getName().toString().equalsIgnoreCase("LINK")){
+                        // External link
+                        LINKType l=(LINKType)j.getValue();
+                        // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
+                        String url=l.getHref().substring(5);
+                        noteString = noteString.concat("<a href='"+url+"' data-type='external'>"+l.getContent().get(0)+"</a>");
                     } else
                         System.out.println("  note-class" + de.getClass().getName());
                 }
-                System.out.println("  note-String=" + noteString);
+                if(logger.isDebugEnabled())
+                    logger.debug("note-String="+noteString);
             }
         };
-        Attribute att = new Attribute(lang, noteString);
-        addProperty("note", parentProperties,  att);
-        return att;
+
+        // Add note if exist.
+        if(!noteString.isEmpty()) {
+            Attribute att = new Attribute(lang, noteString);
+            addProperty("note", parentProperties, att);
+            return att;
+        } else
+            return null;
+    }
+
+    private Attribute  handleSynonyms(List<GenericNode> terms,  SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
+        if(logger.isDebugEnabled())
+            logger.debug("handleSY-part:"+synonym.getEQUIOrTERMOrHOGR());
+        //Synonym fields
+        String equi= "";
+        String hogr = "";
+        String term ="";
+        String sourf = "";
+        String scope = "";
+        // Attributes  are stored to property-list
+        Map<String, List<Attribute>> properties = new HashMap<>();
+
+        for(JAXBElement elem:synonym.getEQUIOrTERMOrHOGR()) {
+            System.out.println(" SYN-Element=" + elem.getName().toString());
+            if (elem.getName().toString().equalsIgnoreCase("EQUI")) {
+                System.out.println(" EQUI="+elem.getValue());
+                // Attribute string value = broader | narrower | near-equivalent
+                EQUIType eqt = (EQUIType)elem.getValue();
+                equi = eqt.getValueAttribute();
+            }else if (elem.getName().toString().equalsIgnoreCase("HOGR")) {
+                hogr= elem.getValue().toString();
+                Attribute att = new Attribute(lang, hogr);
+                addProperty("hogr", properties,  att);
+            } else if (elem.getName().toString().equalsIgnoreCase("TERM")) {
+                System.out.println(elem.getValue());
+                if(elem.getValue() instanceof SYType.TERM){
+                    SYType.TERM termObj = (SYType.TERM)elem.getValue();
+                    term = termObj.getContent().toString();
+                    Attribute att = new Attribute(lang, term);
+                    addProperty("prefLabel", properties,  att);
+                }
+/**
+ *       <TE>
+ *         <TERM>lärdomsprov<GRAM gend="n"></GRAM></TERM>
+ *         <SOURF>fisv_utbild_ordlista + 794/2004 + 1129/2014 + kielityoryhma_sv</SOURF>
+ *       </TE>
+ *       <SY>
+ *         <TERM>examensarbete<GRAM gend="n"></GRAM></TERM>
+ *         <SCOPE>akademisk</SCOPE>
+ *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
+ *       </SY>
+ *       <SY>
+ *         <EQUI value="near-equivalent"></EQUI>
+ *         <TERM>vetenskapligt arbete<GRAM gend="n"></GRAM></TERM>
+ *         <SCOPE>akademisk</SCOPE>
+ *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
+ *       </SY>
+  */
+
+            } else if (elem.getName().toString().equalsIgnoreCase("SOURF")) {
+                sourf=elem.getValue().toString();
+            } else if (elem.getName().toString().equalsIgnoreCase("SCOPE")) {
+                scope = elem.getValue().toString();
+            }
+        }
+        System.out.println("--------------");
+        System.out.println("Synonym  term="+term);
+        System.out.println("         equi="+equi);
+        System.out.println("        sourf="+sourf);
+        System.out.println("        scope="+scope);
+        System.out.println("         hogr="+hogr);
+
+        // create new synonyme node (Term)
+        TypeId typeId = typeMap.get("Term").getDomain();
+        // Uri is  parent-uri/term-'code'
+        GenericNode node = null;
+        String code = vocabularity.getUri() + "term-" + UUID.randomUUID().toString();
+
+        node = new GenericNode(code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
+        JsonUtils.prettyPrintJson(node);
+
+        // Set just created term as preferred term for concept
+/*
+        List<Identifier> ref;
+        if (parentReferences.get("prefLabelXl") != null)
+            ref = parentReferences.get("prefLabelXl");
+        else
+            ref = new ArrayList<>();
+        ref.add(new Identifier(node.getId(), typeId));
+        parentReferences.put("prefLabelXl", ref);
+
+        termsList.add(node);
+*/
+
+//        if(logger.isDebugEnabled())
+//            logger.debug("Definition="+defString);
+        // Add definition if exist.
+//        if(!defString.isEmpty()) {
+//            Attribute att = new Attribute(lang, defString);
+//            addProperty("definition", parentProperties, att);
+//           return att;
+            return null;
+    }
+
+    /**
+     *  From
+     * @param source
+     * @param lang
+     * @param properties
+     * @param vocabularity
+     * @return
+     */
+    private Attribute  handleSOURF(DEFType.SOURF source, String lang, Map<String, List<Attribute>>  properties, Graph vocabularity){
+        if(logger.isDebugEnabled())
+            logger.debug("handleSOURF-part"+source.getContent());
+
+        String sourceString="";
+
+        List<Serializable> sourceItems = source.getContent();
+        for(Serializable se:sourceItems) {
+            if(se instanceof  String) {
+                System.out.println("  SOURF-string"+se.toString());
+                sourceString =sourceString.concat(se.toString());
+            }
+            else {
+                if(se instanceof JAXBElement){
+                    JAXBElement j = (JAXBElement)se;
+                    System.out.println("  SOURF-elem <" + j.getName()+">");
+                    if(j.getName().toString().equalsIgnoreCase("SOURF")){
+                        RCONType rc=(RCONType)j.getValue();
+                        sourceString = sourceString.concat("<a href='"+
+                                vocabularity.getUri());
+                        if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
+                            sourceString = sourceString.concat(" data-typr ='" +
+                                    rc.getTypr()+"'");
+                        }
+                        sourceString = sourceString.concat(">"+rc.getContent().get(0)+ "</a>");
+                    }
+                    else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
+                        NOTEType.SOURF sf = (NOTEType.SOURF)j.getValue();
+                        if(sf.getContent()!= null && sf.getContent().size() >0) {
+                            sourceString = sourceString.concat(" "+sf.getContent());
+                            // Add  refs as string and  construct lines four sources-part.
+                            updateSources(sf.getContent(), lang, properties);
+                        }
+                    }  else
+                        System.out.println("  SOURF-class" + se.getClass().getName());
+                }
+                System.out.println("  -----SOURF-String=|" + sourceString+"|");
+            }
+        };
+        // Add definition if exist.
+
+        if(!sourceString.isEmpty()) {
+            Attribute att = new Attribute(lang, sourceString);
+            addProperty("source", properties, att);
+            return att;
+        } else
+            return null;
+    }
+
+    /**
+     * Add individual source-elemnts to the source-list for each individual reference  enumerated inside imported SOURF
+     * @param srefs
+     * @param lang
+     * @param properties
+     */
+    private void updateSources(List<Serializable> srefs, String lang,  Map<String, List<Attribute>> properties){
+        for(Serializable o:srefs) {
+            String fields[] = o.toString().split("\\+");
+            for (String s : fields) {
+                s = s.trim();
+                String sourcesString="["+s+"]";
+                Map<String, String> m = referenceMap.get(s);
+                if (m != null) {
+                    if (m.get("text") != null && !m.get("text").isEmpty()) {
+                        sourcesString = sourcesString.concat("\n "+m.get("text")+"\n");
+                    }
+                    if (m.get("url") != null && !m.get("url").isEmpty()) {
+                        sourcesString = sourcesString.concat( m.get("url"));
+                    }
+                } else {
+                    logger.warn("Not matching reference found for:"+s);
+                }
+                if(!sourcesString.isEmpty()) {
+                    if(logger.isDebugEnabled())
+                        logger.debug("ADDING sourf:"+sourcesString);
+                    Attribute satt = new Attribute(lang, sourcesString);
+                    addProperty("source", properties, satt);
+                }
+            }
+        };
     }
 
     /**

@@ -126,4 +126,14 @@ public final class JsonUtils {
 		}
 	}
 
+	public static String prettyPrintJsonAsString(Object node){
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			e.printStackTrace();
+		}
+		return "";
+	}
+
 }
