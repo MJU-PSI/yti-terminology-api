@@ -402,13 +402,13 @@ public class FrontendImportService {
         List<DEFType> def = e.stream().filter(t -> t instanceof DEFType).map(t -> (DEFType)t).collect(Collectors.toList());
         // Definition is complex multi-line object which needs to be resolved
         for(DEFType d:def){
-            handleDEF(d, o.getValueAttribute(), parentProperties,vocabularity);
+            handleDEF(d, o.getValueAttribute(), parentProperties, properties,vocabularity);
         }
 
         // NOTE
         List<NOTEType> notes = e.stream().filter(t -> t instanceof NOTEType).map(t -> (NOTEType)t).collect(Collectors.toList());
         for(NOTEType n:notes){
-            handleNOTE(n, o.getValueAttribute(), parentProperties,vocabularity);
+            handleNOTE(n, o.getValueAttribute(), parentProperties, properties, vocabularity);
         }
 
         // SOURF
@@ -419,10 +419,28 @@ public class FrontendImportService {
 
         // SY (synonym)
         List<SYType> synonym = e.stream().filter(t -> t instanceof SYType).map(t -> (SYType)t).collect(Collectors.toList());
-        for(SYType s:synonym){
-            System.out.println("Synonym:"+s.toString());
-            handleSynonyms(termsList, s, o.getValueAttribute(), parentProperties,vocabularity);
+        if(synonym.size() >0 )
+            System.out.println("Synonym  count "+synonym.size()+ " for "+code+" Terms before "+parentReferences.size() );
+        int count = 0;
+        for(SYType s:synonym) {
+            System.out.println("Adding synonym number: " + count++);
+            GenericNode n = handleSynonyms(s, o.getValueAttribute(), parentProperties, parentReferences, vocabularity);
+            if(n != null){
+                termsList.add(n);
+
+                List<Identifier> ref;
+                if(parentReferences.get("altLabelXl") != null)
+                    ref = parentReferences.get("altLabelXl");
+                else
+                    ref = new ArrayList<>();
+                ref.add(new Identifier(n.getId(), typeMap.get("Term").getDomain()));
+                parentReferences.put("altLabelXl",ref);
+            }
         }
+
+        System.out.println("Synonym list size="+synonym.size());
+        if(synonym.size() >0 )
+            System.out.println("Terms after synonym added "+termsList.size() );
 
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
@@ -489,7 +507,7 @@ public class FrontendImportService {
         return att;
     }
 
-    private Attribute  handleDEF( DEFType def, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
+    private Attribute  handleDEF( DEFType def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Attribute>>  termProperties,  Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleDEF-part:"+def.getContent());
 
@@ -524,7 +542,7 @@ public class FrontendImportService {
                         DEFType.SOURF sf = (DEFType.SOURF)j.getValue();
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
                             // Add  refs as sources-part.
-                            updateSources(sf.getContent(), lang, parentProperties);
+                            updateSources(sf.getContent(), lang, termProperties);
                         }
                     }
                 }
@@ -541,7 +559,7 @@ public class FrontendImportService {
             return null;
     }
 
-    private Attribute  handleNOTE( NOTEType note, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
+    private Attribute  handleNOTE( NOTEType note, String lang, Map<String, List<Attribute>>  parentProperties,Map<String, List<Attribute>>  termProperties, Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleNOTE-part"+note.getContent());
 
@@ -550,13 +568,15 @@ public class FrontendImportService {
         List<Serializable> noteItems = note.getContent();
         for(Serializable de:noteItems) {
             if(de instanceof  String) {
-                System.out.println("  note-string"+de.toString());
+                if(logger.isDebugEnabled())
+                    logger.debug("  Parsing note-string:" + de.toString());
                 noteString =noteString.concat(de.toString());
             }
             else {
                 if(de instanceof JAXBElement){
                     JAXBElement j = (JAXBElement)de;
-                    System.out.println("  note-elem <" + j.getName()+">");
+                    if(logger.isDebugEnabled())
+                        logger.debug("  Parsing note-elem:" + j.getName()+"");
                     if(j.getName().toString().equalsIgnoreCase("RCON")){
                         RCONType rc=(RCONType)j.getValue();
                         noteString = noteString.concat("<a href='"+
@@ -577,7 +597,7 @@ public class FrontendImportService {
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
                             noteString.concat(sf.getContent().toString());
                             // Add  refs as string and  construct lines four sources-part.
-                            updateSources(sf.getContent(), lang, parentProperties);
+                            updateSources(sf.getContent(), lang, termProperties);
                         }
                     } else if(j.getName().toString().equalsIgnoreCase("LINK")){
                         // External link
@@ -602,7 +622,7 @@ public class FrontendImportService {
             return null;
     }
 
-    private Attribute  handleSynonyms(List<GenericNode> terms,  SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Graph vocabularity){
+    private GenericNode  handleSynonyms( SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleSY-part:"+synonym.getEQUIOrTERMOrHOGR());
         //Synonym fields
@@ -615,21 +635,42 @@ public class FrontendImportService {
         Map<String, List<Attribute>> properties = new HashMap<>();
 
         for(JAXBElement elem:synonym.getEQUIOrTERMOrHOGR()) {
-            System.out.println(" SYN-Element=" + elem.getName().toString());
+            if(logger.isDebugEnabled())
+                logger.debug("Parsing SYN-Element=" + elem.getName().toString());
             if (elem.getName().toString().equalsIgnoreCase("EQUI")) {
-                System.out.println(" EQUI="+elem.getValue());
                 // Attribute string value = broader | narrower | near-equivalent
                 EQUIType eqt = (EQUIType)elem.getValue();
                 equi = eqt.getValueAttribute();
+                String eqvalue ="=";
+                if(equi.equalsIgnoreCase("broader"))
+                    eqvalue=">";
+                if(equi.equalsIgnoreCase("narrower"))
+                    eqvalue="<";
+                if(equi.equalsIgnoreCase("near-equivalent"))
+                    eqvalue="~";
+
+                Attribute att = new Attribute(lang, eqvalue);
+                addProperty("termEquivalency", properties,  att);
             }else if (elem.getName().toString().equalsIgnoreCase("HOGR")) {
                 hogr= elem.getValue().toString();
                 Attribute att = new Attribute(lang, hogr);
-                addProperty("hogr", properties,  att);
+                addProperty("termHomographNumber", properties,  att);
             } else if (elem.getName().toString().equalsIgnoreCase("TERM")) {
                 System.out.println(elem.getValue());
                 if(elem.getValue() instanceof SYType.TERM){
                     SYType.TERM termObj = (SYType.TERM)elem.getValue();
                     term = termObj.getContent().toString();
+                    List<Serializable> termValues = termObj.getContent();
+                    for(Serializable t:termValues){
+                        // If is name and it may contain additional GRAM-specification
+                        if(t instanceof  String) {
+                            term = t.toString();
+                            System.out.println("    TermValues=" + term);
+                        }else{
+                            // Term can contain parts like GRAM-elements
+                            System.out.println("    TermClass=" + t.getClass().getName());
+                        }
+                    }
                     Attribute att = new Attribute(lang, term);
                     addProperty("prefLabel", properties,  att);
                 }
@@ -653,8 +694,12 @@ public class FrontendImportService {
 
             } else if (elem.getName().toString().equalsIgnoreCase("SOURF")) {
                 sourf=elem.getValue().toString();
+                Attribute att = new Attribute(lang, sourf);
+                addProperty("source", properties,  att);
             } else if (elem.getName().toString().equalsIgnoreCase("SCOPE")) {
                 scope = elem.getValue().toString();
+                Attribute att = new Attribute(lang, scope);
+                addProperty("scope", properties,  att);
             }
         }
         System.out.println("--------------");
@@ -668,32 +713,13 @@ public class FrontendImportService {
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
         GenericNode node = null;
-        String code = vocabularity.getUri() + "term-" + UUID.randomUUID().toString();
+        UUID id = UUID.randomUUID();
+        String code = id.toString();
 
-        node = new GenericNode(code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
+        node = new GenericNode(id, code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
         JsonUtils.prettyPrintJson(node);
-
-        // Set just created term as preferred term for concept
-/*
-        List<Identifier> ref;
-        if (parentReferences.get("prefLabelXl") != null)
-            ref = parentReferences.get("prefLabelXl");
-        else
-            ref = new ArrayList<>();
-        ref.add(new Identifier(node.getId(), typeId));
-        parentReferences.put("prefLabelXl", ref);
-
-        termsList.add(node);
-*/
-
-//        if(logger.isDebugEnabled())
-//            logger.debug("Definition="+defString);
-        // Add definition if exist.
-//        if(!defString.isEmpty()) {
-//            Attribute att = new Attribute(lang, defString);
-//            addProperty("definition", parentProperties, att);
-//           return att;
-            return null;
+        System.out.println("id="+node.getId().toString()+" code="+node.getCode());
+        return node;
     }
 
     /**
