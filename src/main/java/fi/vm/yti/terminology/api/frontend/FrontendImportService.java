@@ -73,7 +73,13 @@ public class FrontendImportService {
      */
     private HashMap<String,UUID> idMap = new HashMap<>();
     /**
-     * Map binding togerher reference string and external URL fromn ntrf SOURF-element
+     * Map containing node.code or node.uri as a key and  UUID as a value. Used for reference resolving after all
+     * concepts and terms are created
+     */
+    private HashMap<String,UUID> createdIdMap = new HashMap<>();
+
+    /**
+     * Map binding together reference string and external URL fromn ntrf SOURF-element
      */
     private HashMap<String,HashMap<String,String>> referenceMap = new HashMap<>();
 
@@ -244,6 +250,8 @@ public class FrontendImportService {
      *         <SOURF>MOT_englanti</SOURF>
      *       </SY>
      *     </LANG>
+     *     <BCON href="#tmpOKSAID122" typr="generic">koulutus (2)</BCON>
+     *     <NCON href="#tmpOKSAID123" typr="generic">koulutuksen toteutus</NCON>
      *     <CLAS>yleinen/yhteinen</CLAS>
      *     <CHECK>hyväksytty</CHECK>
      *   </RECORD>
@@ -322,6 +330,24 @@ public class FrontendImportService {
             handleStatus(o, properties);
         });
 
+        // Filter BCON elemets as list
+        List<BCONType> bcon = elems.stream().filter(o -> o.getName().toString().equals("BCON")).map(o -> (BCONType)o.getValue()).collect(Collectors.toList());
+        bcon.forEach(o -> {
+            System.out.println("--BCON=" + o.getHref());
+            //RECORD/BCON
+            handleBcon(o,references);
+        });
+        // Filter NCON elemets as list
+        List<NCONType> ncon = elems.stream().filter(o -> o.getName().toString().equals("NCON")).map(o -> (NCONType)o.getValue()).collect(Collectors.toList());
+        ncon.forEach(o -> {
+            System.out.println("--NCON=" + o.getHref());
+            String nrefId=o.getHref().substring(1);
+            System.out.println("Search Match:"+idMap.get(nrefId));
+            System.out.println("Search Match new:"+this.createdIdMap.get(nrefId));
+            //RECORD/BCON
+//            handleStatus(o, properties);
+        });
+
         TypeId typeId = null;
 //        if(r.getStat() != null && r.getStat().equalsIgnoreCase("ulottuvuus"))
 //            typeId = typeMap.get("Collection").getDomain();
@@ -341,6 +367,8 @@ public class FrontendImportService {
         terms.forEach(t->{addNodeList.add(t);});
         // then concept itself
         addNodeList.add(node);
+        // Add id for reference resolving
+        createdIdMap.put(node.getCode(),node.getId());
     }
 
     /**
@@ -464,6 +492,8 @@ public class FrontendImportService {
             parentReferences.put("prefLabelXl",ref);
         }
         termsList.add(node);
+        // Add id for reference resolving
+        createdIdMap.put(node.getCode(),node.getId());
         return termsList.size();
     }
 
@@ -498,6 +528,55 @@ public class FrontendImportService {
         Attribute att = new Attribute("", stat);
         addProperty("status", properties, att);
         return att;
+    }
+
+    private void  handleBcon( BCONType o, Map<String, List<Identifier>>references) {
+        System.out.println("--BCON=" + o.getHref());
+        // o.getTypr() value (generic|partitive)
+        // Remove #
+        if (o.getHref().startsWith("#")) {
+            String brefId = o.getHref().substring(1);
+            UUID refId = idMap.get(brefId);
+            if (refId == null)
+                refId = createdIdMap.get(brefId);
+
+            System.out.println("Search Match:" + idMap.get(brefId));
+            System.out.println("Search Match new:" + this.createdIdMap.get(brefId));
+            // Just add ad broader-element to concept
+            List<Identifier> ref;
+            if (references.get("broader") != null)
+                ref = references.get("broader");
+            else
+                ref = new ArrayList<>();
+            if (refId != null) {
+                ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+                references.put("broader", ref);
+            }
+        }
+    }
+
+    private void  handleNcon( NCONType o, Map<String, List<Identifier>>references) {
+        System.out.println("--NCON=" + o.getHref());
+        // Remove #
+        if (o.getHref().startsWith("#")) {
+            String brefId = o.getHref().substring(1);
+            UUID refId = idMap.get(brefId);
+            if (refId == null)
+                refId = createdIdMap.get(brefId);
+
+            System.out.println("Search Match:" + idMap.get(brefId));
+            System.out.println("Search Match new:" + this.createdIdMap.get(brefId));
+            // Just add ad broader-element to concept
+            List<Identifier> ref;
+            if (references.get("narrower") != null)
+                ref = references.get("narrower");
+            else
+                ref = new ArrayList<>();
+            if (refId != null) {
+                ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+                references.put("narrower", ref);
+            }
+        }
     }
 
     private Attribute  handleClas( String o, Map<String, List<Attribute>> properties){
@@ -537,8 +616,28 @@ public class FrontendImportService {
                                     rc.getTypr()+"'");
                         }
                         defString = defString.concat(">"+rc.getContent().get(0)+ "</a>");
-                    }
-                    else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
+                    } else if(j.getName().toString().equalsIgnoreCase("BCON")){
+                        //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
+                        // >opetus- ja tutkimushenkilöstön</BCON> osa, jonka tehtävissä suunnitellaan,
+                        // koordinoidaan ja johdetaan erittäin laajoja kokonaisuuksia, tehtäviin sisältyy kokonaisvaltaista
+                        // vastuuta organisaation toiminnasta ja taloudesta sekä kansallisen tai kansainvälisen
+                        // tason kehittämistehtävistä ja tehtävissä vaikutetaan huomattavasti koko tutkimusjärjestelmään
+                        // <SOURF>neliport + tr40</SOURF></DEF>
+
+                        BCONType bc=(BCONType)j.getValue();
+                        defString = defString.concat("<a href='"+
+                                vocabularity.getUri());
+                        // Remove # from uri
+                        if(bc.getHref().startsWith("#")) {
+                            defString = defString.concat(bc.getHref().substring(1) + "'");
+                        } else
+                            defString = defString.concat(bc.getHref() + "'");
+                        if(bc.getTypr() != null && !bc.getTypr().isEmpty()) {
+                            defString = defString.concat(" data-typr ='" +
+                                    bc.getTypr()+"'");
+                        }
+                        defString = defString.concat(">"+bc.getContent().get(0)+ "</a>");
+                    } else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
                         DEFType.SOURF sf = (DEFType.SOURF)j.getValue();
                         if(sf.getContent()!= null && sf.getContent().size() >0) {
                             // Add  refs as sources-part.
@@ -621,6 +720,20 @@ public class FrontendImportService {
         } else
             return null;
     }
+    /**
+     * Sample of incoming synonyms
+     *       <SY>
+     *         <TERM>examensarbete<GRAM gend="n"></GRAM></TERM>
+     *         <SCOPE>akademisk</SCOPE>
+     *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
+     *       </SY>
+     *       <SY>
+     *         <EQUI value="near-equivalent"></EQUI>
+     *         <TERM>vetenskapligt arbete<GRAM gend="n"></GRAM></TERM>
+     *         <SCOPE>akademisk</SCOPE>
+     *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
+     *       </SY>
+     */
 
     private GenericNode  handleSynonyms( SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity){
         if(logger.isDebugEnabled())
@@ -666,36 +779,76 @@ public class FrontendImportService {
                         if(t instanceof  String) {
                             term = t.toString();
                             System.out.println("    TermValues=" + term);
-                        }else{
+                        } else{
                             // Term can contain parts like GRAM-elements
-                            System.out.println("    TermClass=" + t.getClass().getName());
+                            System.out.println("    TermClass=" + t.getClass().getName()+" value="+t.toString());
+                            if(t instanceof JAXBElement){
+                                JAXBElement el = (JAXBElement)t;
+                                System.out.println("    Term val=" + el.getName().toString());
+
+                                if(el.getName().toString().equals("GRAM")){
+                                    GRAMType gt = (GRAMType) el.getValue();
+                                    System.out.println("Grammatical specification: gender    ="+gt.getGend());
+                                    System.out.println("               verb/noun   pos       ="+gt.getPos());
+                                    System.out.println("                           value     ="+gt.getValue());
+                                    System.out.println("                yks/mon    value Att ="+gt.getValueAttribute());
+                                    // termConjugation (single, plural)
+                                    if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("pl")){
+                                        // Currently not localized
+                                        Attribute att = new Attribute("fi", "monikko");
+                                        addProperty("termConjugation", properties,  att);
+                                    } else if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("n pl")){
+                                        // Currently not localized plural and  neutral
+                                        Attribute att = new Attribute("fi", "monikko");
+                                        addProperty("termConjugation", properties,  att);
+                                        att = new Attribute("fi", "neutri");
+                                        addProperty("termFamily", properties,  att);
+                                    }else if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("f pl")){
+                                        // Currently not localized plural and  neutral
+                                        Attribute att = new Attribute("fi", "monikko");
+                                        addProperty("termConjugation", properties,  att);
+                                        att = new Attribute("fi", "feminiini");
+                                        addProperty("termFamily", properties,  att);
+                                    }
+                                    // termFamily
+                                    if(gt.getGend() != null && gt.getGend().equalsIgnoreCase("f")){
+                                        // feminiini
+                                        // Currently not localized
+                                        Attribute att = new Attribute("fi", "feminiini");
+                                        addProperty("termFamily", properties,  att);
+                                    } else if(gt.getGend() != null && gt.getGend() != null && gt.getGend().equalsIgnoreCase("m")){
+                                        // maskuliiini
+                                        Attribute att = new Attribute("fi", "maskuliini");
+                                        addProperty("termFamily", properties,  att);
+                                    } else if(gt.getGend() != null && gt.getGend().equalsIgnoreCase("n")){
+                                        // Neutri
+                                        Attribute att = new Attribute("fi", "neutri");
+                                        addProperty("termFamily", properties,  att);
+                                    }
+                                    // wordClass
+                                    if(gt.getPos() != null && !gt.getPos().isEmpty()){
+                                        // Currently not localized, just copy wordClass as such
+                                        Attribute att = new Attribute("fi", gt.getPos());
+                                        addProperty("wordClass", properties,  att);
+                                    }
+                                }
+                            }
                         }
                     }
                     Attribute att = new Attribute(lang, term);
                     addProperty("prefLabel", properties,  att);
                 }
-/**
- *       <TE>
- *         <TERM>lärdomsprov<GRAM gend="n"></GRAM></TERM>
- *         <SOURF>fisv_utbild_ordlista + 794/2004 + 1129/2014 + kielityoryhma_sv</SOURF>
- *       </TE>
- *       <SY>
- *         <TERM>examensarbete<GRAM gend="n"></GRAM></TERM>
- *         <SCOPE>akademisk</SCOPE>
- *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
- *       </SY>
- *       <SY>
- *         <EQUI value="near-equivalent"></EQUI>
- *         <TERM>vetenskapligt arbete<GRAM gend="n"></GRAM></TERM>
- *         <SCOPE>akademisk</SCOPE>
- *         <SOURF>fisv_utbild_ordlista + kielityoryhma_sv</SOURF>
- *       </SY>
-  */
-
             } else if (elem.getName().toString().equalsIgnoreCase("SOURF")) {
+                // Here it is just string
                 sourf=elem.getValue().toString();
+
                 Attribute att = new Attribute(lang, sourf);
                 addProperty("source", properties,  att);
+
+                if(sourf!= null && !sourf.isEmpty()) {
+                    // Add  refs as string and  construct lines four sources-part.
+                    updateSources(sourf, lang, properties);
+                }
             } else if (elem.getName().toString().equalsIgnoreCase("SCOPE")) {
                 scope = elem.getValue().toString();
                 Attribute att = new Attribute(lang, scope);
@@ -717,8 +870,8 @@ public class FrontendImportService {
         String code = id.toString();
 
         node = new GenericNode(id, code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
-        JsonUtils.prettyPrintJson(node);
-        System.out.println("id="+node.getId().toString()+" code="+node.getCode());
+        // Add id for reference resolving
+        createdIdMap.put(node.getCode(),node.getId());
         return node;
     }
 
@@ -780,14 +933,25 @@ public class FrontendImportService {
     }
 
     /**
-     * Add individual source-elemnts to the source-list for each individual reference  enumerated inside imported SOURF
+     * Add individual source-elements to the source-list for each individual reference  enumerated inside imported SOURF
      * @param srefs
      * @param lang
      * @param properties
      */
     private void updateSources(List<Serializable> srefs, String lang,  Map<String, List<Attribute>> properties){
         for(Serializable o:srefs) {
-            String fields[] = o.toString().split("\\+");
+            updateSources(o.toString(),lang, properties);
+        };
+    }
+
+    /**
+     * Add individual source-elements sfrom give string
+     * @param srefs
+     * @param lang
+     * @param properties
+     */
+    private void updateSources(String srefs, String lang,  Map<String, List<Attribute>> properties){
+            String fields[] = srefs.split("\\+");
             for (String s : fields) {
                 s = s.trim();
                 String sourcesString="["+s+"]";
@@ -809,7 +973,6 @@ public class FrontendImportService {
                     addProperty("source", properties, satt);
                 }
             }
-        };
     }
 
     /**
