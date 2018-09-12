@@ -133,7 +133,7 @@ public class FrontendImportService {
         for(RECORDType o:records){
             handleRecord(vocabularity, o, addNodeList);
             flushCount++;
-            if(flushCount >400){
+            if(flushCount >50){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -345,7 +345,7 @@ public class FrontendImportService {
             System.out.println("Search Match:"+idMap.get(nrefId));
             System.out.println("Search Match new:"+this.createdIdMap.get(nrefId));
             //RECORD/BCON
-//            handleStatus(o, properties);
+            handleNcon(o,references);
         });
 
         TypeId typeId = null;
@@ -525,6 +525,7 @@ public class FrontendImportService {
          */
         if(o.equals("hyväksytty"))
             stat = "VALID";
+        // @TODO! Handle rest of the states
         Attribute att = new Attribute("", stat);
         addProperty("status", properties, att);
         return att;
@@ -532,27 +533,34 @@ public class FrontendImportService {
 
     private void  handleBcon( BCONType o, Map<String, List<Identifier>>references) {
         System.out.println("--BCON=" + o.getHref());
-        // o.getTypr() value (generic|partitive)
+        String brefId = o.getHref();
         // Remove #
-        if (o.getHref().startsWith("#")) {
-            String brefId = o.getHref().substring(1);
-            UUID refId = idMap.get(brefId);
-            if (refId == null)
-                refId = createdIdMap.get(brefId);
+        if (brefId.startsWith("#"))
+             brefId = o.getHref().substring(1);
 
-            System.out.println("Search Match:" + idMap.get(brefId));
-            System.out.println("Search Match new:" + this.createdIdMap.get(brefId));
-            // Just add ad broader-element to concept
-            List<Identifier> ref;
-            if (references.get("broader") != null)
-                ref = references.get("broader");
-            else
-                ref = new ArrayList<>();
-            if (refId != null) {
-                ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+        UUID refId = idMap.get(brefId);
+        if (refId == null)
+            refId = createdIdMap.get(brefId);
+
+        // partitive = isPartOf = koostumussuhteinen yläkäsite
+        // generic = broader = hierarkkinen yläkäsite
+        List<Identifier> ref = null;
+        if(o.getTypr().equalsIgnoreCase("generic")) {
+            ref = references.get("broader");
+        } else
+            ref = references.get("isPartOf");
+        if (ref == null)
+            ref = new ArrayList<>();
+        // Generic = broader concept, partitive = related concept
+        if (refId != null) {
+            ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+            if(o.getTypr().equalsIgnoreCase("generic")) {
                 references.put("broader", ref);
-            }
+            } else
+                references.put("isPartOf", ref);
         }
+        else
+            logger.warn("BCON reference match failed. for "+brefId);
     }
 
     private void  handleNcon( NCONType o, Map<String, List<Identifier>>references) {
@@ -566,9 +574,11 @@ public class FrontendImportService {
 
             System.out.println("Search Match:" + idMap.get(brefId));
             System.out.println("Search Match new:" + this.createdIdMap.get(brefId));
-            // Just add ad broader-element to concept
+            //@TODO!
+            // Just add this as broader-element to concept
             List<Identifier> ref;
-            if (references.get("narrower") != null)
+            /*
+            if (references.get("narrover") != null)
                 ref = references.get("narrower");
             else
                 ref = new ArrayList<>();
@@ -576,6 +586,7 @@ public class FrontendImportService {
                 ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
                 references.put("narrower", ref);
             }
+            */
         }
     }
 
