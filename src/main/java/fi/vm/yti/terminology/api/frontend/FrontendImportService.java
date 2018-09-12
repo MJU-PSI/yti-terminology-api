@@ -100,7 +100,13 @@ public class FrontendImportService {
         this.namespaceRoot = namespaceRoot;
     }
 
-
+    /**
+     * Executes import operation. Reads incoming xml and process it
+     * @param format
+     * @param vocabularityId
+     * @param ntrfDocument
+     * @return
+     */
     ResponseEntity handleNtrfDocument(String format, UUID vocabularityId, VOCABULARYType ntrfDocument) {
         System.out.println("POST /import requested with format:"+format+" VocId:"+vocabularityId);
         Long startTime = new Date().getTime();
@@ -133,7 +139,7 @@ public class FrontendImportService {
         for(RECORDType o:records){
             handleRecord(vocabularity, o, addNodeList);
             flushCount++;
-            if(flushCount >50){
+            if(flushCount >200){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -153,6 +159,12 @@ public class FrontendImportService {
         return new ResponseEntity<>("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
     }
 
+    /**
+     * Initialize importer.
+     * - Read given vocabularity for meta-types, cache them
+     * - Read all existing nodes and cache their URI/UUID-values
+     * @param vocabularityId UUID of the vocabularity
+     */
     private void initImport(UUID vocabularityId){
         // Get metamodel types for given vocabularity
         List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
@@ -177,6 +189,11 @@ public class FrontendImportService {
         });
     }
 
+    /**
+     * TSK-NTRF packs external references as REFERENCES-items. Here we go through them and cache values for actual usage
+     * @param referencesTypeList
+     * @param refMap
+     */
     private void handleReferences(List<REFERENCESType>referencesTypeList, HashMap<String,HashMap<String,String>> refMap){
         referencesTypeList.forEach(reftypes -> {
             List<REFType> refs = reftypes.getREFOrREFHEAD().stream().filter(o -> o instanceof REFType).map(o -> (REFType) o).collect(Collectors.toList());
@@ -216,7 +233,8 @@ public class FrontendImportService {
     }
 
     /**
-     * Handle mapping of RECORD
+     * Handle mapping of RECORD. NTRF-models all concepts as RECORD-fields. It contains actual terms and references
+     * to other concepts and external links. See following example
      * incomimg NTRF:
      *   <RECORD numb="tmpOKSAID116" upda="Riina Kosunen, 2018-03-16">
      *     <LANG value="fi">
@@ -260,23 +278,38 @@ public class FrontendImportService {
      */
     void handleRecord(Graph vocabularity, RECORDType r, List<GenericNode> addNodeList) {
         String code="";
+        UUID currentId=null;
         String uri="";
         Long number= 0L;
         String createdBy;
         LocalDate createdDate;
         String lastModifiedBy = null;
         LocalDate lastModifiedDate= LocalDate.now();
-        TypeId type;
+        // Attributes  are stored to property-list
+        Map<String, List<Attribute>> properties = new HashMap<>();
+        // references synomyms and preferred tems and so on
+        Map<String, List<Identifier>> references = new HashMap<>();
 
         code = r.getNumb();
-        // Derfault  creator is importing user
+        // Check  whether id exist and create id
+        if(idMap.get(code) != null) {
+            System.out.println(" UPDATE operation!!!!!!!!! " + code);
+            currentId = idMap.get(code);
+        } else {
+            System.out.println(" CREATE NEW  operation!!!!!!!!! " + code);
+            currentId = UUID.randomUUID();
+        }
+
+        // Default  creator is importing user
         createdBy = userProvider.getUser().getUsername();
 
         logger.info("Record id:"+code);
+        // Add info to editorial note
+        String editorialNote = "";
         if(r.getName() != null)
-            System.out.print(" Name="+r.getName());
+            editorialNote = editorialNote+r.getName();
         if(r.getStat() != null)
-            System.out.print(" stat="+r.getStat());
+            editorialNote = editorialNote+" "+r.getStat();
         if(r.getUpda() != null) {
             // Store that information to the  modificationHistory
             String updater=r.getUpda();
@@ -288,12 +321,17 @@ public class FrontendImportService {
                 try {
                     lastModifiedDate = LocalDate.parse(upd[1].trim(), df);
                     System.out.println("LastModifiedBy:"+lastModifiedBy+"  LastModifDate="+lastModifiedDate);
+                    editorialNote = editorialNote+" LastModifiedBy:"+lastModifiedBy+"  LastModifDate="+lastModifiedDate;
                 } catch(DateTimeParseException dex){
                     System.out.println("Parse error for date"+dex.getMessage());
                 }
             }
         }
-
+        if(!editorialNote.isEmpty()) {
+            System.out.println("EDitorial note!!!"+editorialNote);
+            Attribute att = new Attribute("fi", editorialNote);
+            addProperty("editorialNote", properties, att);
+        }
         // Print content
         List<?> l = r.getContent();
         // Filter all JAXBElements
@@ -302,10 +340,6 @@ public class FrontendImportService {
             System.out.println(" Found ELEM: " + o.getName().toString());
         });
 
-        // Attributes  are stored to property-list
-        Map<String, List<Attribute>> properties = new HashMap<>();
-        // references synomyms and preferred tems and so on
-        Map<String, List<Identifier>> references = new HashMap<>();
 
         // Resolve terms and  collect list of them for insert.
         List<GenericNode> terms = new ArrayList<>();
@@ -354,14 +388,7 @@ public class FrontendImportService {
 //        else
             typeId = typeMap.get("Concept").getDomain();
         GenericNode node = null;
-        // Check if we update concept
-        if(idMap.get(code) != null){
-            System.out.println(" UPDATE operation!!!!!!!!! refcount="+ references.size());
-            node = new GenericNode(idMap.get(code),code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, references, emptyMap());
-        } else {
-            node = new GenericNode(code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, references, emptyMap());
-            System.out.println(" CREATE NEW operation!!!!!! refcount="+ references.size());
-        }
+        node = new GenericNode(currentId, code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(), typeId, properties, references, emptyMap());
         // Send item to termed-api
         // First add terms
         terms.forEach(t->{addNodeList.add(t);});
@@ -447,11 +474,7 @@ public class FrontendImportService {
 
         // SY (synonym)
         List<SYType> synonym = e.stream().filter(t -> t instanceof SYType).map(t -> (SYType)t).collect(Collectors.toList());
-        if(synonym.size() >0 )
-            System.out.println("Synonym  count "+synonym.size()+ " for "+code+" Terms before "+parentReferences.size() );
-        int count = 0;
         for(SYType s:synonym) {
-            System.out.println("Adding synonym number: " + count++);
             GenericNode n = handleSynonyms(s, o.getValueAttribute(), parentProperties, parentReferences, vocabularity);
             if(n != null){
                 termsList.add(n);
@@ -466,17 +489,12 @@ public class FrontendImportService {
             }
         }
 
-        System.out.println("Synonym list size="+synonym.size());
-        if(synonym.size() >0 )
-            System.out.println("Terms after synonym added "+termsList.size() );
-
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
         GenericNode node = null;
         if(idMap.get(code) != null) {
             if(logger.isDebugEnabled())
                 logger.debug("Update Term");
-            System.out.println("Update TERM!!!! ");
             node = new GenericNode(idMap.get(code),code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(), typeId, properties, emptyMap(), emptyMap());
         }
         else {
@@ -565,15 +583,17 @@ public class FrontendImportService {
 
     private void  handleNcon( NCONType o, Map<String, List<Identifier>>references) {
         System.out.println("--NCON=" + o.getHref());
+        String nrefId = o.getHref();
         // Remove #
-        if (o.getHref().startsWith("#")) {
-            String brefId = o.getHref().substring(1);
-            UUID refId = idMap.get(brefId);
-            if (refId == null)
-                refId = createdIdMap.get(brefId);
+        if (nrefId.startsWith("#"))
+            nrefId = o.getHref().substring(1);
 
-            System.out.println("Search Match:" + idMap.get(brefId));
-            System.out.println("Search Match new:" + this.createdIdMap.get(brefId));
+        UUID refId = idMap.get(nrefId);
+        if (refId == null)
+            refId = createdIdMap.get(nrefId);
+
+            System.out.println("Search Match:" + idMap.get(nrefId));
+            System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
             //@TODO!
             // Just add this as broader-element to concept
             List<Identifier> ref;
@@ -587,7 +607,6 @@ public class FrontendImportService {
                 references.put("narrower", ref);
             }
             */
-        }
     }
 
     private Attribute  handleClas( String o, Map<String, List<Attribute>> properties){
