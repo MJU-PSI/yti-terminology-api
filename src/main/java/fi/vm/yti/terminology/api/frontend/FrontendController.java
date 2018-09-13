@@ -30,6 +30,7 @@ public class FrontendController {
     private final String namespaceRoot;
     private final String groupManagementUrl;
     private final boolean fakeLoginAllowed;
+    private final ServiceUrls serviceUrls;
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
@@ -39,7 +40,8 @@ public class FrontendController {
                               AuthenticatedUserProvider userProvider,
                               @Value("${namespace.root}") String namespaceRoot,
                               @Value("${groupmanagement.public.url}") String groupManagementUrl,
-                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
+                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed,
+                              ServiceUrls serviceUrls) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
@@ -47,6 +49,7 @@ public class FrontendController {
         this.namespaceRoot = namespaceRoot;
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
+        this.serviceUrls = serviceUrls;
     }
 
     @RequestMapping(value = "/groupManagementUrl", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -213,5 +216,17 @@ public class FrontendController {
     String searchConcept(@RequestBody JsonNode query) {
         logger.info("POST /searchConcept requested with query: " + query.toString());
         return elasticSearchService.searchConcept(query);
+    }
+
+    @RequestMapping(value = "/configuration", method = GET, produces = APPLICATION_JSON_VALUE)
+    public Configuration getConfiguration() {
+        logger.info("getConfiguration requested");
+
+        Configuration conf = new Configuration();
+        conf.codeListUrl = this.serviceUrls.getCodeListUrl();
+        conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
+        conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
+
+        return conf;
     }
 }
