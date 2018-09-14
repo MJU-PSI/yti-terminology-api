@@ -16,10 +16,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -231,6 +228,16 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<GenericNode>>() {}));
    }
 
+    @NotNull GenericNode getConceptNode(UUID graphId, UUID conceptId) {
+        Parameters params = new Parameters();
+        params.add("max", "-1");
+        String path = graphId != null ? "/graphs/" + graphId + "/types/Concept/nodes/" + conceptId : null;
+
+        if(path == null )
+            return null;
+        return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<GenericNode>() {}));
+    }
+
     @NotNull JsonNode getNodeListWithoutReferencesOrReferrers(NodeType nodeType) {
 
         Parameters params = new Parameters();
@@ -390,6 +397,24 @@ public class FrontendTermedService {
                 node.getProperties(),
                 mapMapValues(node.getReferences(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper)),
                 mapMapValues(node.getReferrers(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper))
+        );
+    }
+
+    private GenericNode userNameToDisplayName(GenericNode node, UserIdToDisplayNameMapper userIdToDisplayNameMapper) {
+
+        return new GenericNode(
+                node.getId(),
+                node.getCode(),
+                node.getUri(),
+                node.getNumber(),
+                userIdToDisplayNameMapper.map(node.getCreatedBy()),
+                node.getCreatedDate(),
+                userIdToDisplayNameMapper.map(node.getLastModifiedBy()),
+                node.getLastModifiedDate(),
+                node.getType(),
+                node.getProperties(),
+                node.getReferences(),
+                node.getReferrers()
         );
     }
 

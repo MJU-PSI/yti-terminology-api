@@ -1,31 +1,19 @@
 package fi.vm.yti.terminology.api.frontend;
 
-import com.fasterxml.jackson.core.io.JsonStringEncoder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
-import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.model.ntrf.*;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
-import fi.vm.yti.terminology.api.util.Parameters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.xml.bind.DatatypeConverter;
-import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
 import java.io.Serializable;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -35,18 +23,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static fi.vm.yti.security.AuthorizationException.check;
-import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.TerminologicalVocabulary;
-import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.Vocabulary;
 import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
-import static java.util.Arrays.asList;
-import static java.util.Arrays.deepHashCode;
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
-import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toMap;
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
-import static org.springframework.http.HttpMethod.PUT;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +36,7 @@ public class FrontendImportService {
 
     private static final String USER_PASSWORD = "user";
     private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+    private final UUID NULL_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final TermedRequester termedRequester;
     private final FrontendGroupManagementService groupManagementService;
@@ -62,6 +44,7 @@ public class FrontendImportService {
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
+
 
     /**
      * Map containing metadata types. used  when creating nodes.
@@ -82,6 +65,11 @@ public class FrontendImportService {
      * Map binding together reference string and external URL fromn ntrf SOURF-element
      */
     private HashMap<String,HashMap<String,String>> referenceMap = new HashMap<>();
+
+    /**
+     * Map for NCON-reference cache. Operation targetId, type(generic/partitive), broaderConceptId
+     */
+    private List<NconRef> nconList = new ArrayList<>();
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendImportService.class);
 
@@ -108,26 +96,33 @@ public class FrontendImportService {
      * @return
      */
     ResponseEntity handleNtrfDocument(String format, UUID vocabularityId, VOCABULARYType ntrfDocument) {
-        System.out.println("POST /import requested with format:"+format+" VocId:"+vocabularityId);
+        Graph vocabularity = null;
+        logger.info("POST /import requested with format:"+format+" Vocabularity Id:"+vocabularityId);
         Long startTime = new Date().getTime();
         // Fail if given format string is not ntrf
         if (!format.equals("ntrf")) {
             // Unsupported format
             return new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
         }
+
         // Get vocabularity
-        Graph vocabularity = termedService.getGraph(vocabularityId);
+        try {
+            vocabularity = termedService.getGraph(vocabularityId);
+        } catch ( NullPointerException nex){
+            // Vocabularity not found
+            return new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
+        }
 
         initImport(vocabularityId);
 
         // Get statistic of terms
         List<?> l = ntrfDocument.getHEADEROrDIAGOrHEAD();
-        System.out.println("Incoming objects count=" + l.size());
+        logger.info("Incoming objects count=" + l.size());
 
         // Get all reference-elements and build reference-url-map
-        List<REFERENCESType> referencesTypeList = l.stream().filter(o -> o instanceof REFERENCESType).map(o -> (REFERENCESType) o).collect(Collectors.toList());
-        handleReferences(referencesTypeList,referenceMap);
-        logger.info("Incoming reference count=" + referencesTypeList.size());
+        List<REFERENCESType> externalReferences = l.stream().filter(o -> o instanceof REFERENCESType).map(o -> (REFERENCESType) o).collect(Collectors.toList());
+        handleReferences(externalReferences,referenceMap);
+        logger.info("Incoming reference count=" + externalReferences.size());
 
         // Get all records (mapped to terms) from incoming ntrf-document. Check object type and typecast matching objects to  list<>
         List<RECORDType> records = l.stream().filter(o -> o instanceof RECORDType).map(o -> (RECORDType) o).collect(Collectors.toList());
@@ -137,7 +132,7 @@ public class FrontendImportService {
 
         int flushCount = 0;
         for(RECORDType o:records){
-            handleRecord(vocabularity, o, addNodeList);
+            handleRECORD(vocabularity, o, addNodeList);
             flushCount++;
             if(flushCount >200){
                 flushCount=0;
@@ -152,9 +147,58 @@ public class FrontendImportService {
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         termedService.bulkChange(operation,true);
+        addNodeList.clear();
 
         Long endTime = new Date().getTime();
 
+        // ReInitialize caches and after that, resolve ncon-references
+        idMap.clear();
+        typeMap.clear();
+        initImport(vocabularityId);
+        nconList.forEach(nref ->{
+            if(nref.getId() ==  NULL_ID){
+                UUID target=idMap.get(nref.referenceString);
+                System.out.println("Resolving originally unresolved id:"+nref.referenceString);
+                // Update it
+                nref.setId(target);
+            }
+            GenericNode gn = termedService.getConceptNode(vocabularityId,nref.getId());
+            if(gn!= null){
+                // get objects reference list and add
+                Map<String, List<Identifier>> refMap = gn.getReferences();
+                List<Identifier> ref = null;
+                if(nref.getType().equalsIgnoreCase("generic")){
+                    ref = refMap.get("broader");
+                } else
+                    ref = refMap.get("isPartOf");
+                if (ref == null)
+                    ref = new ArrayList<>();
+                // @TODO! Go through refList and add only if missing.
+                // Generic = broader concept, partitive = related concept
+                ref.add(new Identifier(nref.getTargetId(), typeMap.get("Concept").getDomain()));
+                if(nref.getType().equalsIgnoreCase("generic")) {
+                    refMap.put("broader", ref);
+                } else
+                    refMap.put("isPartOf", ref);
+            }
+            addNodeList.add(gn);
+        });
+        // add NCON-changes as one big block
+        operation = new GenericDeleteAndSave(emptyList(),addNodeList);
+        if(logger.isDebugEnabled())
+            logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
+        termedService.bulkChange(operation,true);
+
+        // Handle DIAG-elements and create collections from them
+        List<DIAGType> diagTypeList = l.stream().filter(o -> o instanceof DIAGType).map(o -> (DIAGType) o).collect(Collectors.toList());
+        for(DIAGType o:diagTypeList) {
+            handleDIAG(vocabularity, o, addNodeList);
+        }
+        // Add DIAG-list to vocabularity
+        operation = new GenericDeleteAndSave(emptyList(),addNodeList);
+        if(logger.isDebugEnabled())
+            logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
+        termedService.bulkChange(operation,true);
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
         return new ResponseEntity<>("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
     }
@@ -189,8 +233,55 @@ public class FrontendImportService {
         });
     }
 
+    private void handleDIAG(Graph vocabularity, DIAGType diag, List<GenericNode> addNodeList){
+        String code = diag.getNumb();
+        if(logger.isDebugEnabled())
+            logger.debug("DIAG Name="+diag.getName()+" Code="+code);
+
+        UUID collectionId=idMap.get(code);
+        // Generate new if not update
+        if(collectionId == null)
+            collectionId = UUID.randomUUID();
+        // references list for colection member concepts
+        Map<String, List<Identifier>> references = new HashMap<>();
+        // Construct empty member list
+        List<Identifier> memberRef = new ArrayList<>();
+        // Construct properties map and add name as preflabel
+        Map<String, List<Attribute>> properties = new HashMap<>();
+        // Default lang is finnish at the time
+        addProperty("prefLabel", properties, new Attribute("fi", diag.getName()));
+
+        // get links and add them to references/member map
+        List<?> l = diag.getContent();
+        // Filter all JAXBElements
+        List<JAXBElement> elems=l.stream().filter(o -> o instanceof JAXBElement).map(o -> (JAXBElement)o).collect(Collectors.toList());
+        elems.forEach(o -> {
+            if (o instanceof JAXBElement) {
+                JAXBElement j = (JAXBElement) o;
+                if (j.getName().toString().equalsIgnoreCase("LINK")) {
+                    LINKType lt = (LINKType)j.getValue();
+                    String linkTarget = lt.getHref();
+                    // Remove #
+                    if (linkTarget.startsWith("#"))
+                        linkTarget = linkTarget.substring(1);
+                    UUID targetUUID = idMap.get(linkTarget);
+                    if(targetUUID == null){
+                        System.out.println("Warning! Can't resolve LINK "+ linkTarget+" target UUID.");
+                    }
+                    memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
+                    references.put("member", memberRef);
+                }
+            }
+        });
+        // Construct Node as Collection-type
+        GenericNode node = new GenericNode(collectionId, code, vocabularity.getUri() + code, 0L, userProvider.getUser().getUsername(), new Date(), "", new Date(), typeMap.get("Collection").getDomain(), properties, references, emptyMap());
+        // Just add it
+        addNodeList.add(node);
+    }
+
     /**
-     * TSK-NTRF packs external references as REFERENCES-items. Here we go through them and cache values for actual usage
+     * TSK-NTRF packs external references as REFERENCES-items. Here we go through them and cache
+     * values for later usage
      * @param referencesTypeList
      * @param refMap
      */
@@ -276,7 +367,7 @@ public class FrontendImportService {
      * @param vocabularity Graph-node from termed. It contains base-uri where esck Concept and Term is bound
      * @param r
      */
-    void handleRecord(Graph vocabularity, RECORDType r, List<GenericNode> addNodeList) {
+    void handleRECORD(Graph vocabularity, RECORDType r, List<GenericNode> addNodeList) {
         String code="";
         UUID currentId=null;
         String uri="";
@@ -321,7 +412,7 @@ public class FrontendImportService {
                 try {
                     lastModifiedDate = LocalDate.parse(upd[1].trim(), df);
                     System.out.println("LastModifiedBy:"+lastModifiedBy+"  LastModifDate="+lastModifiedDate);
-                    editorialNote = editorialNote+" LastModifiedBy:"+lastModifiedBy+"  LastModifDate="+lastModifiedDate;
+                    editorialNote = editorialNote+" -"+lastModifiedBy+", "+lastModifiedDate;
                 } catch(DateTimeParseException dex){
                     System.out.println("Parse error for date"+dex.getMessage());
                 }
@@ -332,7 +423,6 @@ public class FrontendImportService {
             Attribute att = new Attribute("fi", editorialNote);
             addProperty("editorialNote", properties, att);
         }
-        // Print content
         List<?> l = r.getContent();
         // Filter all JAXBElements
         List<JAXBElement> elems=l.stream().filter(o -> o instanceof JAXBElement).map(o -> (JAXBElement)o).collect(Collectors.toList());
@@ -347,21 +437,21 @@ public class FrontendImportService {
         List<LANGType> langs = elems.stream().filter(o -> o.getName().toString().equals("LANG")).map(o -> (LANGType)o.getValue()).collect(Collectors.toList());
         langs.forEach(o -> {
             // RECORD/LANG/TE/TERM -> prefLabel
-            hadleLang(terms, o, properties, references, vocabularity);
+            hadleLANG(terms, o, properties, references, vocabularity);
         });
         // Filter CLAS elemets as list
         List<String> clas = elems.stream().filter(o -> o.getName().toString().equals("CLAS")).map(o -> (String)o.getValue()).collect(Collectors.toList());
         clas.forEach(o -> {
             System.out.println("--CLAS=" + o);
             //RECORD/CLAS ->
-            handleClas(o, properties);
+            handleCLAS(o, properties);
         });
         // Filter CHECK elemets as list
         List<String> check = elems.stream().filter(o -> o.getName().toString().equals("CHECK")).map(o -> (String)o.getValue()).collect(Collectors.toList());
         check.forEach(o -> {
             System.out.println("--CHECK=" + o);
             //RECORD/CHECK ->
-            handleStatus(o, properties);
+            handleCHECK(o, properties);
         });
 
         // Filter BCON elemets as list
@@ -369,18 +459,19 @@ public class FrontendImportService {
         bcon.forEach(o -> {
             System.out.println("--BCON=" + o.getHref());
             //RECORD/BCON
-            handleBcon(o,references);
+            handleBCON(o,references);
         });
         // Filter NCON elemets as list
         List<NCONType> ncon = elems.stream().filter(o -> o.getName().toString().equals("NCON")).map(o -> (NCONType)o.getValue()).collect(Collectors.toList());
-        ncon.forEach(o -> {
+        for(NCONType o:ncon) {
             System.out.println("--NCON=" + o.getHref());
             String nrefId=o.getHref().substring(1);
             System.out.println("Search Match:"+idMap.get(nrefId));
             System.out.println("Search Match new:"+this.createdIdMap.get(nrefId));
             //RECORD/BCON
-            handleNcon(o,references);
-        });
+            // Store information of link for now on and after all items are created, update broader/isPartOf-references
+            handleNCON(o,currentId);
+        }
 
         TypeId typeId = null;
 //        if(r.getStat() != null && r.getStat().equalsIgnoreCase("ulottuvuus"))
@@ -431,7 +522,7 @@ public class FrontendImportService {
      * @param o LANGType containing incoming NTRF-block
      * @param vocabularity Graph-element containing  information of  parent vocabularity like id and base-uri
      */
-    private int hadleLang(List<GenericNode> termsList, LANGType o, Map<String, List<Attribute>> parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity)  {
+    private int hadleLANG(List<GenericNode> termsList, LANGType o, Map<String, List<Attribute>> parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity)  {
          // generate random UUID as a code and use it as part if the generated URI
          String code = UUID.randomUUID().toString();
 
@@ -475,7 +566,7 @@ public class FrontendImportService {
         // SY (synonym)
         List<SYType> synonym = e.stream().filter(t -> t instanceof SYType).map(t -> (SYType)t).collect(Collectors.toList());
         for(SYType s:synonym) {
-            GenericNode n = handleSynonyms(s, o.getValueAttribute(), parentProperties, parentReferences, vocabularity);
+            GenericNode n = handleSY(s, o.getValueAttribute(), parentProperties, parentReferences, vocabularity);
             if(n != null){
                 termsList.add(n);
 
@@ -528,7 +619,7 @@ public class FrontendImportService {
      * @param o CHECK-field
      * @param properties Propertylist where status is added
      */
-    private Attribute  handleStatus( String o, Map<String, List<Attribute>> properties){
+    private Attribute handleCHECK(String o, Map<String, List<Attribute>> properties){
         System.out.println(" Set status: " + o);
         String stat = "DRAFT";
         /*
@@ -549,7 +640,15 @@ public class FrontendImportService {
         return att;
     }
 
-    private void  handleBcon( BCONType o, Map<String, List<Identifier>>references) {
+    /**
+     * NTRF Broader-concept parsing
+     * Can be direct hierarchical or  partitive reference
+     *    <BCON href="#tmpOKSAID122" typr="generic">koulutus (2)</BCON>
+     *    <BCON href="#tmpOKSAID148" typr="partitive">toimipisteen</BCON>
+     * @param o
+     * @param references
+     */
+    private void handleBCON(BCONType o, Map<String, List<Identifier>>references) {
         System.out.println("--BCON=" + o.getHref());
         String brefId = o.getHref();
         // Remove #
@@ -581,7 +680,8 @@ public class FrontendImportService {
             logger.warn("BCON reference match failed. for "+brefId);
     }
 
-    private void  handleNcon( NCONType o, Map<String, List<Identifier>>references) {
+    private void handleNCON(NCONType o, UUID broaderConceptId) {
+        Map<String, List<Identifier>>references;
         System.out.println("--NCON=" + o.getHref());
         String nrefId = o.getHref();
         // Remove #
@@ -592,24 +692,29 @@ public class FrontendImportService {
         if (refId == null)
             refId = createdIdMap.get(nrefId);
 
-            System.out.println("Search Match:" + idMap.get(nrefId));
-            System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
-            //@TODO!
-            // Just add this as broader-element to concept
-            List<Identifier> ref;
-            /*
-            if (references.get("narrover") != null)
-                ref = references.get("narrower");
-            else
-                ref = new ArrayList<>();
-            if (refId != null) {
-                ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
-                references.put("narrower", ref);
-            }
-            */
+        System.out.println("Search Match:" + idMap.get(nrefId));
+        System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
+        if(refId == null){
+            // Add placeholder for and resolve it after all items are created
+            System.out.println("Can't resolve NCON-reference ID for "+nrefId);
+            NconRef nconRef = new NconRef();
+            nconRef.setReferenceString(nrefId);
+            // Null id, as a placeholder
+            nconRef.setId(NULL_ID);
+            nconRef.setType(o.getTypr());
+            nconRef.setTargetId(broaderConceptId);
+            nconList.add(nconRef);
+        } else {
+            NconRef nconRef = new NconRef();
+            nconRef.setReferenceString(nrefId);
+            nconRef.setId(refId);
+            nconRef.setType(o.getTypr());
+            nconRef.setTargetId(broaderConceptId);
+            nconList.add(nconRef);
+        }
     }
 
-    private Attribute  handleClas( String o, Map<String, List<Attribute>> properties){
+    private Attribute handleCLAS(String o, Map<String, List<Attribute>> properties){
         System.out.println(" Set clas: " + o);
         Attribute att = new Attribute("", o);
         addProperty("conceptClass", properties, att);
@@ -765,7 +870,7 @@ public class FrontendImportService {
      *       </SY>
      */
 
-    private GenericNode  handleSynonyms( SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity){
+    private GenericNode handleSY(SYType synonym, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleSY-part:"+synonym.getEQUIOrTERMOrHOGR());
         //Synonym fields
@@ -808,10 +913,8 @@ public class FrontendImportService {
                         // If is name and it may contain additional GRAM-specification
                         if(t instanceof  String) {
                             term = t.toString();
-                            System.out.println("    TermValues=" + term);
                         } else{
                             // Term can contain parts like GRAM-elements
-                            System.out.println("    TermClass=" + t.getClass().getName()+" value="+t.toString());
                             if(t instanceof JAXBElement){
                                 JAXBElement el = (JAXBElement)t;
                                 System.out.println("    Term val=" + el.getName().toString());
@@ -885,13 +988,6 @@ public class FrontendImportService {
                 addProperty("scope", properties,  att);
             }
         }
-        System.out.println("--------------");
-        System.out.println("Synonym  term="+term);
-        System.out.println("         equi="+equi);
-        System.out.println("        sourf="+sourf);
-        System.out.println("        scope="+scope);
-        System.out.println("         hogr="+hogr);
-
         // create new synonyme node (Term)
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
@@ -1028,4 +1124,42 @@ public class FrontendImportService {
         return UUID_PATTERN.matcher(s).matches();
     }
 
+    private class NconRef {
+        String referenceString;
+        String type;
+        UUID id;
+        UUID targetId;
+
+        public String getReferenceString() {
+            return referenceString;
+        }
+
+        public void setReferenceString(String referenceString) {
+            this.referenceString = referenceString;
+        }
+
+        public UUID getTargetId() {
+            return targetId;
+        }
+
+        public void setTargetId(UUID targetId) {
+            this.targetId = targetId;
+        }
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+    }
 }
