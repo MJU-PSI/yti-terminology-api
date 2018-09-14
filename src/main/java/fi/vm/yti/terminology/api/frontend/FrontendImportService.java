@@ -451,9 +451,13 @@ public class FrontendImportService {
         check.forEach(o -> {
             System.out.println("--CHECK=" + o);
             //RECORD/CHECK ->
-            handleCHECK(o, properties);
+            handleCHECK(o, r.getStat(), properties);
         });
 
+        // stat-attribute overrides CHECK
+        if(r.getStat()!= null && !r.getStat().isEmpty()){
+            handleStat(r.getStat(), properties);
+        }
         // Filter BCON elemets as list
         List<BCONType> bcon = elems.stream().filter(o -> o.getName().toString().equals("BCON")).map(o -> (BCONType)o.getValue()).collect(Collectors.toList());
         bcon.forEach(o -> {
@@ -619,9 +623,9 @@ public class FrontendImportService {
      * @param o CHECK-field
      * @param properties Propertylist where status is added
      */
-    private Attribute handleCHECK(String o, Map<String, List<Attribute>> properties){
+    private Attribute handleCHECK(String o, String stat, Map<String, List<Attribute>> properties){
         System.out.println(" Set status: " + o);
-        String stat = "DRAFT";
+        String status = "DRAFT";
         /*
            keskeneräinen       | 'INCOMPLETE'
            korvattu            | 'SUPERSEDED'
@@ -633,11 +637,33 @@ public class FrontendImportService {
            luonnos             | 'DRAFT'
          */
         if(o.equals("hyväksytty"))
-            stat = "VALID";
+            status = "VALID";
+        if(stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut"))
+            status="RETIRED";
         // @TODO! Handle rest of the states
-        Attribute att = new Attribute("", stat);
+        Attribute att = new Attribute("", status);
         addProperty("status", properties, att);
         return att;
+    }
+
+    private void handleStat(String stat, Map<String, List<Attribute>> properties){
+        String status = "DRAFT";
+        /*
+           keskeneräinen       | 'INCOMPLETE'
+           korvattu            | 'SUPERSEDED'
+           odottaa hyväksyntää | 'SUBMITTED'
+                               | 'RETIRED'
+                               | 'INVALID'
+           hyväksytty          | 'VALID'
+                               | 'SUGGESTED'
+           luonnos             | 'DRAFT'
+         */
+        if(stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut")) {
+            status = "RETIRED";
+            Attribute att = new Attribute("", status);
+            addProperty("status", properties, att);
+        }
+        return;
     }
 
     /**
