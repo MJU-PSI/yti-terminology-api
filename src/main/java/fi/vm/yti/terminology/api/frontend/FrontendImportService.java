@@ -850,6 +850,7 @@ public class FrontendImportService {
                             noteString = noteString.concat(" data-typr ='" +
                                     rc.getTypr()+"'");
                         }
+                        System.out.println("?????????? fails"+rc.getContent());
                         noteString = noteString.concat(">"+rc.getContent().get(0)+ "</a>");
                     }
                     else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
