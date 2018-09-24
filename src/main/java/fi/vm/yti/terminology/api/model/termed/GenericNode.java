@@ -28,7 +28,7 @@ public final class GenericNode implements Node {
 
     // Jackson constructor
     private GenericNode() {
-        this(randomUUID(), "", "", 0L, "", new Date(), "", new Date(), TypeId.placeholder(), emptyMap(), emptyMap(), emptyMap());
+        this(randomUUID(), null, null, 0L, null, new Date(), null, new Date(), TypeId.placeholder(), emptyMap(), emptyMap(), emptyMap());
     }
 
     public GenericNode(UUID id,
