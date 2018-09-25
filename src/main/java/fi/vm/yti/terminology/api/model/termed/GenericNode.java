@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.model.termed;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -10,21 +12,30 @@ import static java.util.UUID.randomUUID;
 
 public final class GenericNode implements Node {
 
-    private final UUID id;
-    private final String code;
-    private final String uri;
-    private final Long number;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private UUID id = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String code = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String uri = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long number = null;
 
-    private final String createdBy;
-    private final Date createdDate;
-    private final String lastModifiedBy;
-    private final Date lastModifiedDate;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String createdBy = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Date createdDate = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String lastModifiedBy = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Date lastModifiedDate = null;
 
     private final TypeId type;
 
     private final Map<String, List<Attribute>> properties;
     private final Map<String, List<Identifier>> references;
-    private final Map<String, List<Identifier>> referrers;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private  Map<String, List<Identifier>> referrers = null;
 
     // Jackson constructor
     private GenericNode() {
@@ -55,6 +66,61 @@ public final class GenericNode implements Node {
         this.properties = properties;
         this.references = references;
         this.referrers = referrers;
+    }
+
+    /**
+     * Used for import. No given UUID so random uuid is created on upon call
+     * @param code
+     * @param uri
+     * @param number
+     * @param createdBy
+     * @param createdDate
+     * @param lastModifiedBy
+     * @param lastModifiedDate
+     * @param type
+     * @param properties
+     * @param references
+     * @param referrers
+     */
+    public GenericNode(String code,
+                       String uri,
+                       Long number,
+                       String createdBy,
+                       Date createdDate,
+                       String lastModifiedBy,
+                       Date lastModifiedDate,
+                       TypeId type,
+                       Map<String, List<Attribute>> properties,
+                       Map<String, List<Identifier>> references,
+                       Map<String, List<Identifier>> referrers) {
+        this.id = randomUUID();
+        this.code = code;
+        this.uri = uri;
+        this.number = number;
+        this.createdBy = createdBy;
+        this.createdDate = createdDate;
+        this.lastModifiedBy = lastModifiedBy;
+        this.lastModifiedDate = lastModifiedDate;
+        this.type = type;
+        this.properties = properties;
+        this.references = references;
+        this.referrers = referrers;
+    }
+
+    /**
+     * Simplified creator
+     * @param type typeId containing  vocabulary-id
+     * @param properties Attributes as Property-map
+     * @param references References as Identifier-map
+     */
+    public GenericNode(TypeId type,
+                       Map<String, List<Attribute>> properties,
+                       Map<String, List<Identifier>> references
+                       ) {
+        this.id = randomUUID();
+        this.type = type;
+        this.properties = properties;
+        this.references = references;
     }
 
     public UUID getId() {

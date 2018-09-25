@@ -242,6 +242,24 @@ public final class AttributeIndex {
     }
 
     @NotNull
+    public static AttributeMeta conceptClass(TypeId domain, long index) {
+        return new AttributeMeta(
+                "conceptClass",
+                "http://uri.suomi.fi/datamodel/ns/iow#conceptClass",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Käsitteen luokka",
+                                "Concept class"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
     public static AttributeMeta priority(TypeId domain, long index) {
         return new AttributeMeta(
                 "priority",
@@ -484,6 +502,26 @@ public final class AttributeIndex {
                         PropertyUtil.prefLabel(
                                 "Termin vastaavuus",
                                 "Term equivalency"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    // homonyymin järjestysnumero / homograph number.  Numero joka kuvaa homonyymin järjestyksen. A number indicating the position of the term within a sequence
+    //of homographs
+    @NotNull
+    public static AttributeMeta termHomographNumber(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termHomographNumber",
+                "http://uri.suomi.fi/datamodel/ns/st#termHomographNumber",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "homonyymin järjestysnumero",
+                                "Homograph number"
                         ),
                         type("string:single")
                 )
