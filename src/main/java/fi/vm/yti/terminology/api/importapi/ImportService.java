@@ -196,7 +196,7 @@ public class ImportService {
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         termedService.bulkChange(operation,true);
 
-        /*
+
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
         for(DIAG o:DIAGList) {
@@ -207,7 +207,6 @@ public class ImportService {
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         termedService.bulkChange(operation,true);
-        */
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
         return new ResponseEntity<>("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
     }
@@ -270,12 +269,18 @@ public class ImportService {
             // Remove #
             if (linkTarget.startsWith("#"))
                 linkTarget = linkTarget.substring(1);
+
             UUID targetUUID = idMap.get(linkTarget);
             if (targetUUID == null) {
-                System.out.println("Warning! Can't resolve LINK " + linkTarget + " target UUID.");
+                // try original
+                targetUUID = idMap.get(li.getHref());
             }
-            memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
-            references.put("member", memberRef);
+            if(targetUUID != null && !targetUUID.equals(NULL_ID)) {
+                memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
+                references.put("member", memberRef);
+            } else {
+                logger.warn("DIAG:"+diag.getNumb()+" LINK-target " + li.getHref() +" <"+li.getContent() +"> not added into the collection");
+            }
 
         });
 
