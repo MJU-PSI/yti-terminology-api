@@ -3,19 +3,21 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.model.integration.ConceptSuggestion;
 import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.model.ntrf.*;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static java.util.UUID.randomUUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
@@ -24,32 +26,35 @@ import static org.springframework.web.bind.annotation.RequestMethod.*;
 public class FrontendController {
 
     private final FrontendTermedService termedService;
+    private final FrontendImportService importService;
+    private final IntegrationService integrationService;
     private final FrontendElasticSearchService elasticSearchService;
     private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final String namespaceRoot;
     private final String groupManagementUrl;
     private final boolean fakeLoginAllowed;
-    private final ServiceUrls serviceUrls;
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
     public FrontendController(FrontendTermedService termedService,
+                              FrontendImportService importService,
+                              IntegrationService integrationService,
                               FrontendElasticSearchService elasticSearchService,
                               FrontendGroupManagementService groupManagementService,
                               AuthenticatedUserProvider userProvider,
                               @Value("${namespace.root}") String namespaceRoot,
                               @Value("${groupmanagement.public.url}") String groupManagementUrl,
-                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed,
-                              ServiceUrls serviceUrls) {
+                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
         this.termedService = termedService;
+        this.importService = importService;
+        this.integrationService = integrationService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.namespaceRoot = namespaceRoot;
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
-        this.serviceUrls = serviceUrls;
     }
 
     @RequestMapping(value = "/groupManagementUrl", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -121,7 +126,7 @@ public class FrontendController {
         logger.info("POST /vocabulary requested with params: templateGraphId: " +
                     templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
-        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : randomUUID();
         termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
         return predefinedOrGeneratedGraphId;
     }
@@ -218,15 +223,16 @@ public class FrontendController {
         return elasticSearchService.searchConcept(query);
     }
 
-    @RequestMapping(value = "/configuration", method = GET, produces = APPLICATION_JSON_VALUE)
-    public Configuration getConfiguration() {
-        logger.info("getConfiguration requested");
+    @RequestMapping(value = "/import/{format}", method = POST, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity importTerms(@PathVariable("format") String format,
+                               @RequestParam UUID vocabularityId,
+                               @RequestBody VOCABULARY ntrfDocument) {
+        return importService.handleNtrfDocument(format,vocabularityId, ntrfDocument);
+    }
 
-        Configuration conf = new Configuration();
-        conf.codeListUrl = this.serviceUrls.getCodeListUrl();
-        conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
-        conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
-
-        return conf;
+    @RequestMapping(value = "integration/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity  conceptSuggestion(@PathVariable("vocabularyId") String vocabularyId,
+                           @RequestBody ConceptSuggestion incomingConcept) {
+        return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
     }
 }

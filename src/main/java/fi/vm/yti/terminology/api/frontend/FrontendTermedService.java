@@ -69,7 +69,7 @@ public class FrontendTermedService {
         return false;
     }
 
-    @NotNull GenericNodeInlined getVocabulary(UUID graphId) {
+    public @NotNull GenericNodeInlined getVocabulary(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
@@ -219,7 +219,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
 
-    @NotNull List<GenericNode> getNodes(UUID graphId) {
+    public @NotNull List<GenericNode> getNodes(UUID graphId) {
         Parameters params = new Parameters();
         params.add("max", "-1");
 
@@ -228,7 +228,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<GenericNode>>() {}));
    }
 
-    @NotNull GenericNode getConceptNode(UUID graphId, UUID conceptId) {
+    public @NotNull GenericNode getConceptNode(UUID graphId, UUID conceptId) {
         Parameters params = new Parameters();
         params.add("max", "-1");
         String path = graphId != null ? "/graphs/" + graphId + "/types/Concept/nodes/" + conceptId : null;
@@ -253,7 +253,7 @@ public class FrontendTermedService {
     }
 
 
-    void bulkChange(GenericDeleteAndSave deleteAndSave, boolean sync) {
+    public void bulkChange(GenericDeleteAndSave deleteAndSave, boolean sync) {
 
         check(authorizationManager.canModifyNodes(deleteAndSave.getSave()));
         check(authorizationManager.canRemoveNodes(deleteAndSave.getDelete()));
@@ -275,7 +275,7 @@ public class FrontendTermedService {
         termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(), USER_PASSWORD);
     }
 
-    @NotNull List<MetaNode> getTypes(UUID graphId) {
+    public @NotNull List<MetaNode> getTypes(UUID graphId) {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
@@ -285,7 +285,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange(path, GET, params, new ParameterizedTypeReference<List<MetaNode>>() {}));
     }
 
-    @NotNull List<Graph> getGraphs() {
+    public @NotNull List<Graph> getGraphs() {
 
         Parameters params = new Parameters();
         params.add("max", "-1");
@@ -293,7 +293,7 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/graphs", GET, params, new ParameterizedTypeReference<List<Graph>>() {}));
     }
 
-    @NotNull Graph getGraph(UUID graphId) {
+    public @NotNull Graph getGraph(UUID graphId) {
         return requireNonNull(termedRequester.exchange("/graphs/" + graphId, GET, Parameters.empty(), Graph.class));
     }
 

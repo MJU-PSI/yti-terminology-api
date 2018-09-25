@@ -48,7 +48,18 @@ public class SwaggerConfig {
                 .groupName("import")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/import/**"))
+                .paths(PathSelectors.ant("/frontend/import/**"))
                 .build();
     }
+
+    @Bean
+    public Docket integrationApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .groupName("integration")
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.ant("/integration/**"))
+                .build();
+    }
+
 }
