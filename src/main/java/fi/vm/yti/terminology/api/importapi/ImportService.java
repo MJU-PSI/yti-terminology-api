@@ -166,7 +166,6 @@ public class ImportService {
                     System.out.println("Can't resolveoriginally unresolved id:" + nref.referenceString);
                 }
             }
-            System.out.println("Nref-id="+nref.getId()+ "-- vocab="+ vocabularityId);
             if(nref.getId() != null  && !nref.getId().equals(NULL_ID)) {
                 GenericNode gn = termedService.getConceptNode(vocabularityId, nref.getId());
                 if (gn != null) {
@@ -188,6 +187,8 @@ public class ImportService {
                         refMap.put("isPartOf", ref);
                 }
                 addNodeList.add(gn);
+            } else {
+                System.out.println("Cant' resolve following! Nref-id="+nref.getId()+ "-- vocab="+ vocabularityId);
             }
         });
         // add NCON-changes as one big block
@@ -416,6 +417,7 @@ public class ImportService {
         // Add info to editorial note
         String editorialNote = "";
 
+        // Stat can be 'vanhentunut', 'aputermi', 'ulottuvuus'
         if(r.getStat() != null)
             editorialNote = r.getStat();
         if(r.getUpda() != null) {
@@ -435,7 +437,7 @@ public class ImportService {
             }
         }
         if(!editorialNote.isEmpty()) {
-            System.out.println("EDitorial note!!!"+editorialNote);
+            System.out.println("Editorial note!!!"+editorialNote);
             Attribute att = new Attribute("fi", editorialNote);
             addProperty("editorialNote", properties, att);
         }
@@ -453,12 +455,10 @@ public class ImportService {
         clas.forEach(o -> {
             System.out.println("--CLAS=" + o);
             //RECORD/CLAS ->
-            System.out.println("CLAS="+o.getContent().toString());
             handleCLAS(o.getContent().toString(), properties);
         });
         // Filter CHECK elemets as list
         if(r.getCHECK() != null && !r.getCHECK().isEmpty()) {
-            System.out.println("--CHECK=" + r.getCHECK());
             //RECORD/CHECK ->
             handleCHECK(r.getCHECK(), r.getStat(), properties);
         }
@@ -466,6 +466,11 @@ public class ImportService {
         // stat-attribute overrides CHECK
         if(r.getStat()!= null && !r.getStat().isEmpty()){
             handleStat(r.getStat(), properties);
+        }
+        if(r.getREMK()!= null){
+            r.getREMK().forEach(o -> {
+                handleREMK("",o,properties);
+            });
         }
         // Filter BCON elemets as list
         List<BCON> bcon = r.getBCON();
@@ -478,12 +483,17 @@ public class ImportService {
         List<NCON> ncon = r.getNCON();
         for(NCON o:ncon) {
             System.out.println("--NCON=" + o.getHref());
-            String nrefId=o.getHref().substring(1);
-            System.out.println("Search Match:"+idMap.get(nrefId));
-            System.out.println("Search Match new:"+this.createdIdMap.get(nrefId));
-            //RECORD/BCON
-            // Store information of link for now on and after all items are created, update broader/isPartOf-references
-            handleNCON(o,currentId);
+            if( o.getHref()!= null && !o.getHref().isEmpty()) {
+                String nrefId = o.getHref().substring(1);
+                System.out.println("Search Match:" + idMap.get(nrefId));
+                System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
+                //RECORD/BCON
+                // Store information of link for now on and after all items are created, update broader/isPartOf-references
+                handleNCON(o, currentId);
+            } else {
+                logger.warn("Record:"+code+" has null NCON reference.");
+            }
+
         }
 
         TypeId typeId = null;
@@ -576,11 +586,9 @@ public class ImportService {
         List <Termcontent> synonym = o.getSY();
         System.out.println("Handling synonyms");
         synonym.forEach(obj->{
-            System.out.println(" TERMCONTENT="+obj.toString());
             GenericNode n = handleSY(obj, o.getValue().value(), parentProperties, parentReferences, vocabularity);
             if(n != null){
                 termsList.add(n);
-
                 List<Identifier> ref;
                 if(parentReferences.get("altLabelXl") != null)
                     ref = parentReferences.get("altLabelXl");
@@ -618,26 +626,33 @@ public class ImportService {
         return termsList.size();
     }
 
+
+    private void handleTERM(TERM term, String lang,
+                             Map<String, List<Attribute>> properties){
+        if(logger.isDebugEnabled())
+            logger.debug("Handle TeRM:"+term.toString());
+        term.getContent().forEach( li-> {
+            if (li instanceof String) {
+                Attribute att = new Attribute(lang, li.toString());
+                addProperty("prefLabel", properties, att);
+            }
+            if(li instanceof GRAM && li != null ){
+                handleGRAM((GRAM)li, properties);
+            }
+        });
+    }
+
     private void handleTE(Termcontent tc,
                           String lang,
                           Map<String, List<Attribute>> properties,
                           Map<String, List<Attribute>> parentProperties,
                           Graph vocabularity){
         if(logger.isDebugEnabled())
-            logger.debug("Handle Term:"+tc.toString());
+            logger.debug("Handle Te:"+tc.toString());
         // LANG/TE/TERM
 
         if(tc.getTERM()!=null){
-
-            tc.getTERM().getContent().forEach( li-> {
-                if (li instanceof String) {
-                    Attribute att = new Attribute(lang, li.toString());
-                    addProperty("prefLabel", properties, att);
-                }
-                if(li instanceof GRAM && li != null ){
-                    handleGRAM((GRAM)li, properties);
-                }
-            });
+            handleTERM(tc.getTERM(),lang,properties);
         }
         
         // LANG/TE/SOURF
@@ -659,7 +674,7 @@ public class ImportService {
         }
         //LANG/TE/REMK
         if(tc.getREMK() != null){
-            System.out.println("Handle REMK for TE/SY:"+tc.getREMK().getContent().toString());
+            handleREMK(lang,tc.getREMK(),properties);
         }
     }
 
@@ -669,6 +684,43 @@ public class ImportService {
             value = li.get(0).toString();
         }
         return value;
+    }
+
+    private void handleREMK(String lang, REMK remk, Map<String, List<Attribute>> properties){
+        List<Attribute> eNotes = properties.get("editorialNote");
+        if(eNotes == null)
+            eNotes= new ArrayList<Attribute>();
+
+        List<?> content=remk.getContent();
+        System.out.print("handleREMK()");
+        String editorialNote ="";
+        for(Object o:content){
+            if(o instanceof String){
+                editorialNote = editorialNote+((String) o).toString();
+            } else if(o instanceof JAXBElement){
+                JAXBElement elem = (JAXBElement) o;
+                System.out.println("REMB-JAXB-element: "+elem.getValue().toString());
+                editorialNote = editorialNote+elem.getValue().toString();
+            } else if(o instanceof LINK){
+                LINK l = (LINK)o;
+                System.out.println("REMK LINK="+l.getHref());
+                // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
+//                String url=l.getHref().substring(5);
+                editorialNote = editorialNote.concat("<a href='"+l.getHref()+"' data-type='external'>"+l.getContent().get(0)+"</a>");
+            }else {
+                System.out.println(" REMK: unhandled contentclass="+o.getClass().getName()+" value="+o.toString());
+            }
+
+        };
+        if(!editorialNote.isEmpty()) {
+            System.out.println("REMK  Editorial note!!!"+editorialNote);
+            Attribute att = new Attribute("fi", editorialNote);
+            addProperty("editorialNote", properties, att);
+        }
+        /*
+        Attribute att = new Attribute(lang, equi.getValue());
+        addProperty("termEquivalency", properties, att);
+        */
     }
 
     private void handleEQUI(String lang, EQUI equi, Map<String, List<Attribute>> properties){
@@ -762,11 +814,12 @@ public class ImportService {
                                | 'SUGGESTED'
            luonnos             | 'DRAFT'
          */
-        if(o.equals("hyväksytty"))
-            status = "VALID";
+        if(o.equalsIgnoreCase("hyväksytty"))
+            status = "DRAFT";
+
+
         if(stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut"))
             status="RETIRED";
-        // @TODO! Handle rest of the states
         Attribute att = new Attribute("", status);
         addProperty("status", properties, att);
         return att;
@@ -836,33 +889,37 @@ public class ImportService {
         Map<String, List<Identifier>>references;
         System.out.println("--NCON=" + o.getHref());
         String nrefId = o.getHref();
-        // Remove #
-        if (nrefId.startsWith("#"))
-            nrefId = o.getHref().substring(1);
+        if(nrefId!= null) {
+            // Remove #
+            if (nrefId.startsWith("#"))
+                nrefId = o.getHref().substring(1);
 
-        UUID refId = idMap.get(nrefId);
-        if (refId == null)
-            refId = createdIdMap.get(nrefId);
+            UUID refId = idMap.get(nrefId);
+            if (refId == null)
+                refId = createdIdMap.get(nrefId);
 
-        System.out.println("Search Match:" + idMap.get(nrefId));
-        System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
-        if(refId == null){
-            // Add placeholder for and resolve it after all items are created
-            System.out.println("Can't resolve NCON-reference ID for "+nrefId);
-            NconRef nconRef = new NconRef();
-            nconRef.setReferenceString(nrefId);
-            // Null id, as a placeholder
-            nconRef.setId(NULL_ID);
-            nconRef.setType(o.getTypr());
-            nconRef.setTargetId(broaderConceptId);
-            nconList.add(nconRef);
+            System.out.println("Search Match:" + idMap.get(nrefId));
+            System.out.println("Search Match new:" + this.createdIdMap.get(nrefId));
+            if (refId == null) {
+                // Add placeholder for and resolve it after all items are created
+                System.out.println("Can't resolve NCON-reference ID for " + nrefId);
+                NconRef nconRef = new NconRef();
+                nconRef.setReferenceString(nrefId);
+                // Null id, as a placeholder
+                nconRef.setId(NULL_ID);
+                nconRef.setType(o.getTypr());
+                nconRef.setTargetId(broaderConceptId);
+                nconList.add(nconRef);
+            } else {
+                NconRef nconRef = new NconRef();
+                nconRef.setReferenceString(nrefId);
+                nconRef.setId(refId);
+                nconRef.setType(o.getTypr());
+                nconRef.setTargetId(broaderConceptId);
+                nconList.add(nconRef);
+            }
         } else {
-            NconRef nconRef = new NconRef();
-            nconRef.setReferenceString(nrefId);
-            nconRef.setId(refId);
-            nconRef.setType(o.getTypr());
-            nconRef.setTargetId(broaderConceptId);
-            nconList.add(nconRef);
+            logger.warn("NCON with NULL href. Cant resolve.");
         }
     }
 
@@ -954,10 +1011,63 @@ public class ImportService {
                     }
                     defString = defString.concat(">"+hrefText+ "</a>");
                     System.out.println("BCON="+defString);
+                }else if(de instanceof NCON){
+                    //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
+                    // >opetus- ja tutkimushenkilöstön</BCON> osa, jonka tehtävissä suunnitellaan,
+                    // koordinoidaan ja johdetaan erittäin laajoja kokonaisuuksia, tehtäviin sisältyy kokonaisvaltaista
+                    // vastuuta organisaation toiminnasta ja taloudesta sekä kansallisen tai kansainvälisen
+                    // tason kehittämistehtävistä ja tehtävissä vaikutetaan huomattavasti koko tutkimusjärjestelmään
+                    // <SOURF>neliport + tr40</SOURF>
+                    // <NCON href="#tmpOKSAID450" typr="generic">esiopetusta</NCON></DEF>
+
+                    NCON nc=(NCON)de;
+                    defString = defString.concat("<a href='"+
+                            vocabularity.getUri());
+                    // Remove # from uri
+                    if(nc.getHref().startsWith("#")) {
+                        defString = defString.concat(nc.getHref().substring(1) + "'");
+                    } else
+                        defString = defString.concat(nc.getHref() + "'");
+                    if(nc.getTypr() != null && !nc.getTypr().isEmpty()) {
+                        defString = defString.concat(" data-typr ='" +
+                                nc.getTypr()+"'");
+                    }
+                    String hrefText ="";
+                    List<Serializable> content = nc.getContent();
+                    for( Serializable c:content){
+                        System.out.println(" ncon RC-CONTENT VALUE="+c.toString());
+                        if(c instanceof  JAXBElement){
+                            JAXBElement el = (JAXBElement)c;
+                            System.out.println(" Elem="+el.getName()+" value="+el.getValue());
+                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
+                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                            }
+                        } else if(c instanceof String) {
+                            hrefText = hrefText+c;
+                        }
+                    }
+                    defString = defString.concat(">"+hrefText+ "</a>");
+                    System.out.println("NCON="+defString);
                 } else if (de instanceof SOURF){
                     handleSOURF((SOURF)de, lang, termProperties, vocabularity);
                     // Add  refs as sources-part.
                     updateSources(((SOURF)de).getContent(), lang, termProperties);
+                }  else if (de instanceof REMK) {
+                    handleREMK(lang,(REMK)de,termProperties);
+                }else if(de instanceof JAXBElement){
+                    JAXBElement elem =(JAXBElement)de;
+                    if(elem.getName().toString().equalsIgnoreCase("HOGR")){
+                        Attribute att = new Attribute(lang, elem.getValue().toString());
+                        addProperty("termHomographNumber", termProperties,  att);
+                    } else if(elem.getName().toString().equalsIgnoreCase("fi.vm.yti.terminology.api.model.ntrf.LINK")){
+                        LINK li = (LINK)elem.getValue();
+                        System.out.println("DEF, jaxb-Link found:"+li.getHref());
+                    } else
+                        System.out.println(elem.getValue().getClass().getName()+" -- DEF, unhandled JAXB:"+elem.getName().toString()+"  value:"+elem.getValue().toString());
+                } else if(de instanceof LINK){
+                    LINK li = (LINK)de;
+                    System.out.println("DEF, Link found:"+li.getHref());
+                    defString = defString + "<a href='"+li.getHref()+"' data-type='external'>"+li.getContent().get(0)+"</a>";
                 } else
                     System.out.println("DEF, unhandled CLASS="+de.getClass().getName());
             }
@@ -1082,7 +1192,6 @@ public class ImportService {
 
             Attribute att = new Attribute(lang, eqvalue);
             addProperty("termEquivalency", properties,  att);
-System.out.println(" SYNONYM EQUI="+eqvalue);
         }
         if(synonym.getHOGR() != null){
             Attribute att = new Attribute(lang, synonym.getHOGR());
@@ -1098,6 +1207,13 @@ System.out.println(" SYNONYM EQUI="+eqvalue);
                     System.out.println("SCOPE unknown instance type:"+o.getClass().getName());
                 }
             });
+        }
+        if(synonym.getSOURF() != null){
+            handleSOURF(synonym.getSOURF(),lang,properties,vocabularity);
+        }
+        if(synonym.getTERM() != null){
+            TERM t = synonym.getTERM();
+            handleTERM(synonym.getTERM(),lang,properties);
         }
 /*
         for(JAXBElement elem:synonym.getEQUIOrTERMOrHOGR()) {
@@ -1182,12 +1298,9 @@ System.out.println(" SYNONYM EQUI="+eqvalue);
                     // Add  refs as string and  construct lines four sources-part.
                     updateSources(sourf, lang, properties);
                 }
-            } else if (elem.getName().toString().equalsIgnoreCase("SCOPE")) {
-                scope = elem.getValue().toString();
-                Attribute att = new Attribute(lang, scope);
-                addProperty("scope", properties,  att);
             }
         }
+        */
         // create new synonyme node (Term)
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
@@ -1199,8 +1312,6 @@ System.out.println(" SYNONYM EQUI="+eqvalue);
         // Add id for reference resolving
         createdIdMap.put(node.getCode(),node.getId());
         return node;
-        */
-return null;
     }
 
     /**
