@@ -48,7 +48,7 @@ public class SwaggerConfig {
                 .groupName("import")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/frontend/import/**"))
+                .paths(PathSelectors.ant("/importapi/import/**"))
                 .build();
     }
 
