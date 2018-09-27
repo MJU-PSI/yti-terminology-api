@@ -469,7 +469,7 @@ public class ImportService {
         }
         if(r.getREMK()!= null){
             r.getREMK().forEach(o -> {
-                handleREMK("",o,properties);
+                handleREMK("",o,properties, vocabularity);
             });
         }
         // Filter BCON elemets as list
@@ -674,7 +674,7 @@ public class ImportService {
         }
         //LANG/TE/REMK
         if(tc.getREMK() != null){
-            handleREMK(lang,tc.getREMK(),properties);
+            handleREMK(lang,tc.getREMK(),properties, vocabularity);
         }
     }
 
@@ -686,27 +686,24 @@ public class ImportService {
         return value;
     }
 
-    private void handleREMK(String lang, REMK remk, Map<String, List<Attribute>> properties){
+    private void handleREMK(String lang, REMK remk, Map<String, List<Attribute>> properties, Graph vocabularity){
         List<Attribute> eNotes = properties.get("editorialNote");
         if(eNotes == null)
             eNotes= new ArrayList<Attribute>();
 
         List<?> content=remk.getContent();
-        System.out.print("handleREMK()");
         String editorialNote ="";
-        for(Object o:content){
-            if(o instanceof String){
-                editorialNote = editorialNote+((String) o).toString();
-            } else if(o instanceof JAXBElement){
+        for(Object o:content) {
+            if (o instanceof String) {
+                editorialNote = editorialNote + ((String) o).toString();
+            } else if (o instanceof JAXBElement) {
                 JAXBElement elem = (JAXBElement) o;
-                System.out.println("REMB-JAXB-element: "+elem.getValue().toString());
-                editorialNote = editorialNote+elem.getValue().toString();
-            } else if(o instanceof LINK){
-                LINK l = (LINK)o;
-                System.out.println("REMK LINK="+l.getHref());
-                // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
-//                String url=l.getHref().substring(5);
-                editorialNote = editorialNote.concat("<a href='"+l.getHref()+"' data-type='external'>"+l.getContent().get(0)+"</a>");
+                editorialNote = editorialNote + elem.getValue().toString();
+            } else if (o instanceof LINK) {
+                LINK l = (LINK) o;
+                editorialNote = editorialNote.concat("<a href='" + l.getHref() + "' data-type='external'>" + l.getContent().get(0) + "</a>");
+            } else if(o instanceof SOURF){
+                    handleSOURF((SOURF)o,lang,properties,vocabularity);
             }else {
                 System.out.println(" REMK: unhandled contentclass="+o.getClass().getName()+" value="+o.toString());
             }
@@ -717,10 +714,6 @@ public class ImportService {
             Attribute att = new Attribute("fi", editorialNote);
             addProperty("editorialNote", properties, att);
         }
-        /*
-        Attribute att = new Attribute(lang, equi.getValue());
-        addProperty("termEquivalency", properties, att);
-        */
     }
 
     private void handleEQUI(String lang, EQUI equi, Map<String, List<Attribute>> properties){
@@ -998,10 +991,8 @@ public class ImportService {
                     String hrefText ="";
                     List<Serializable> content = bc.getContent();
                     for( Serializable c:content){
-                        System.out.println(" ncon RC-CONTENT VALUE="+c.toString());
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
-                            System.out.println(" Elem="+el.getName()+" value="+el.getValue());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
                                 hrefText = hrefText+"("+el.getValue().toString()+")";
                             }
@@ -1010,7 +1001,6 @@ public class ImportService {
                         }
                     }
                     defString = defString.concat(">"+hrefText+ "</a>");
-                    System.out.println("BCON="+defString);
                 }else if(de instanceof NCON){
                     //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
                     // >opetus- ja tutkimushenkilöstön</BCON> osa, jonka tehtävissä suunnitellaan,
@@ -1035,10 +1025,8 @@ public class ImportService {
                     String hrefText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
-                        System.out.println(" ncon RC-CONTENT VALUE="+c.toString());
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
-                            System.out.println(" Elem="+el.getName()+" value="+el.getValue());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
                                 hrefText = hrefText+"("+el.getValue().toString()+")";
                             }
@@ -1047,13 +1035,12 @@ public class ImportService {
                         }
                     }
                     defString = defString.concat(">"+hrefText+ "</a>");
-                    System.out.println("NCON="+defString);
                 } else if (de instanceof SOURF){
                     handleSOURF((SOURF)de, lang, termProperties, vocabularity);
                     // Add  refs as sources-part.
                     updateSources(((SOURF)de).getContent(), lang, termProperties);
                 }  else if (de instanceof REMK) {
-                    handleREMK(lang,(REMK)de,termProperties);
+                    handleREMK(lang,(REMK)de,termProperties, vocabularity);
                 }else if(de instanceof JAXBElement){
                     JAXBElement elem =(JAXBElement)de;
                     if(elem.getName().toString().equalsIgnoreCase("HOGR")){
@@ -1135,8 +1122,16 @@ public class ImportService {
                         // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
                         String url=l.getHref().substring(5);
                         noteString = noteString.concat("<a href='"+url+"' data-type='external'>"+l.getContent().get(0)+"</a>");
-                    } else
-                        System.out.println("  Unhandled note-class " + de.getClass().getName());
+                    } else if(j.getName().toString().equalsIgnoreCase("HOGR")){
+                            noteString = noteString + "("+j.getValue().toString()+")";
+                    } else if(j.getName().toString().equalsIgnoreCase("B") || j.getName().toString().equalsIgnoreCase("I")){
+                        // Remove Bold and Italics
+                        noteString = noteString + j.getValue().toString();
+                    }else if(j.getName().toString().equalsIgnoreCase("BR") ){
+                        // Add newline
+                        noteString = noteString + "\n";
+                    }else
+                        System.out.println("  Unhandled note-class " + j.getName().toString());
                 }
                 if(logger.isDebugEnabled())
                     logger.debug("note-String="+noteString);
