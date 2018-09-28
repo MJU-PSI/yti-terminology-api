@@ -1,0 +1,302 @@
+<!-- 
+DTD for Nordic Terminological Record Format (NTRF)
+
+This DTD is an translation of NTRF standard to XML format.
+
+for more information about NTRF and element descriptions look
+http://www.nordterm.net/filer/NTRF/Ntrf.pdf
+
+This DTD tries to follow the spirit of the original NTRF as much
+as possible but there are some exceptions as the use of the LANG
+element which is influenced by the MARTIF standard.
+In this DTD there are also some TSK specific elements that are not
+part of the NTRF standard
+
+-->
+
+
+
+
+<!-- Define languages here -->
+<!ENTITY % languages "(af | am | ar | as | az | be | bg | bn | br | bs | ca | cs | da | de | el | en | es | et | eu | fa | fi | fo | fr | gl | gu | ha | he | hi | hr | hu | hy | id | ig | is | it | ja | ka | kk | km | kn | ks | ky | la | ln | lt | lv | mk | ml | mn | mr | ms | nl | no | or | pa | pl | ps | pt | pt-br | pt-pt | ro | ru | si | sk | sl | sq | sr | st | sv | sw | ta | te | tg | th | tk | tl | tr | uk | ur | uz | vi | xh | yo | zc | zh | zt | zu)">
+<!-- Comfort entity for the RECORD element -->
+<!ENTITY % admin "TIT?, RELIA?, SOURC*, INST?, CLAS*, CLASPEC?, CLASYS?, CRDAT?, CRBY?, CREA?, UPDAT?, UPBY?, UPDA*, CHDAT*, CHBY?, CHECK?, APDAT?, APBY?, APPR?">
+
+<!-- html elements allowed for styling mainly in definition, note, context and explanation elements -->
+<!ENTITY % styling "BR | B | I | SUB | SUP">
+
+<!-- The main element -->
+<!ELEMENT VOCABULARY (HEADER?, (RECORD?,HEAD?,DIAG?,RDIAG?,PICT?,P?,COMM?,REMK?)*, REFERENCES?)>
+
+<!-- Each RECORD element contain one terminological concept -->
+<!ELEMENT RECORD ( NUMB?, POSI*, SUBJ*, GRAM?, LANG*, BCON*, NCON*, SCON*, RCON*, ECON*, ILLU*, REMK*, %admin; ,COMM* ,DEVREC?)>
+
+<!-- Each DEVREC element contains development version of the parent concept -->
+<!ELEMENT DEVREC (( NUMB?, POSI*, SUBJ*, GRAM?, LANG*, BCON*, NCON*, SCON*, RCON*, ECON*, ILLU*, REMK*, %admin; ,COMM*))>
+
+<!-- Language elements contain the language specific data -->
+<!ELEMENT LANG (TE?, SY*, (DTE* ,DTE1* , DTE2* ,DTEA* , DTEB*) , EXTE* , DES* , ACRO*, RCON* ,( DEF* | EXPLAN*), NOTE*, EXAMP*, CX*,  STE*, ASTE*, REMK*, SOURC*, APDAT?)>
+
+<!-- Entity for term element content -->
+<!ENTITY % termcontent "(EQUI?, TERM, HOGR?, GEOG?, TYPT?, PHR?, PRON?, ETYM?, SUBJ?, SCOPE?, SOURF?, STAT?, ADD?, REMK?)">
+
+<!-- Primary term(s) in each language. Normally there should be only one TE field for each language in each record. -->
+<!ELEMENT TE   %termcontent; >
+
+<!-- Synonym term : Term designating the concept, but not regarded as the primary term. There may be one or more SY fields only if there is a TE field in the same language. -->
+<!ELEMENT SY   %termcontent; >
+
+<!-- Deprecated term : Term designating the concept, but which for some reason should not be used. The reason should preferably be given in a TYPT or a ADD field -->
+<!ELEMENT DTE  %termcontent; >
+
+<!-- Deprecated term : Loose DTE field, used in TSK to designate terms that are not good, but can be used if necessary, "rather than". Can't be used in conjunction with DTE field.  -->
+<!ELEMENT DTEA  %termcontent; >
+
+<!-- Deprecated term : Strict DTE field, used in TSK to only to designate terms that should not be used in any case, "not". Can't be used in conjunction with DTE field. -->
+<!ELEMENT DTEB  %termcontent; >
+
+<!-- Excerpted term : Contextual term which is not yet evaluated as primary term, synonym or deprecated term. -->
+<!ELEMENT EXTE %termcontent; >
+
+<!-- Designation : Designation of the concept which is not regarded as a term, and which normally will be language independent. -->
+<!ELEMENT DES  %termcontent; >
+
+<!-- acronym : Acronym, in particular for a name.  -->
+<!ELEMENT ACRO %termcontent; >
+
+<!-- search term, look-up term : Term not designating the concept, but which may be useful for search or reference purposes. -->
+<!ELEMENT STE  %termcontent; >
+
+<!-- auxciliary subordinate concept, used in TSK only for graphml diagrams to indicate auxciliary subordinate term-->
+<!ELEMENT ASTE  %termcontent; >
+
+<!-- TERM element contains the actual term string. GRAM element shows grammatical data for a certain word in the term -->
+<!ELEMENT TERM (#PCDATA | GRAM | SUB | SUP | POS | GEND | INFL)*>
+
+<!-- definition : Text in this field should conform with the rules of proper definitions. -->
+<!ELEMENT DEF     (#PCDATA | BCON | NCON | SCON | RCON | ECON | SOURF | STAT | ADD | REMK | %styling; | LINK | HOGR | FORMULA )* >
+
+<!-- explanation : Explanatory text which does not conform with the rules of proper definitions. -->
+<!ELEMENT EXPLAN  (#PCDATA | BCON | NCON | SCON | RCON | ECON | SOURF | STAT | ADD | REMK | %styling; | LINK | HOGR | FORMULA )* >
+                                                                   
+<!-- note : Additional information about the concept. -->
+<!ELEMENT NOTE    (#PCDATA | BCON | NCON | SCON | RCON | ECON | SOURF | STAT | ADD | REMK | %styling; | LINK | HOGR | ILLU | FORMULA)* >
+
+<!-- example : Example information connected to the concept. -->
+<!ELEMENT EXAMP      (#PCDATA | BCON | NCON | SCON | RCON | ECON | SOURF | STAT | ADD | REMK | %styling; | LINK | HOGR | EXNO )* >
+
+<!-- context : Authentic context from running text. -->
+<!ELEMENT CX      (#PCDATA | BCON | NCON | SCON | RCON | ECON | SOURF | STAT | ADD | REMK | %styling; | LINK | HOGR | EXNO )* >
+
+
+<!-- boarder concept : Term designating a broader concept. eg. superordinate concept, subclass-of relation -->
+<!ELEMENT BCON  (#PCDATA | HOGR)*>
+
+<!--narrower concept : Term designating a narrower concept. eg. subordinate concept -->
+<!ELEMENT NCON  (#PCDATA | HOGR)*>
+
+<!ELEMENT SCON  (#PCDATA | HOGR)*>
+
+<!--related concept : Term designating a related concept. eg. associative concept -->
+<!ELEMENT RCON  (#PCDATA | HOGR)*>
+
+<!ELEMENT ECON  (#PCDATA | HOGR)*>
+
+<!-- link : link to another concept or web, does not indicate any relation type -->
+<!ELEMENT LINK  (#PCDATA | HOGR)*>
+
+<!-- heading element : used for print publication -->
+<!ELEMENT HEAD  (#PCDATA | BR)*>
+
+<!ELEMENT NUMB  (#PCDATA)>
+
+<!-- position : may be used to indicate position in systematic  arrangement. eg 1,2,3 or 1.1, 1.2, 1.3, 2.1, 2.2 -->
+<!ELEMENT POSI  (#PCDATA)>
+
+<!ELEMENT TIT  (#PCDATA)>
+<!ELEMENT RELIA  (#PCDATA | %styling; | REMK | ADD | LINK)*>
+<!ELEMENT SOURC  (#PCDATA | %styling; | REMK | ADD | LINK)*>
+<!ELEMENT INST  (#PCDATA)>
+<!ELEMENT CRDAT  (#PCDATA)>
+<!ELEMENT CRBY  (#PCDATA)>
+<!ELEMENT CREA  (#PCDATA)>
+<!ELEMENT UPDAT  (#PCDATA)>
+<!ELEMENT UPBY  (#PCDATA)>
+<!ELEMENT UPDA  (#PCDATA)>
+<!ELEMENT CHDAT  (#PCDATA)>
+<!ELEMENT CHBY  (#PCDATA)>
+<!ELEMENT CHECK  (#PCDATA)>
+<!ELEMENT APDAT  (#PCDATA)>
+<!ELEMENT APBY  (#PCDATA)>
+<!ELEMENT APPR  (#PCDATA)>
+<!ELEMENT CLAS  (#PCDATA | LINK)*>
+<!ELEMENT CLASPEC  (#PCDATA)>
+<!ELEMENT CLASYS  (#PCDATA)>
+
+<!-- grammatical  information : Information  about  part  of  speech,  gender. eg. adj (for adjective) -->
+<!ELEMENT GRAM  (#PCDATA)>
+
+<!ELEMENT POS  (#PCDATA)>
+
+<!-- gender : Information about gender of a noun, eg. f, m, n -->
+<!ELEMENT GEND  (#PCDATA)>
+
+<!ELEMENT INFL  (#PCDATA)>
+<!ELEMENT SYNT  (#PCDATA)>
+<!ELEMENT PRON  (#PCDATA)>
+<!ELEMENT PHR  (#PCDATA)>
+<!ELEMENT ETYM  (#PCDATA)>
+
+<!-- geographical  area  of  use : Information  about  the  geographical  area in which a designation is used. eg GB for British English -->
+<!ELEMENT GEOG  (#PCDATA)>
+<!ELEMENT TYPT  (#PCDATA)>
+
+<!-- homograph  number : A number for identifying the term among other terms with identical written form. -->
+<!ELEMENT HOGR  (#PCDATA)>
+
+<!-- equivalence :  Note  on  the  equivalence  between  terms  in  different  languages. -->
+<!ELEMENT EQUI  (#PCDATA)>
+<!ELEMENT SUBJ  (#PCDATA | ADD | REMK | LINK)* >
+<!ELEMENT SCOPE  (#PCDATA | ADD | REMK | LINK)* >
+
+<!-- source of field : Identification of the source from which a particular field has been derived. -->
+<!ELEMENT SOURF  (#PCDATA | LINK)*>
+
+<!ELEMENT STAT  (#PCDATA)>
+<!ELEMENT EXNO  (#PCDATA)>
+<!ELEMENT ADD  (#PCDATA)>
+<!ELEMENT REMK  (#PCDATA | %styling; | LINK | SOURF  )*>
+
+<!-- for inserting review comments -->
+<!ELEMENT COMM  (#PCDATA | %styling; | LINK | SOURF | REMK )*>
+<!ELEMENT ILLU (#PCDATA)>
+
+<!-- For inserting diagrams and pictures between records in the publication -->
+<!ELEMENT DIAG (ILLT*,LINK*)>
+<!ELEMENT PICT (ILLT*,LINK*)>
+
+<!-- Illustration text below the diagram or picture -->
+<!ELEMENT ILLT (#PCDATA | %styling; | REMK | SOURF | ILLU | LINK)*>
+<!ELEMENT P (#PCDATA | %styling; | REMK | SOURF)*>
+<!-- TSK specific element for expressing mathematical formulas mainly in definitions -->
+<!ELEMENT FORMULA (#PCDATA)>
+
+
+<!-- TSK specific meta-data about the vocabulary in the beginning of the VOCABULARY element -->
+<!ELEMENT HEADER (TITLES,SERIAL?,YEAR?,SOURCES?,WORKGROUP?,FINANCIERS?,COMMENTS?,FOREWORD?,INDEX?,REMK*)>
+<!ELEMENT TITLES (HLANG+)>
+<!ELEMENT SOURCES (SOURC+)>
+<!ELEMENT WORKGROUP (MEMBER+)>
+<!ELEMENT FINANCIERS (ORG+)>
+<!ELEMENT COMMENTS (ORG+)>
+<!ELEMENT MEMBER (NAME,REMK?,TITLE?,FUNC?,ORG?)>
+<!ELEMENT FOREWORD (HLANG+,LINK?)>
+<!ELEMENT INDEX (HLANG*)>
+<!ELEMENT HLANG (#PCDATA)>
+<!ELEMENT SERIAL (#PCDATA)>
+<!ELEMENT YEAR (#PCDATA)>
+<!ELEMENT NAME (#PCDATA)>
+<!ELEMENT TITLE (#PCDATA)>
+<!ELEMENT FUNC (#PCDATA)>
+<!ELEMENT ORG (#PCDATA)>
+
+<!-- TSK specific references meta-data -->
+<!ELEMENT REFERENCES (REF | REFHEAD)*>
+<!ELEMENT REF (REFNAME,REFTEXT,REFLINK)>
+<!ELEMENT REFTEXT (#PCDATA | REMK | B | I | BR | LINK)*>
+<!ELEMENT REFNAME (#PCDATA)>
+<!ELEMENT REFLINK (#PCDATA)>
+<!ELEMENT REFHEAD (#PCDATA)>
+
+
+<!-- These are html styling elements used in vocabularies -->
+<!ELEMENT B (#PCDATA)>
+<!ELEMENT I (#PCDATA)>
+<!ELEMENT SUB (#PCDATA)>
+<!ELEMENT SUP (#PCDATA)>
+<!ELEMENT BR EMPTY>
+
+
+<!-- TSK specific attributes -->
+<!ATTLIST HEADER trackChanges (true|false) #IMPLIED>
+<!ATTLIST HEADER exportHierarchy (true|false) #IMPLIED>
+<!ATTLIST HEADER motExportNumbTranslation (true|false) #IMPLIED>
+<!ATTLIST HEADER motExportPict (true|false) #IMPLIED>
+
+<!ATTLIST RECORD numb ID #REQUIRED
+                 stat CDATA #IMPLIED
+                 upda CDATA #IMPLIED >
+
+<!ATTLIST LANG  value %languages; #REQUIRED>
+
+<!ATTLIST HLANG  lang %languages; #REQUIRED>
+
+<!-- Lang attribute is for the header -->
+<!ATTLIST SOURC lang %languages; #IMPLIED>
+
+<!ATTLIST HEAD  level (1|2|3|4|5|6) #REQUIRED
+                lang  ( sv | en | fi ) #IMPLIED>
+
+<!ATTLIST ILLU href  CDATA   #REQUIRED>
+
+<!ATTLIST LINK typr        CDATA   #IMPLIED
+               href  CDATA   #REQUIRED>
+
+<!ATTLIST BCON typr (generic|partitive) "generic"
+               stat  (no-diag) #IMPLIED
+               href  CDATA   #REQUIRED>
+
+<!ATTLIST NCON typr (generic|partitive) "generic"
+               stat  (no-diag) #IMPLIED
+               href  CDATA   #REQUIRED>
+
+<!ATTLIST RCON typr        CDATA   #IMPLIED
+               stat  (no-diag) #IMPLIED
+		       href  CDATA   #REQUIRED>
+
+<!ATTLIST SCON typr        CDATA   #IMPLIED
+               href  CDATA   #REQUIRED>
+               
+<!ATTLIST ECON typr        CDATA   #IMPLIED
+               href  CDATA   #REQUIRED>
+
+
+<!ATTLIST GRAM value CDATA #IMPLIED
+               gend (m | n | f) #IMPLIED
+               pos CDATA #IMPLIED
+               infl CDATA #IMPLIED
+               synt CDATA #IMPLIED>
+
+<!ATTLIST EQUI value ( broader | narrower | near-equivalent) #REQUIRED>
+
+
+<!ATTLIST DIAG numb ID #REQUIRED
+               href  CDATA   #REQUIRED
+               name        CDATA   #REQUIRED
+               lang ( fi | sv | en) #IMPLIED
+               show_morphon CDATA  #IMPLIED
+               width       CDATA   #IMPLIED
+               height      CDATA   #IMPLIED
+               resolution  CDATA   #IMPLIED
+               widthcm     CDATA   #IMPLIED
+               heightcm    CDATA   #IMPLIED
+               scale       CDATA   #IMPLIED
+               lock         (true|false) "false">
+
+
+<!ATTLIST PICT numb ID #REQUIRED
+               href  CDATA   #REQUIRED
+               name        CDATA   #REQUIRED
+               lang ( fi | sv | en) #IMPLIED
+               type         (jpg|png|dia|dot) "jpg"
+               show_morphon CDATA  #IMPLIED
+               width       CDATA   #IMPLIED
+               height      CDATA   #IMPLIED
+               resolution  CDATA   #IMPLIED
+               widthcm     CDATA   #IMPLIED
+               heightcm    CDATA   #IMPLIED
+               scale       CDATA   #IMPLIED
+               lock         (true|false) "false">
+
+
+

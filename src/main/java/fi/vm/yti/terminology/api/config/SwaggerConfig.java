@@ -41,4 +41,25 @@ public class SwaggerConfig {
                 .paths(PathSelectors.ant("/synchronize"))
                 .build();
     }
+
+    @Bean
+    public Docket importApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .groupName("import")
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.ant("/importapi/**"))
+                .build();
+    }
+
+    @Bean
+    public Docket integrationApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .groupName("integration")
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.ant("/integration/**"))
+                .build();
+    }
+
 }

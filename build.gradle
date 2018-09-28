@@ -81,6 +81,8 @@ dependencies {
     compile('org.springframework.cloud:spring-cloud-starter-sleuth')
 
     compile 'org.jsoup:jsoup:1.11.3'
+
+    testCompile 'junit:junit:4.12'
 }
 
 springBoot {
