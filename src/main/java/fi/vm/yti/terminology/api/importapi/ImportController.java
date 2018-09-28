@@ -10,10 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
@@ -54,5 +56,15 @@ public class ImportController {
                                @RequestParam UUID vocabularityId,
                                @RequestBody VOCABULARY ntrfDocument) {
         return importService.handleNtrfDocument(format,vocabularityId, ntrfDocument);
+    }
+
+    @RequestMapping(value = "ntrf/{vocabularity}", method = RequestMethod.POST , consumes = "multipart/form-data")
+    ResponseEntity importTerms(@PathVariable("vocabularity") UUID vocabularityId,
+                               @RequestParam("file") MultipartFile file){
+        return importService.handleNtrfDocumentAsync("ntrf",vocabularityId, file);
+    }
+    @RequestMapping(value = "/status/{id}", method = GET, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity importTerms(@PathVariable("id") UUID id) {
+        return importService.getStatus(id);
     }
 }

@@ -55,4 +55,5 @@ public class IntegrationController {
                            @RequestBody ConceptSuggestion incomingConcept) {
         return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
     }
+
 }

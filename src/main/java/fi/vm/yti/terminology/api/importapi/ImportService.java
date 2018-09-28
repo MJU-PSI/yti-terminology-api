@@ -14,9 +14,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import javax.xml.bind.JAXBElement;
+import javax.xml.bind.*;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import java.io.IOException;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -88,6 +94,44 @@ public class ImportService {
         this.namespaceRoot = namespaceRoot;
     }
 
+    ResponseEntity getStatus(UUID id){
+        // Status not_found/running/errors
+        return new ResponseEntity<>("{ \"status\":\"" + id + "\"}", HttpStatus.OK);
+    }
+
+    ResponseEntity handleNtrfDocumentAsync(String format, UUID vocabularityId, MultipartFile file) {
+        String rv;
+        System.out.println("Incoming vocabularity= "+vocabularityId+" - file:"+file.getName()+" size:"+file.getSize()+ " type="+file.getContentType());
+        UUID operationId=UUID.randomUUID();
+        if(!file.getContentType().equalsIgnoreCase("text/xml")){
+            rv = "{\"operation\":\""+operationId+"\", \"error\":\"incoming file type  is wrong\"}";
+            return new ResponseEntity<>( rv, HttpStatus.BAD_REQUEST);
+        }
+        rv = "{\"operation\":\"" + operationId + "\"}";
+        // Handle incoming cml
+        try {
+            JAXBContext jc = JAXBContext.newInstance(VOCABULARY.class);
+
+            XMLInputFactory xif = XMLInputFactory.newFactory();
+            xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+            xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            XMLStreamReader xsr = xif.createXMLStreamReader(file.getInputStream());
+
+            Unmarshaller unmarshaller = jc.createUnmarshaller();
+            VOCABULARY voc = (VOCABULARY) unmarshaller.unmarshal(xsr);
+            // All set up, execute actual import
+            List<?> l = voc.getRECORDAndHEADAndDIAG();
+            System.out.println("Incoming objects count=" + l.size());
+            return handleNtrfDocument("ntrf", vocabularityId, voc);
+        } catch (IOException ioe){
+            System.out.println("Incoming transform error=" + ioe);
+        } catch (XMLStreamException se) {
+            System.out.println("Incoming transform error=" + se);
+        } catch(JAXBException je){
+            System.out.println("Incoming transform error=" + je);
+        }
+        return new ResponseEntity<>( rv, HttpStatus.OK);
+    }
     /**
      * Executes import operation. Reads incoming xml and process it
      * @param format
@@ -95,6 +139,7 @@ public class ImportService {
      * @param ntrfDocument
      * @return
      */
+    @Async
     ResponseEntity handleNtrfDocument(String format, UUID vocabularityId, VOCABULARY ntrfDocument) {
         Graph vocabularity = null;
         logger.info("POST /import requested with format:"+format+" Vocabularity Id:"+vocabularityId);
@@ -155,49 +200,57 @@ public class ImportService {
         idMap.clear();
         typeMap.clear();
         initImport(vocabularityId);
-        nconList.forEach(nref ->{
-            if(nref.getId() ==  NULL_ID){
-                UUID target=idMap.get(nref.referenceString);
-                System.out.println("Resolving originally unresolved id:"+nref.referenceString);
-                if(target!=null) {
-                    // Update it
-                    nref.setId(target);
+        if(nconList != null) {
+            for(NconRef nref:nconList){
+                if (nref.getId() == NULL_ID) {
+                    UUID target = idMap.get(nref.referenceString);
+                    System.out.println("Resolving originally unresolved id:" + nref.referenceString);
+                    if (target != null) {
+                        // Update it
+                        nref.setId(target);
+                    } else {
+                        System.out.println("Can't resolveoriginally unresolved id:" + nref.referenceString);
+                    }
+                }
+                if (nref.getId() != null && !nref.getId().equals(NULL_ID)) {
+                    System.out.println("KIRA =" + vocabularityId + " match=" + nref.getId());
+                    GenericNode gn = null;
+                    try {
+                        gn = termedService.getConceptNode(vocabularityId, nref.getId());
+                    } catch (NullPointerException nex) {
+                        logger.warn("Can't found concept node:" + nref.getId() + " in vocabulary:" + vocabularityId);
+                    }
+                    if (gn != null) {
+                        // get objects reference list and add
+                        Map<String, List<Identifier>> refMap = gn.getReferences();
+                        List<Identifier> ref = null;
+                        if (nref.getType().equalsIgnoreCase("generic")) {
+                            ref = refMap.get("broader");
+                        } else
+                            ref = refMap.get("isPartOf");
+                        if (ref == null)
+                            ref = new ArrayList<>();
+                        // @TODO! Go through refList and add only if missing.
+                        // Generic = broader concept, partitive = related concept
+                        ref.add(new Identifier(nref.getTargetId(), typeMap.get("Concept").getDomain()));
+                        if (nref.getType().equalsIgnoreCase("generic")) {
+                            refMap.put("broader", ref);
+                        } else
+                            refMap.put("isPartOf", ref);
+                        addNodeList.add(gn);
+                    }
                 } else {
-                    System.out.println("Can't resolveoriginally unresolved id:" + nref.referenceString);
+                    System.out.println("Cant' resolve following! Nref-id=" + nref.getId() + "-- vocab=" + vocabularityId);
                 }
             }
-            if(nref.getId() != null  && !nref.getId().equals(NULL_ID)) {
-                GenericNode gn = termedService.getConceptNode(vocabularityId, nref.getId());
-                if (gn != null) {
-                    // get objects reference list and add
-                    Map<String, List<Identifier>> refMap = gn.getReferences();
-                    List<Identifier> ref = null;
-                    if (nref.getType().equalsIgnoreCase("generic")) {
-                        ref = refMap.get("broader");
-                    } else
-                        ref = refMap.get("isPartOf");
-                    if (ref == null)
-                        ref = new ArrayList<>();
-                    // @TODO! Go through refList and add only if missing.
-                    // Generic = broader concept, partitive = related concept
-                    ref.add(new Identifier(nref.getTargetId(), typeMap.get("Concept").getDomain()));
-                    if (nref.getType().equalsIgnoreCase("generic")) {
-                        refMap.put("broader", ref);
-                    } else
-                        refMap.put("isPartOf", ref);
-                }
-                addNodeList.add(gn);
-            } else {
-                System.out.println("Cant' resolve following! Nref-id="+nref.getId()+ "-- vocab="+ vocabularityId);
+            if(addNodeList.size()>0) {
+                // add NCON-changes as one big block
+                operation = new GenericDeleteAndSave(emptyList(), addNodeList);
+                if (logger.isDebugEnabled())
+                    logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
+                termedService.bulkChange(operation, true);
             }
-        });
-        // add NCON-changes as one big block
-        operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-        if(logger.isDebugEnabled())
-            logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-        termedService.bulkChange(operation,true);
-
-
+        }
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
         for(DIAG o:DIAGList) {
@@ -222,11 +275,8 @@ public class ImportService {
         // Get metamodel types for given vocabularity
         List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
         metaTypes.forEach(t-> {
-            System.out.println("Adding "+t.getId());
             typeMap.put(t.getId(),t);
         });
-        System.out.println("Metamodel types found: "+metaTypes.size());
-        System.out.println("get node ids for update");
 
         // Create hashmap to store information  between code/URI and UUID so that we can update values upon same vocabularity
         List<GenericNode> nodeList = termedService.getNodes(vocabularityId);
@@ -453,9 +503,8 @@ public class ImportService {
         // Filter CLAS elemets as list
         List<CLAS> clas = r.getCLAS();
         clas.forEach(o -> {
-            System.out.println("--CLAS=" + o);
             //RECORD/CLAS ->
-            handleCLAS(o.getContent().toString(), properties);
+            handleCLAS(o, properties);
         });
         // Filter CHECK elemets as list
         if(r.getCHECK() != null && !r.getCHECK().isEmpty()) {
@@ -710,7 +759,8 @@ public class ImportService {
 
         };
         if(!editorialNote.isEmpty()) {
-            System.out.println("REMK  Editorial note!!!"+editorialNote);
+            if(logger.isDebugEnabled())
+                logger.debug("REMK  Editorial note!!!"+editorialNote);
             Attribute att = new Attribute("fi", editorialNote);
             addProperty("editorialNote", properties, att);
         }
@@ -916,11 +966,24 @@ public class ImportService {
         }
     }
 
-    private Attribute handleCLAS(String o, Map<String, List<Attribute>> properties){
-        System.out.println(" Set clas: " + o);
-        Attribute att = new Attribute("", o);
-        addProperty("conceptClass", properties, att);
-        return att;
+    /**
+     * Set up ConceptClass with CLAS-element data.
+     * @param o CLAS object containing String list
+     * @param properties
+     */
+    private void handleCLAS(CLAS o, Map<String, List<Attribute>> properties){
+        System.out.println(" Set clas: " + o.getContent().toString());
+        String attValue ="";
+        if(o.getContent().size()>0){
+            List<String> clasList = new ArrayList<>();
+            o.getContent().forEach(obj ->{
+                clasList.add(obj.toString());
+            });
+            Attribute att = new Attribute("", clasList.toString().substring(1,clasList.toString().length()-1));
+            addProperty("conceptClass", properties, att);
+        } else {
+            logger.warn("Empty CLAS element.");
+        }
     }
 
     private Attribute  handleDEF( DEF def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Attribute>>  termProperties,  Graph vocabularity){
