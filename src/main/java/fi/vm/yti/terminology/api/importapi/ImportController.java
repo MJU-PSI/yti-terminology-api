@@ -4,7 +4,6 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.frontend.FrontendElasticSearchService;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
-import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +15,6 @@ import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
 @RequestMapping("/importapi")
@@ -50,14 +48,14 @@ public class ImportController {
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
     }
-
+/*
     @RequestMapping(value = "/import/{format}", method = POST, produces = APPLICATION_JSON_VALUE)
     ResponseEntity importTerms(@PathVariable("format") String format,
                                @RequestParam UUID vocabularityId,
                                @RequestBody VOCABULARY ntrfDocument) {
         return importService.handleNtrfDocument(format,vocabularityId, ntrfDocument);
     }
-
+*/
     @RequestMapping(value = "ntrf/{vocabularity}", method = RequestMethod.POST , consumes = "multipart/form-data")
     ResponseEntity importTerms(@PathVariable("vocabularity") UUID vocabularityId,
                                @RequestParam("file") MultipartFile file){

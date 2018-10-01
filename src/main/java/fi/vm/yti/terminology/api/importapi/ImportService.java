@@ -12,13 +12,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.xml.bind.*;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -28,6 +33,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -38,6 +44,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toMap;
 
 @Service
+@EnableAsync
 public class ImportService {
 
     private static final String USER_PASSWORD = "user";
@@ -79,6 +86,10 @@ public class ImportService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImportService.class);
 
+    // Enable for async operations
+    @Autowired
+    private TaskExecutor executor;
+
     @Autowired
     public ImportService(TermedRequester termedRequester,
                          FrontendGroupManagementService groupManagementService,
@@ -94,9 +105,9 @@ public class ImportService {
         this.namespaceRoot = namespaceRoot;
     }
 
-    ResponseEntity getStatus(UUID id){
+    ResponseEntity getStatus(UUID jobtoken){
         // Status not_found/running/errors
-        return new ResponseEntity<>("{ \"status\":\"" + id + "\"}", HttpStatus.OK);
+        return new ResponseEntity<>("{ \"status\":\"" + jobtoken + "\"}", HttpStatus.OK);
     }
 
     ResponseEntity handleNtrfDocumentAsync(String format, UUID vocabularityId, MultipartFile file) {
@@ -107,22 +118,24 @@ public class ImportService {
             rv = "{\"operation\":\""+operationId+"\", \"error\":\"incoming file type  is wrong\"}";
             return new ResponseEntity<>( rv, HttpStatus.BAD_REQUEST);
         }
-        rv = "{\"operation\":\"" + operationId + "\"}";
+        rv = "{\"jobtoken\":\"" + operationId + "\"}";
         // Handle incoming cml
         try {
             JAXBContext jc = JAXBContext.newInstance(VOCABULARY.class);
-
+            // Disable DOCTYPE-directive from incoming file.
             XMLInputFactory xif = XMLInputFactory.newFactory();
             xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
             xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
             XMLStreamReader xsr = xif.createXMLStreamReader(file.getInputStream());
-
             Unmarshaller unmarshaller = jc.createUnmarshaller();
+            // At last, resolve ntrf-POJO's
             VOCABULARY voc = (VOCABULARY) unmarshaller.unmarshal(xsr);
             // All set up, execute actual import
             List<?> l = voc.getRECORDAndHEADAndDIAG();
             System.out.println("Incoming objects count=" + l.size());
-            return handleNtrfDocument("ntrf", vocabularityId, voc);
+            // Start async call
+            handleNtrfDocument("ntrf", vocabularityId, voc);
+            //handleNtrfDocument("ntrf", vocabularityId, voc);
         } catch (IOException ioe){
             System.out.println("Incoming transform error=" + ioe);
         } catch (XMLStreamException se) {
@@ -132,6 +145,7 @@ public class ImportService {
         }
         return new ResponseEntity<>( rv, HttpStatus.OK);
     }
+
     /**
      * Executes import operation. Reads incoming xml and process it
      * @param format
@@ -139,15 +153,19 @@ public class ImportService {
      * @param ntrfDocument
      * @return
      */
-    @Async
-    ResponseEntity handleNtrfDocument(String format, UUID vocabularityId, VOCABULARY ntrfDocument) {
+    @Async ("threadPoolTaskExecutor")
+    CompletableFuture<ResponseEntity>  handleNtrfDocument(String format, UUID vocabularityId, VOCABULARY ntrfDocument) {
+//   ResponseEntity handleNtrfDocument(String format, UUID vocabularityId, VOCABULARY ntrfDocument) {
         Graph vocabularity = null;
         logger.info("POST /import requested with format:"+format+" Vocabularity Id:"+vocabularityId);
         Long startTime = new Date().getTime();
         // Fail if given format string is not ntrf
         if (!format.equals("ntrf")) {
+            logger.error("Unsupported format:<" + format + "> (Currently supported formats: ntrf)");
             // Unsupported format
-            return new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
+            ResponseEntity<?> re = new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
+            return CompletableFuture.completedFuture(re);
+//            return new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
         }
 
         // Get vocabularity
@@ -155,7 +173,10 @@ public class ImportService {
             vocabularity = termedService.getGraph(vocabularityId);
         } catch ( NullPointerException nex){
             // Vocabularity not found
-            return new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
+            logger.error("Vocabularity:<" + vocabularityId + "> not found");
+            ResponseEntity<?> re = new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
+            return CompletableFuture.completedFuture(re);
+//            return new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
         }
 
         initImport(vocabularityId);
@@ -179,7 +200,7 @@ public class ImportService {
         for(RECORD o:records){
             handleRECORD(vocabularity, o, addNodeList);
             flushCount++;
-            if(flushCount >200){
+            if(flushCount >500){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -213,7 +234,6 @@ public class ImportService {
                     }
                 }
                 if (nref.getId() != null && !nref.getId().equals(NULL_ID)) {
-                    System.out.println("KIRA =" + vocabularityId + " match=" + nref.getId());
                     GenericNode gn = null;
                     try {
                         gn = termedService.getConceptNode(vocabularityId, nref.getId());
@@ -262,7 +282,9 @@ public class ImportService {
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         termedService.bulkChange(operation,true);
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
-        return new ResponseEntity<>("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
+        logger.info("Imported "+records.size()+" terms using format:<" + format + ">");
+        ResponseEntity<?> re = new ResponseEntity("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
+        return CompletableFuture.completedFuture(re);
     }
 
     /**
