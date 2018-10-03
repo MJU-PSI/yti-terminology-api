@@ -48,21 +48,13 @@ public class ImportController {
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
     }
-/*
-    @RequestMapping(value = "/import/{format}", method = POST, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity importTerms(@PathVariable("format") String format,
-                               @RequestParam UUID vocabularityId,
-                               @RequestBody VOCABULARY ntrfDocument) {
-        return importService.handleNtrfDocument(format,vocabularityId, ntrfDocument);
-    }
-*/
     @RequestMapping(value = "ntrf/{vocabularity}", method = RequestMethod.POST , consumes = "multipart/form-data")
     ResponseEntity importTerms(@PathVariable("vocabularity") UUID vocabularityId,
                                @RequestParam("file") MultipartFile file){
         return importService.handleNtrfDocumentAsync("ntrf",vocabularityId, file);
     }
-    @RequestMapping(value = "/status/{id}", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity importTerms(@PathVariable("id") UUID id) {
+    @RequestMapping(value = "/status/{jobtoken}", method = GET, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity importTerms(@PathVariable("jobtoken") UUID id) {
         return importService.getStatus(id);
     }
 }

@@ -59,6 +59,8 @@ targetCompatibility = 1.8
 dependencies {
     compile "org.springframework.boot:spring-boot-starter-web"
 	compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile("org.springframework.boot:spring-boot-starter-activemq")
+    compile("org.apache.activemq:activemq-broker")
     compile "org.elasticsearch.client:rest:5.2.2"
     compile "com.google.code.findbugs:jsr305:3.0.2"
     compile "org.jetbrains:annotations:15.0"
