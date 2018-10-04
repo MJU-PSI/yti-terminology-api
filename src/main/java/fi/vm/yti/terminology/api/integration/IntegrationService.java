@@ -122,7 +122,7 @@ public class IntegrationService {
         GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
         if(term != null && concept != null){
             // Add vocabularity-info
-            incomingConcept.setUri(vocabularyNode.getUri());
+            // incomingConcept.setUri(vocabularyNode.getUri());
             incomingConcept.setVocabulary(vocabularyNode.getId());
             incomingConcept.setCreator(userProvider.getUser().getId().toString());
             // Publish them to server
@@ -133,6 +133,9 @@ public class IntegrationService {
             termedService.bulkChange(operation,true);
             if(logger.isDebugEnabled())
                 logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
+                        // Fetch created concept and get it's URI, set it to the returned json
+            GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
+            incomingConcept.setUri(createdConcept.getUri());
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
     }
