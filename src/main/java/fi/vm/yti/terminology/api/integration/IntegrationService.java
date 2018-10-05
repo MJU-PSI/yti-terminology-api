@@ -122,7 +122,7 @@ public class IntegrationService {
         GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
         if(term != null && concept != null){
             // Add vocabularity-info
-//            incomingConcept.setUri(vocabularyNode.getUri());
+            // incomingConcept.setUri(vocabularyNode.getUri());
             incomingConcept.setVocabulary(vocabularyNode.getId());
             incomingConcept.setCreator(userProvider.getUser().getId().toString());
             // Publish them to server
