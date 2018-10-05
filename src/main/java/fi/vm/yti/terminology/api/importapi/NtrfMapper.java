@@ -15,8 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.stereotype.Component;
 
@@ -75,7 +73,9 @@ public class NtrfMapper {
      */
     private List<NconRef> nconList = new ArrayList<>();
 
-    private Map<UUID,String> importStatus = new HashMap<>();
+    private String currentRecord;
+    private Map<String,StatusMessage> statusList = new LinkedHashMap<>();
+
     private static final Logger logger = LoggerFactory.getLogger(ImportService.class);
 
     // Enable for async operations
@@ -114,22 +114,14 @@ public class NtrfMapper {
 
     /**
      * Executes import operation. Reads incoming xml and process it
-     * @param format
      * @param vocabularityId
      * @param ntrfDocument
      * @return
      */
-   ResponseEntity mapNtrfDocument(String format, UUID vocabularityId, VOCABULARY ntrfDocument, UUID userId) {
+   String mapNtrfDocument( UUID vocabularityId, VOCABULARY ntrfDocument, UUID userId) {
         Graph vocabularity = null;
-        logger.info("POST /import requested with format:"+format+" Vocabularity Id:"+vocabularityId);
+        logger.info("mapNtRfDocument: Vocabularity Id:"+vocabularityId);
         Long startTime = new Date().getTime();
-        // Fail if given format string is not ntrf
-        if (!format.equals("ntrf")) {
-            logger.error("Unsupported format:<" + format + "> (Currently supported formats: ntrf)");
-            // Unsupported format
-            ResponseEntity<?> re = new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
-            return new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
-        }
 
         // Get vocabularity
         try {
@@ -137,8 +129,7 @@ public class NtrfMapper {
         } catch ( NullPointerException nex){
             // Vocabularity not found
             logger.error("Vocabularity:<" + vocabularityId + "> not found");
-            ResponseEntity<?> re = new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
-            return new ResponseEntity<>("Vocabularity:<" + vocabularityId + "> not found\n", HttpStatus.NOT_FOUND);
+            return "Vocabularity:<" + vocabularityId + "> not found";
         }
 
         initImport(vocabularityId);
@@ -160,9 +151,10 @@ public class NtrfMapper {
 
         int flushCount = 0;
         for(RECORD o:records){
+            currentRecord=o.getNumb();
             handleRECORD(vocabularity, o, addNodeList);
             flushCount++;
-            if(flushCount >500){
+            if(flushCount >100){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -174,7 +166,7 @@ public class NtrfMapper {
         GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-       updateAndDeleteInternalNodes(userId, operation,true);
+        updateAndDeleteInternalNodes(userId, operation,true);
         addNodeList.clear();
 
         Long endTime = new Date().getTime();
@@ -244,8 +236,10 @@ public class NtrfMapper {
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         updateAndDeleteInternalNodes(userId, operation, true);
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
-        logger.info("Imported "+records.size()+" terms using format:<" + format + ">");
-        return new ResponseEntity("Imported "+records.size()+" terms using format:<" + format + ">\n", HttpStatus.OK);
+        logger.info("NTRF-imported "+records.size()+" terms.");
+        System.out.println("Status----------------------------------------");
+        JsonUtils.prettyPrintJson(statusList);
+        return "{\"status\":\"Imported "+records.size()+" terms\",\"Errors\":"+JsonUtils.prettyPrintJsonAsString(statusList)+"\"}";
     }
 
     /**
@@ -257,9 +251,7 @@ public class NtrfMapper {
     private void initImport(UUID vocabularityId){
         // Get metamodel types for given vocabularity
         List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
-        metaTypes.forEach(t-> {
-            typeMap.put(t.getId(),t);
-        });
+        metaTypes.forEach(t-> typeMap.put(t.getId(),t));
 
         // Create hashmap to store information  between code/URI and UUID so that we can update values upon same vocabularity
         List<GenericNode> nodeList = termedService.getNodes(vocabularityId);
@@ -295,10 +287,8 @@ public class NtrfMapper {
 
         // get links and add them to references/member map
 
-//        List<?> l = diag.getContent();
         List<LINK> l = diag.getLINK();
         l.forEach(li-> {
-//            String linkTarget = li.getHref();
             String linkTarget = li.getHref();
             // Remove #
             if (linkTarget.startsWith("#"))
@@ -314,6 +304,8 @@ public class NtrfMapper {
                 references.put("member", memberRef);
             } else {
                 logger.warn("DIAG:"+diag.getNumb()+" LINK-target " + li.getHref() +" <"+li.getContent() +"> not added into the collection");
+                statusList.put(currentRecord,new StatusMessage(currentRecord,
+                        "DIAG:"+diag.getNumb()+" LINK-target " + li.getHref() +" <"+li.getContent() +"> not added into the collection"));
             }
 
         });
@@ -465,12 +457,13 @@ public class NtrfMapper {
                     lastModifiedDate = LocalDate.parse(upd[1].trim(), df);
                     editorialNote = editorialNote+" -"+lastModifiedBy+", "+lastModifiedDate;
                 } catch(DateTimeParseException dex){
+                    statusList.put(currentRecord,new StatusMessage(currentRecord,
+                            "Parse error for date"+dex.getMessage()));
                     System.out.println("Parse error for date"+dex.getMessage());
                 }
             }
         }
         if(!editorialNote.isEmpty()) {
-            System.out.println("Editorial note!!!"+editorialNote);
             Attribute att = new Attribute("fi", editorialNote);
             addProperty("editorialNote", properties, att);
         }
@@ -514,13 +507,14 @@ public class NtrfMapper {
         // Filter NCON elemets as list
         List<NCON> ncon = r.getNCON();
         for(NCON o:ncon) {
-            System.out.println("--NCON=" + o.getHref());
             if( o.getHref()!= null && !o.getHref().isEmpty()) {
                 String nrefId = o.getHref().substring(1);
                 //RECORD/BCON
                 // Store information of link for now on and after all items are created, update broader/isPartOf-references
                 handleNCON(o, currentId);
             } else {
+                statusList.put(currentRecord,new StatusMessage(currentRecord,
+                        "Record:"+code+" has null NCON reference."));
                 logger.warn("Record:"+code+" has null NCON reference.");
             }
 
@@ -611,7 +605,6 @@ public class NtrfMapper {
 
         // SY (synonym) is just like TE
         List <Termcontent> synonym = o.getSY();
-        System.out.println("Handling synonyms");
         synonym.forEach(obj->{
             GenericNode n = handleSY(obj, o.getValue().value(), parentProperties, parentReferences, vocabularity);
             if(n != null){
@@ -732,6 +725,7 @@ public class NtrfMapper {
             } else if(o instanceof SOURF){
                 handleSOURF((SOURF)o,lang,properties,vocabularity);
             }else {
+                statusList.put(currentRecord,new StatusMessage(currentRecord," REMK: unhandled contentclass="+o.getClass().getName()+" value="+o.toString()));
                 System.out.println(" REMK: unhandled contentclass="+o.getClass().getName()+" value="+o.toString());
             }
 
@@ -765,7 +759,7 @@ public class NtrfMapper {
                 addProperty("scope", properties, att);
             } else if (li instanceof LINK){
                 // <SCOPE>yliopistolain <LINK href="https://www.finlex.fi/fi/laki/kaannokset/2009/en20090558_20160644.pdf">558/2009 käännöksessä</LINK></SCOPE>
-                System.out.println("SCOPE WITH LINK");
+                System.out.println("Unimplemented SCOPE WITH LINK");
                 //@TODO! Make impl
             }
         });
@@ -773,9 +767,8 @@ public class NtrfMapper {
     }
 
     private void handleGRAM(GRAM gt, Map<String, List<Attribute>> properties){
-        System.out.println("Grammatical specification: gender    ="+gt.getGend());
-        System.out.println("               verb/noun   pos       ="+gt.getPos());
-        System.out.println("                yks/mon    value Att ="+gt.getValue());
+        if(logger.isDebugEnabled())
+            logger.debug("Grammatical specification");
         // termConjugation (single, plural)
         if(gt.getValue() != null && gt.getValue().equalsIgnoreCase("pl")){
             // Currently not localized
@@ -838,7 +831,6 @@ public class NtrfMapper {
         if(o.equalsIgnoreCase("hyväksytty"))
             status = "DRAFT";
 
-
         if(stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut"))
             status="RETIRED";
         Attribute att = new Attribute("", status);
@@ -863,7 +855,6 @@ public class NtrfMapper {
             Attribute att = new Attribute("", status);
             addProperty("status", properties, att);
         }
-        return;
     }
 
     /**
@@ -903,8 +894,12 @@ public class NtrfMapper {
             } else
                 references.put("isPartOf", ref);
         }
-        else
-            logger.warn("BCON reference match failed. for "+brefId);
+        else {
+            logger.warn("BCON reference match failed. for " + brefId);
+            statusList.put(currentRecord,
+                    new StatusMessage(currentRecord,
+                            "BCON reference match failed. for " + brefId));
+        }
     }
 
     private void handleNCON(NCON o, UUID broaderConceptId) {
@@ -941,6 +936,9 @@ public class NtrfMapper {
             }
         } else {
             logger.warn("NCON with NULL href. Cant resolve.");
+            statusList.put(currentRecord,
+                    new StatusMessage(currentRecord,
+                            "NCON reference match failed. for " + nrefId));
         }
     }
 
@@ -1093,10 +1091,13 @@ public class NtrfMapper {
                         System.out.println(elem.getValue().getClass().getName()+" -- DEF, unhandled JAXB:"+elem.getName().toString()+"  value:"+elem.getValue().toString());
                 } else if(de instanceof LINK){
                     LINK li = (LINK)de;
-                    System.out.println("DEF, Link found:"+li.getHref());
                     defString = defString + "<a href='"+li.getHref()+"' data-type='external'>"+li.getContent().get(0)+"</a>";
-                } else
-                    System.out.println("DEF, unhandled CLASS="+de.getClass().getName());
+                } else {
+                    System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
+                    statusList.put(currentRecord,
+                            new StatusMessage(currentRecord,
+                                    "DEF, unhandled CLASS=" + de.getClass().getName()));
+                }
             }
         }
 
@@ -1146,7 +1147,6 @@ public class NtrfMapper {
                             noteString = noteString.concat(" data-typr ='" +
                                     rc.getTypr()+"'");
                         }
-                        System.out.println("?????????? fails"+rc.getContent());
                         noteString = noteString.concat(">"+rc.getContent().get(0)+ "</a>");
                     }
                     else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
@@ -1170,8 +1170,12 @@ public class NtrfMapper {
                     }else if(j.getName().toString().equalsIgnoreCase("BR") ){
                         // Add newline
                         noteString = noteString + "\n";
-                    }else
+                    }else {
                         System.out.println("  Unhandled note-class " + j.getName().toString());
+                        statusList.put(currentRecord,
+                                new StatusMessage(currentRecord,
+                                        "Unhandled note-class " + j.getName().toString()));
+                    }
                 }
                 if(logger.isDebugEnabled())
                     logger.debug("note-String="+noteString);
@@ -1240,6 +1244,9 @@ public class NtrfMapper {
                     addProperty("scope", properties,  att);
                 } else {
                     System.out.println("SCOPE unknown instance type:"+o.getClass().getName());
+                    statusList.put(currentRecord,
+                            new StatusMessage(currentRecord,
+                                    "SCOPE unknown instance type:"+o.getClass().getName()));
                 }
             });
         }
@@ -1247,96 +1254,9 @@ public class NtrfMapper {
             handleSOURF(synonym.getSOURF(),lang,properties,vocabularity);
         }
         if(synonym.getTERM() != null){
-            TERM t = synonym.getTERM();
             handleTERM(synonym.getTERM(),lang,properties);
         }
-/*
-        for(JAXBElement elem:synonym.getEQUIOrTERMOrHOGR()) {
-            if(logger.isDebugEnabled())
-                logger.debug("Parsing SYN-Element=" + elem.getName().toString());
-            } else if (elem.getName().toString().equalsIgnoreCase("TERM")) {
-                System.out.println(elem.getValue());
-                if(elem.getValue() instanceof SY.TERM){
-                    SY.TERM termObj = (SY.TERM)elem.getValue();
-                    term = termObj.getContent().toString();
-                    List<Serializable> termValues = termObj.getContent();
-                    for(Serializable t:termValues){
-                        // If is name and it may contain additional GRAM-specification
-                        if(t instanceof  String) {
-                            term = t.toString();
-                        } else{
-                            // Term can contain parts like GRAM-elements
-                            if(t instanceof JAXBElement){
-                                JAXBElement el = (JAXBElement)t;
-                                System.out.println("    Term val=" + el.getName().toString());
-
-                                if(el.getName().toString().equals("GRAM")){
-                                    GRAM gt = (GRAM) el.getValue();
-                                    System.out.println("Grammatical specification: gender    ="+gt.getGend());
-                                    System.out.println("               verb/noun   pos       ="+gt.getPos());
-                                    System.out.println("                           value     ="+gt.getValue());
-                                    System.out.println("                yks/mon    value Att ="+gt.getValueAttribute());
-                                    // termConjugation (single, plural)
-                                    if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("pl")){
-                                        // Currently not localized
-                                        Attribute att = new Attribute("fi", "monikko");
-                                        addProperty("termConjugation", properties,  att);
-                                    } else if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("n pl")){
-                                        // Currently not localized plural and  neutral
-                                        Attribute att = new Attribute("fi", "monikko");
-                                        addProperty("termConjugation", properties,  att);
-                                        att = new Attribute("fi", "neutri");
-                                        addProperty("termFamily", properties,  att);
-                                    }else if(gt.getValueAttribute() != null && gt.getValueAttribute().equalsIgnoreCase("f pl")){
-                                        // Currently not localized plural and  neutral
-                                        Attribute att = new Attribute("fi", "monikko");
-                                        addProperty("termConjugation", properties,  att);
-                                        att = new Attribute("fi", "feminiini");
-                                        addProperty("termFamily", properties,  att);
-                                    }
-                                    // termFamily
-                                    if(gt.getGend() != null && gt.getGend().equalsIgnoreCase("f")){
-                                        // feminiini
-                                        // Currently not localized
-                                        Attribute att = new Attribute("fi", "feminiini");
-                                        addProperty("termFamily", properties,  att);
-                                    } else if(gt.getGend() != null && gt.getGend() != null && gt.getGend().equalsIgnoreCase("m")){
-                                        // maskuliiini
-                                        Attribute att = new Attribute("fi", "maskuliini");
-                                        addProperty("termFamily", properties,  att);
-                                    } else if(gt.getGend() != null && gt.getGend().equalsIgnoreCase("n")){
-                                        // Neutri
-                                        Attribute att = new Attribute("fi", "neutri");
-                                        addProperty("termFamily", properties,  att);
-                                    }
-                                    // wordClass
-                                    if(gt.getPos() != null && !gt.getPos().isEmpty()){
-                                        // Currently not localized, just copy wordClass as such
-                                        Attribute att = new Attribute("fi", gt.getPos());
-                                        addProperty("wordClass", properties,  att);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Attribute att = new Attribute(lang, term);
-                    addProperty("prefLabel", properties,  att);
-                }
-            } else if (elem.getName().toString().equalsIgnoreCase("SOURF")) {
-                // Here it is just string
-                sourf=elem.getValue().toString();
-
-                Attribute att = new Attribute(lang, sourf);
-                addProperty("source", properties,  att);
-
-                if(sourf!= null && !sourf.isEmpty()) {
-                    // Add  refs as string and  construct lines four sources-part.
-                    updateSources(sourf, lang, properties);
-                }
-            }
-        }
-        */
-        // create new synonyme node (Term)
+        // create new synonym node (Term)
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
         GenericNode node = null;
@@ -1362,7 +1282,6 @@ public class NtrfMapper {
             logger.debug("handleSOURF-part"+source.getContent());
 
         String sourceString="";
-
 
         List<?> sourceItems = source.getContent();
         for(Object se:sourceItems) {
@@ -1412,10 +1331,12 @@ public class NtrfMapper {
                             // Add  refs as string and  construct lines four sources-part.
                             updateSources(sf.getContent(), lang, properties);
                         }
-                    }  else
+                    }  else {
                         System.out.println("  UNKNOWN  SOURF-class" + se.getClass().getName());
+                        statusList.put(currentRecord,
+                                new StatusMessage(currentRecord,
+                                        "SOURF unknown instance type:"+se.getClass().getName()));                    }
                 }
-                System.out.println("  -----SOURF-String=<" + sourceString+">");
             }
         };
         // Add definition if exist.
@@ -1441,7 +1362,7 @@ public class NtrfMapper {
     }
 
     /**
-     * Add individual source-elements sfrom give string
+     * Add individual source-elements from give string
      * @param srefs
      * @param lang
      * @param properties
@@ -1461,6 +1382,7 @@ public class NtrfMapper {
                 }
             } else {
                 logger.warn("Not matching reference found for:"+s);
+                statusList.put(currentRecord,new StatusMessage(currentRecord,"Not matching reference found for :"+s));
             }
             if(!sourcesString.isEmpty()) {
                 if(logger.isDebugEnabled())
@@ -1530,6 +1452,36 @@ public class NtrfMapper {
 
         public void setType(String type) {
             this.type = type;
+        }
+    }
+
+    private class StatusMessage{
+        String record;
+        List<String> message = new ArrayList<>();
+
+        public StatusMessage(String record, String msg) {
+            this.record = record;
+            this.message.add(msg);
+        }
+
+        public String getRecord() {
+            return record;
+        }
+
+        public void setRecord(String record) {
+            this.record = record;
+        }
+
+        public List<String> getMessage() {
+            return message;
+        }
+
+        public void setMessage(List<String> message) {
+            this.message = message;
+        }
+
+        public void putMessage(String msg){
+            this.message.add(msg);
         }
     }
 }

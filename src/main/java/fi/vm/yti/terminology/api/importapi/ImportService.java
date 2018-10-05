@@ -15,13 +15,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.annotation.EnableJms;
+import org.springframework.jms.core.BrowserCallback;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.jms.JMSException;
+import javax.jms.QueueBrowser;
+import javax.jms.Session;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -31,10 +34,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @EnableJms
@@ -77,26 +77,84 @@ public class ImportService {
 
     ResponseEntity getStatus(UUID jobtoken){
         // Status not_found/running/errors
-        if(importStatus.get(jobtoken)!= null){
-            return new ResponseEntity<>("{ \"status\":\"" + importStatus.get(jobtoken) + "\"" +
-                    "}", HttpStatus.OK);
-        } else
-            return new ResponseEntity<>("{ \"status\":\"" + jobtoken + "\"}", HttpStatus.OK);
+        System.out.println("ReadyState="+getJobState(jobtoken, "VocabularyReady"));
+        // Status not_found/running/errors
+        // Query status information from ActiveMQ
+        Boolean stat = getJobState(jobtoken, "VocabularyStatus");
+        System.out.println("Check Status:"+stat.booleanValue());
+        stat = getJobState(jobtoken, "VocabularyReady");
+        System.out.println("Check ready:"+stat.booleanValue());
+
+        if (getJobState(jobtoken, "VocabularyIncoming").booleanValue()){
+            return new ResponseEntity<>("{ \"status\":\"Import operation already started\"}", HttpStatus.NOT_ACCEPTABLE);
+        }else if (getJobState(jobtoken, "VocabularyStatus").booleanValue()){
+            System.out.println("Status found:");
+            return new ResponseEntity<>("{ \"status\":\"Processing\"}", HttpStatus.OK);
+        }else if (getJobState(jobtoken, "VocabularyProcessing").booleanValue()){
+            return new ResponseEntity<>("{ \"status\":\"Processing\"}", HttpStatus.OK);
+        } else if(getJobState(jobtoken, "VocabularyReady").booleanValue()){
+            System.out.println("Ready found:");
+            return new ResponseEntity<>("{ \"status\":\"Ready\"}", HttpStatus.OK);
+        }
+        return new ResponseEntity<>("{ \"status\":\"Not found\"}", HttpStatus.OK);
+    }
+
+    private Boolean getJobState(UUID jobtoken,String queueName) {
+        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<Boolean>() {
+            @Override
+            public Boolean doInJms(Session session, QueueBrowser browser) throws JMSException {
+                Enumeration messages = browser.getEnumeration();
+                return  new Boolean(messages.hasMoreElements());
+            }
+        });
+    }
+
+    private boolean checkIfImportIsRunnig(String uri) {
+        Boolean rv = false;
+        if (checkUriStatus(uri, "VocabularyStatus").booleanValue()) {
+            System.out.println("Status found:");
+            rv = true;
+        } else if (checkUriStatus(uri, "VocabularyProcessing").booleanValue()) {
+            rv = true;
+        }
+        return rv;
+    }
+
+    private Boolean checkUriStatus(String uri, String queueName) {
+        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "uri='"+uri+"'",new BrowserCallback<Boolean>() {
+            @Override
+            public Boolean doInJms(Session session, QueueBrowser browser) throws JMSException {
+                Enumeration messages = browser.getEnumeration();
+                return  new Boolean(messages.hasMoreElements());
+            }
+        });
     }
 
     ResponseEntity handleNtrfDocumentAsync(String format, UUID vocabularyId, MultipartFile file) {
         String rv;
         System.out.println("Incoming vocabularity= "+vocabularyId+" - file:"+file.getName()+" size:"+file.getSize()+ " type="+file.getContentType());
+        // Fail if given format string is not ntrf
+        if (!format.equals("ntrf")) {
+            logger.error("Unsupported format:<" + format + "> (Currently supported formats: ntrf)");
+            // Unsupported format
+            ResponseEntity<?> re = new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>("Unsupported format:<" + format + ">    (Currently supported formats: ntrf)\n", HttpStatus.NOT_ACCEPTABLE);
+        }
 
         Graph vocabulary = null;
 
         // Get vocabularity
         try {
             vocabulary = termedService.getGraph(vocabularyId);
+            // Import running for given vocabulary, drop it
+            if(checkIfImportIsRunnig(vocabulary.getUri())){
+                logger.error("Import running for Vocabulary:<" + vocabularyId + ">");
+                return new ResponseEntity<>("Import running for Vocabulary:<" + vocabularyId+">", HttpStatus.CONFLICT);
+            }
         } catch ( NullPointerException nex){
             // Vocabularity not found
-            logger.error("Vocabularity:<" + vocabularyId + "> not found");
-            return new ResponseEntity<>("Vocabularity:<" + vocabularyId + "> not found\n", HttpStatus.NOT_FOUND);
+            logger.error("Vocabulary:<" + vocabularyId + "> not found");
+            return new ResponseEntity<>("Vocabulary:<" + vocabularyId + "> not found\n", HttpStatus.NOT_FOUND);
         }
 
         UUID operationId=UUID.randomUUID();
@@ -129,13 +187,16 @@ public class ImportService {
             // Use Vocabulary Uri as uri
             Message mess = MessageBuilder
                     .withPayload(sw.toString())
-                    .setHeader("userId", userProvider.getUser().getId().toString()) // Authenticated user
+                    // Authenticated user
+                    .setHeader("userId", userProvider.getUser().getId().toString())
+                    // Token which is used when querying status
                     .setHeader("jobtoken", operationId.toString())
                     .setHeader("format", "ntrf")
+                    // Target vocabulary
                     .setHeader("vocabularyId", vocabularyId.toString())
                     .setHeader("uri", vocabulary.getUri())
                     .build();
-            sendNtrfToJMS(mess);
+            jmsMessagingTemplate.send("VocabularyIncoming", mess);
         } catch (IOException ioe){
             System.out.println("Incoming transform error=" + ioe);
         } catch (XMLStreamException se) {
@@ -144,14 +205,5 @@ public class ImportService {
             System.out.println("Incoming transform error=" + je);
         }
         return new ResponseEntity<>( rv, HttpStatus.OK);
-    }
-
-    @SendTo("VocabularyIncoming")
-    private void sendNtrfToJMS(Message msg){
-        System.out.println("Sending message. Queue="+"VocabularyIncoming");
-        System.out.println("Headers:"+msg.getHeaders());
-      jmsMessagingTemplate.send("VocabularyIncoming", msg);
-//        jmsMessagingTemplate.convertAndSend(
- //               "VocabularyIncoming", msg);
     }
 }
