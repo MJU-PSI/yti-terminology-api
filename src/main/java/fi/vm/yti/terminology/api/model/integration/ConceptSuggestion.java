@@ -1,12 +1,9 @@
 package fi.vm.yti.terminology.api.model.integration;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import fi.vm.yti.terminology.api.model.termed.*;
-import fi.vm.yti.terminology.api.model.termed.NodeType;
 
+import java.util.Objects;
 import java.util.UUID;
-
-import static java.util.UUID.randomUUID;
 
 public final class ConceptSuggestion {
 /*
@@ -79,19 +76,18 @@ public final class ConceptSuggestion {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ConceptSuggestion that = (ConceptSuggestion) o;
-
-        return prefLabel.equals(that.prefLabel) && definition.equals(that.definition);
+        if (!(o instanceof ConceptSuggestion)) return false;
+        final ConceptSuggestion that = (ConceptSuggestion) o;
+        return Objects.equals(prefLabel, that.prefLabel) &&
+            Objects.equals(vocabulary, that.vocabulary) &&
+            Objects.equals(uri, that.uri);
     }
 
     @Override
     public int hashCode() {
-        int result = prefLabel.hashCode();
-        result = 31 * result + definition.hashCode();
-        return result;
+
+        return Objects.hash(prefLabel, vocabulary, uri);
     }
 }
