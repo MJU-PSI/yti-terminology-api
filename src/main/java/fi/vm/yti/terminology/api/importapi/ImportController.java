@@ -54,7 +54,7 @@ public class ImportController {
         return importService.handleNtrfDocumentAsync("ntrf",vocabularityId, file);
     }
     @RequestMapping(value = "/status/{jobtoken}", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity importTerms(@PathVariable("jobtoken") UUID id) {
+    ResponseEntity getStatus(@PathVariable("jobtoken") UUID id) {
         return importService.getStatus(id);
     }
 }
