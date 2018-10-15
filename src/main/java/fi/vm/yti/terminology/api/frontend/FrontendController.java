@@ -226,6 +226,7 @@ public class FrontendController {
         conf.codeListUrl = this.serviceUrls.getCodeListUrl();
         conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
+        conf.env = this.serviceUrls.getEnv();
 
         return conf;
     }

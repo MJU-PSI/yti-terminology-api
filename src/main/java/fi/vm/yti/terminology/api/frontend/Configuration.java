@@ -5,4 +5,5 @@ public class Configuration {
     public String codeListUrl;
     public String dataModelUrl;
     public String groupmanagementUrl;
+    public String env;
 }

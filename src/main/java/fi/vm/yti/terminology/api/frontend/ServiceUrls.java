@@ -21,6 +21,9 @@ import javax.validation.constraints.NotNull;
         @NotNull
         private String groupManagementUrl;
 
+        @NotNull
+        private String env;
+
         public String getCodeListUrl() {
             return codeListUrl;
         }
@@ -43,6 +46,14 @@ import javax.validation.constraints.NotNull;
 
         public void setGroupManagementUrl(String groupManagementUrl) {
             this.groupManagementUrl = groupManagementUrl;
+        }
+
+        public String getEnv() {
+            return env;
+        }
+
+        public void setEnv(String env) {
+            this.env = env;
         }
     }
 
