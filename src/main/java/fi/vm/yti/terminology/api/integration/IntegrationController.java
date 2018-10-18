@@ -50,7 +50,7 @@ public class IntegrationController {
         this.fakeLoginAllowed = fakeLoginAllowed;
     }
 
-    @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity  conceptSuggestion(@PathVariable("vocabularyId") String vocabularyId,
                            @RequestBody ConceptSuggestion incomingConcept) {
         return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
