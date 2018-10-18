@@ -146,6 +146,15 @@ public class IntegrationService {
      */
     private boolean checkUserRights(){
         YtiUser user = userProvider.getUser();
+        logger.debug("FIND_ME_DEBUG");
+        if (user != null) {
+            logger.debug("user : " + user);
+        } else{
+            logger.debug("USER IS NULL");
+        }
+
+
+
         // Superuser can do all
         if( user.isSuperuser()){
             return true;
