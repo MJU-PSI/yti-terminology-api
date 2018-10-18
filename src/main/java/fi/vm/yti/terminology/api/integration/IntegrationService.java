@@ -85,7 +85,7 @@ public class IntegrationService {
         // Check rights
         //Check that user belongs to at least 1 organization or is superuser
         if(!checkUserRights()){
-            return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
         }
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
@@ -151,7 +151,7 @@ public class IntegrationService {
             return true;
         }
         // User must belong to at least 1 organization using either ADMIN or EDITOR role
-        Set orgs = user.getOrganizations(Role.ADMIN,Role.TERMINOLOGY_EDITOR);
+        Set orgs = user.getOrganizations(Role.ADMIN,Role.TERMINOLOGY_EDITOR, Role.CODE_LIST_EDITOR, Role.DATA_MODEL_EDITOR);
         if(orgs != null && orgs.size()>0){
             return true;
         }
