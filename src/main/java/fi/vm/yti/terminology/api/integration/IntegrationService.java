@@ -146,11 +146,14 @@ public class IntegrationService {
      */
     private boolean checkUserRights(){
         YtiUser user = userProvider.getUser();
-        logger.debug("FIND_ME_DEBUG");
+        
         if (user != null) {
-            logger.debug("user : " + user);
+            logger.error("user : " + user);
         } else{
-            logger.debug("USER IS NULL");
+            logger.error("USER IS NULL");
+        }
+        if (user == null) {
+            logger.error("USER IS NULL");
         }
 
 
