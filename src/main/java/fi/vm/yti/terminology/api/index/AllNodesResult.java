@@ -66,7 +66,7 @@ final class AllNodesResult {
                 .findFirst();
     }
 
-    private static boolean isConceptNode(@NotNull JsonNode jsonObj) {
+    protected static boolean isConceptNode(@NotNull JsonNode jsonObj) {
         return typeIs(jsonObj, "Concept");
     }
 
@@ -89,7 +89,7 @@ final class AllNodesResult {
         return null;
     }
 
-    private static boolean typeIs(@NotNull JsonNode jsonObj, @NotNull String... types) {
+    protected static boolean typeIs(@NotNull JsonNode jsonObj, @NotNull String... types) {
         String jsonObjType = type(jsonObj);
 
         if (jsonObjType == null) {

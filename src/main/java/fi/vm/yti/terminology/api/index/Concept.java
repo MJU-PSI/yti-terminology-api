@@ -81,8 +81,8 @@ final class Concept {
 
         String status = getSinglePropertyValue(properties, "status");
 
-        List<UUID> broaderIds = getReferenceIdsFromTermedReferences(references, "broader");
-        List<UUID> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader");
+        List<UUID> broaderIds = getReferenceIdsFromTermedReferences(references, "broader", "Concept");
+        List<UUID> narrowerIds = getReferenceIdsFromTermedReferences(referrers, "broader", "Concept");
 
         JsonNode uri = conceptJson.get("uri");
 
@@ -113,7 +113,7 @@ final class Concept {
         JsonNode references = conceptJson.get("references");
 
         List<JsonNode> prefLabelXLReferences =
-                getReferenceIdsFromTermedReferences(references, "prefLabelXl").stream()
+                getReferenceIdsFromTermedReferences(references, "prefLabelXl", "Term").stream()
                         .map(refId -> {
                             JsonNode term = allNodesResult.getNode(refId, "Term");
 
@@ -125,7 +125,7 @@ final class Concept {
                         .collect(toList());
 
         List<JsonNode> altLabelXLReferences =
-                getReferenceIdsFromTermedReferences(references, "altLabelXl").stream()
+                getReferenceIdsFromTermedReferences(references, "altLabelXl", "Term").stream()
                         .map(refId -> {
                             JsonNode term = allNodesResult.getNode(refId, "Term");
 
@@ -155,9 +155,10 @@ final class Concept {
         return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate, uri);
     }
 
-    private static @NotNull List<UUID> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName) {
+    private static @NotNull List<UUID> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName, @NotNull String typeRequirement) {
         if (references.has(referenceName)) {
             return asStream(references.get(referenceName))
+                    .filter(node -> AllNodesResult.typeIs(node, typeRequirement))
                     .map(node -> UUID.fromString(node.get("id").textValue()))
                     .collect(toList());
         } else {

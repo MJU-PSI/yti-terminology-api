@@ -114,6 +114,7 @@ public class IndexTermedService {
         params.add("max", "-1");
 
         return asStream(termedRequester.exchange("/node-trees", GET, params, JsonNode.class))
+                .filter(AllNodesResult::isConceptNode) // let us not trust conceptIds to be concept ids
                 .map(json -> Concept.createFromExtJson(json, vocabulary))
                 .collect(toList());
     }
