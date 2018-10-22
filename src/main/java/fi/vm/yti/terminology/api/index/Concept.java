@@ -74,7 +74,7 @@ final class Concept {
                 properties.has("altLabel")
                         ? localizableFromTermedProperties(properties, "altLabel")
                         : altLabelXlReferences.size() > 0
-                        ? localizableFromTermReferences(altLabelXlReferences, "altLabel")
+                        ? localizableFromTermReferences(altLabelXlReferences, "prefLabel")
                         : Collections.emptyMap();
 
         Map<String, List<String>> definition = localizableFromTermedProperties(properties, "definition");
@@ -97,7 +97,7 @@ final class Concept {
                 ? asStream(references.get("prefLabelXl")).collect(toList())
                 : Collections.emptyList();
 
-        List<JsonNode> altLabelXlReferences = references.has("prefLabelXl")
+        List<JsonNode> altLabelXlReferences = references.has("altLabelXl")
                 ? asStream(references.get("prefLabelXl")).collect(toList())
                 : Collections.emptyList();
 
