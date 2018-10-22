@@ -1,7 +1,6 @@
 package fi.vm.yti.terminology.api.integration;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -83,8 +82,7 @@ public class IntegrationService {
         Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
         // Check rights
-        //Check that user belongs to at least 1 organization or is superuser
-        if(!checkUserRights()){
+        if(!authorizationManager.userHasRightsForCodelistConceptSuggestion()){
             return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
         }
         // Get vocabularies and match code with name
@@ -138,37 +136,6 @@ public class IntegrationService {
             incomingConcept.setUri(createdConcept.getUri());
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
-    }
-
-    /**
-     * Check whether user can add suggestions to vocabularies
-     * @return
-     */
-    private boolean checkUserRights(){
-        YtiUser user = userProvider.getUser();
-        
-        if (user != null) {
-            logger.error("user : " + user);
-        } else{
-            logger.error("USER IS NULL");
-        }
-        if (user == null) {
-            logger.error("USER IS NULL");
-        }
-
-
-
-        // Superuser can do all
-        if( user.isSuperuser()){
-            return true;
-        }
-        // User must belong to at least 1 organization using either ADMIN or EDITOR role
-        Set orgs = user.getOrganizations(Role.ADMIN,Role.TERMINOLOGY_EDITOR, Role.CODE_LIST_EDITOR, Role.DATA_MODEL_EDITOR);
-        if(orgs != null && orgs.size()>0){
-            return true;
-        }
-        else
-            return false;
     }
 
     private GenericNode CreateTerm(GenericNodeInlined vocabulary, ConceptSuggestion incoming, Map<String, List<Identifier>> parentReferences){
