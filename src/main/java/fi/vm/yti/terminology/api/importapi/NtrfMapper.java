@@ -653,11 +653,12 @@ public class NtrfMapper {
             logger.debug("Handle TeRM:"+term.toString());
         term.getContent().forEach( li-> {
             if (li instanceof String) {
-                Attribute att = new Attribute(lang, li.toString());
+                Attribute att = new Attribute(lang, li.toString().trim());
                 addProperty("prefLabel", properties, att);
-            }
-            if(li instanceof GRAM && li != null ){
+            } else if(li instanceof GRAM && li != null ){
                 handleGRAM((GRAM)li, properties);
+            } else {
+                System.out.println(" TERM: unhandled contentclass="+li.getClass().getName()+" value="+li.toString());
             }
         });
     }
