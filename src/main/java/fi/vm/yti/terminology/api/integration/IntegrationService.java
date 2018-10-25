@@ -1,7 +1,6 @@
 package fi.vm.yti.terminology.api.integration;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
@@ -82,7 +81,7 @@ public class IntegrationService {
         Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
         // Check rights
-        if(!authorizationManager.userHasRightsForCodelistConceptSuggestion()){
+        if(authorizationManager.userIsLoggedInAnomymously()){
             return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
         }
         // Get vocabularies and match code with name

@@ -1,5 +1,8 @@
 package fi.vm.yti.terminology.api.integration;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.frontend.FrontendElasticSearchService;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -52,7 +55,16 @@ public class IntegrationController {
 
     @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity  conceptSuggestion(@PathVariable("vocabularyId") String vocabularyId,
-                           @RequestBody ConceptSuggestion incomingConcept) {
+                                      @RequestBody ConceptSuggestion incomingConcept, HttpServletRequest req) {
+        System.out.println(req);
+        logger.error("Cookies from original request ======================");
+        for (Cookie c : req.getCookies()) {
+            logger.error("c.getComment() == " + c.getComment());
+            logger.error("c.getDomain() == " + c.getDomain());
+            logger.error("c.getName()) == " + c.getName());
+            logger.error("c.getPath() == " + c.getPath());
+            logger.error("c.getValue() == " + c.getValue());
+        }
         return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
     }
 

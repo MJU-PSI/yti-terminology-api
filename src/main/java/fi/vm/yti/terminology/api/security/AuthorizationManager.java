@@ -64,7 +64,7 @@ public class AuthorizationManager {
         return user.isSuperuser() || user.isInAnyRole(EnumSet.of(ADMIN, TERMINOLOGY_EDITOR), organizationIds);
     }
 
-    public boolean userHasRightsForCodelistConceptSuggestion() {
-        return !this.userProvider.getUser().isAnonymous();
+    public boolean userIsLoggedInAnomymously() {
+        return this.userProvider.getUser().isAnonymous();
     }
 }
