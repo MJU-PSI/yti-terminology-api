@@ -121,7 +121,7 @@ public class IntegrationService {
             // Add vocabularity-info
             // incomingConcept.setUri(vocabularyNode.getUri());
             incomingConcept.setVocabulary(vocabularyNode.getId());
-            if (!userProvider.getUser().isAnonymous()) {
+            if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
                 incomingConcept.setCreator(userProvider.getUser().getId().toString());
             }
             // Publish them to server
