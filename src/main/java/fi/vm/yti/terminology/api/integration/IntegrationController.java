@@ -57,7 +57,7 @@ public class IntegrationController {
     ResponseEntity  conceptSuggestion(@PathVariable("vocabularyId") String vocabularyId,
                                       @RequestBody ConceptSuggestion incomingConcept, HttpServletRequest req) {
         System.out.println(req);
-        logger.error("Cookies from original request ======================");
+        logger.error("authdebug cookies ======================");
         for (Cookie c : req.getCookies()) {
             logger.error("c.getComment() == " + c.getComment());
             logger.error("c.getDomain() == " + c.getDomain());
