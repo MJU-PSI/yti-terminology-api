@@ -81,7 +81,7 @@ public class IntegrationService {
         Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
         // Check rights
-        if(!authorizationManager.userIsLoggedInAnomymously()){
+        if(!authorizationManager.userIsLoggedInAtLeastInSomeCapacity()){
             return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
         }
         // Get vocabularies and match code with name
