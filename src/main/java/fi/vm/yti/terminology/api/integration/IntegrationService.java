@@ -73,68 +73,72 @@ public class IntegrationService {
      * @return
      */
     ResponseEntity handleConceptSuggestion(String vocabularityId, ConceptSuggestion incomingConcept) {
-        Graph vocabularity = null;
-        if(logger.isDebugEnabled())
-            logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "+JsonUtils.prettyPrintJsonAsString(incomingConcept));
-        UUID activeVocabulary;
-        // Concept reference-map
-        Map<String, List<Identifier>> conceptReferences = new HashMap<>();
-
-        // Check rights
-        if(!authorizationManager.userIsLoggedInAtLeastInSomeCapacity()){
-            return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
-        }
-        // Get vocabularies and match code with name
-        List<Graph> vocs = termedService.getGraphs();
-        // Filter given code as result
-        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(vocabularityId)).map(o -> {
-            return new IdCode(o.getCode(), o.getId()); }).collect(Collectors.toList());
-        if(vocabularies.size() > 1){
-            return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Multiple matches for vocabulary. \n", HttpStatus.NOT_FOUND);
-        }else if(vocabularies.size() == 1){
-            // found, set UUID
-            activeVocabulary = vocabularies.get(0).id;
-        } else {
-            // It may be UUID, so try to convert that
-            // Try if it is UUID
-            try {
-                activeVocabulary = UUID.fromString(vocabularityId);
-            } catch (IllegalArgumentException ex){
-                // Not UUID, error.
-                return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Vocabulary not found. \n", HttpStatus.NOT_FOUND);
-            }
-        }
-
-        // Try to fetch it just to ensure it exist
-        GenericNodeInlined vocabularyNode = termedService.getVocabulary(activeVocabulary);
-        if(vocabularyNode == null){
-            return new ResponseEntity<>("Created Concept suggestion failed for UUID:"+ vocabularityId+". Vocabulary not found. \n", HttpStatus.NOT_FOUND);
-        }
-
-        // get metamodel for vocabulary
-        initImport(activeVocabulary);
-        // Create new Term
-        GenericNode term = CreateTerm(vocabularyNode, incomingConcept,conceptReferences);
-        // Create new Concept
-        GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
-        if(term != null && concept != null){
-            // Add vocabularity-info
-            // incomingConcept.setUri(vocabularyNode.getUri());
-            incomingConcept.setVocabulary(vocabularyNode.getId());
-            if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
-                incomingConcept.setCreator(userProvider.getUser().getId().toString());
-            }
-            // Publish them to server
-            List<GenericNode> addNodeList = new ArrayList<>();
-            addNodeList.add(term);
-            addNodeList.add(concept);
-            GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-            termedService.bulkChange(operation,true);
+        try {
+            Graph vocabularity = null;
             if(logger.isDebugEnabled())
-                logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-            // Fetch created concept and get it's URI, set it to the returned json
-            GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
-            incomingConcept.setUri(createdConcept.getUri());
+                logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "+JsonUtils.prettyPrintJsonAsString(incomingConcept));
+            UUID activeVocabulary;
+            // Concept reference-map
+            Map<String, List<Identifier>> conceptReferences = new HashMap<>();
+
+            // Check rights
+            if(!authorizationManager.userIsLoggedInAtLeastInSomeCapacity()){
+                return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
+            }
+            // Get vocabularies and match code with name
+            List<Graph> vocs = termedService.getGraphs();
+            // Filter given code as result
+            List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(vocabularityId)).map(o -> {
+                return new IdCode(o.getCode(), o.getId()); }).collect(Collectors.toList());
+            if(vocabularies.size() > 1){
+                return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Multiple matches for vocabulary. \n", HttpStatus.NOT_FOUND);
+            }else if(vocabularies.size() == 1){
+                // found, set UUID
+                activeVocabulary = vocabularies.get(0).id;
+            } else {
+                // It may be UUID, so try to convert that
+                // Try if it is UUID
+                try {
+                    activeVocabulary = UUID.fromString(vocabularityId);
+                } catch (IllegalArgumentException ex){
+                    // Not UUID, error.
+                    return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Vocabulary not found. \n", HttpStatus.NOT_FOUND);
+                }
+            }
+
+            // Try to fetch it just to ensure it exist
+            GenericNodeInlined vocabularyNode = termedService.getVocabulary(activeVocabulary);
+            if(vocabularyNode == null){
+                return new ResponseEntity<>("Created Concept suggestion failed for UUID:"+ vocabularityId+". Vocabulary not found. \n", HttpStatus.NOT_FOUND);
+            }
+
+            // get metamodel for vocabulary
+            initImport(activeVocabulary);
+            // Create new Term
+            GenericNode term = CreateTerm(vocabularyNode, incomingConcept,conceptReferences);
+            // Create new Concept
+            GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
+            if(term != null && concept != null){
+                // Add vocabularity-info
+                // incomingConcept.setUri(vocabularyNode.getUri());
+                incomingConcept.setVocabulary(vocabularyNode.getId());
+                if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
+                    incomingConcept.setCreator(userProvider.getUser().getId().toString());
+                }
+                // Publish them to server
+                List<GenericNode> addNodeList = new ArrayList<>();
+                addNodeList.add(term);
+                addNodeList.add(concept);
+                GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
+                termedService.bulkChange(operation,true);
+                if(logger.isDebugEnabled())
+                    logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
+                // Fetch created concept and get it's URI, set it to the returned json
+                GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
+                incomingConcept.setUri(createdConcept.getUri());
+            }
+        } catch (Exception e) {
+            logger.error(e.toString() + e.getMessage() + e.getCause().getMessage());
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
     }
