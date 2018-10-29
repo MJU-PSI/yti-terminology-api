@@ -138,7 +138,7 @@ public class IntegrationService {
                 incomingConcept.setUri(createdConcept.getUri());
             }
         } catch (Exception e) {
-            logger.error(e.toString() + e.getMessage() + e.getCause().getMessage());
+            logger.error(e.toString(), e);
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
     }
