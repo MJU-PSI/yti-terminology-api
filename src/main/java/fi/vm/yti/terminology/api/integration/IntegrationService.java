@@ -81,10 +81,6 @@ public class IntegrationService {
             // Concept reference-map
             Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
-            // Check rights
-            if(!authorizationManager.userIsLoggedInAtLeastInSomeCapacity()){
-                return new ResponseEntity<>("Created Concept suggestion failed for "+ vocabularityId+". Not enought rights. \n", HttpStatus.UNAUTHORIZED);
-            }
             // Get vocabularies and match code with name
             List<Graph> vocs = termedService.getGraphs();
             // Filter given code as result
@@ -130,7 +126,7 @@ public class IntegrationService {
                 addNodeList.add(term);
                 addNodeList.add(concept);
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-                termedService.bulkChange(operation,true);
+                termedService.bulkChangeWithoutAuthorization(operation,true);
                 if(logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
                 // Fetch created concept and get it's URI, set it to the returned json

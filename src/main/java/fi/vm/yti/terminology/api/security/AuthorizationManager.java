@@ -66,15 +66,6 @@ public class AuthorizationManager {
 
     private boolean canModifyAllOrganizations(Collection<UUID> organizationIds) {
         YtiUser user = userProvider.getUser();
-        if (user == null) {
-            logger.error("USER IS NULL");
-        } else {
-            logger.error(user.toString());
-        }
         return user.isSuperuser() || user.isInAnyRole(EnumSet.of(ADMIN, TERMINOLOGY_EDITOR), organizationIds);
-    }
-
-    public boolean userIsLoggedInAtLeastInSomeCapacity() {
-        return this.userProvider.getUser() != null;
     }
 }

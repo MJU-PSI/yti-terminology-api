@@ -261,6 +261,10 @@ public class FrontendTermedService {
         updateAndDeleteInternalNodes(deleteAndSave, sync);
     }
 
+    public void bulkChangeWithoutAuthorization(GenericDeleteAndSave deleteAndSave, boolean sync) {
+        updateAndDeleteInternalNodes(deleteAndSave, sync);
+    }
+
     void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
 
         check(authorizationManager.canRemoveNodes(identifiers));
