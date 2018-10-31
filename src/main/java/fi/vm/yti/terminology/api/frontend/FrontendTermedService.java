@@ -261,8 +261,8 @@ public class FrontendTermedService {
         updateAndDeleteInternalNodes(deleteAndSave, sync, null);
     }
 
-    public void bulkChangeWithoutAuthorization(GenericDeleteAndSave deleteAndSave, boolean sync, UUID externalUUID) {
-        updateAndDeleteInternalNodes(deleteAndSave, sync, externalUUID);
+    public void bulkChangeWithoutAuthorization(GenericDeleteAndSave deleteAndSave, boolean sync, UUID externalUserId) {
+        updateAndDeleteInternalNodes(deleteAndSave, sync, externalUserId);
     }
 
     void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
