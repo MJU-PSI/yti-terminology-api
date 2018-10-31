@@ -126,7 +126,7 @@ public class IntegrationService {
                 addNodeList.add(term);
                 addNodeList.add(concept);
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
-                termedService.bulkChangeWithoutAuthorization(operation,true);
+                termedService.bulkChangeWithoutAuthorization(operation,true, UUID.fromString(incomingConcept.getCreator()));
                 if(logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
                 // Fetch created concept and get it's URI, set it to the returned json
