@@ -514,8 +514,14 @@ public class NtrfMapper {
         String editorialNote = "";
 
         // Stat can be 'vanhentunut', 'aputermi', 'ulottuvuus'
-        if(r.getStat() != null)
+        if(r.getStat() != null) {
             editorialNote = r.getStat();
+            // Drop ulottuvuus and continue
+            if(r.getStat().equalsIgnoreCase("Ulottuvuus")) {
+                System.out.println("Dropping ulottuvuus type node");
+                return;
+            }
+        }
         if(r.getUpda() != null) {
             // Store that information to the  modificationHistory
             String updater=r.getUpda();
