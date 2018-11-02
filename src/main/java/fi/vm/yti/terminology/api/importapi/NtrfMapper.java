@@ -47,6 +47,10 @@ public class NtrfMapper {
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
+    private final YtiMQService ytiMQService;
+
+    // JMS-client
+    private JmsMessagingTemplate jmsMessagingTemplate;
 
     /**
      * Map containing metadata types. used  when creating nodes.
@@ -85,22 +89,22 @@ public class NtrfMapper {
     @Autowired
     private ApplicationContext applicationContext;
 
-    // JMS-client and target queue. Queue is configured in application.properties file.
-    @Autowired
-    private JmsMessagingTemplate jmsMessagingTemplate;
-
     @Autowired
     public NtrfMapper(TermedRequester termedRequester,
                          FrontendGroupManagementService groupManagementService,
                          FrontendTermedService frontendTermedService,
                          AuthenticatedUserProvider userProvider,
                          AuthorizationManager authorizationManager,
+                         YtiMQService ytiMQService,
+                         JmsMessagingTemplate jmsMessagingTemplate,
                          @Value("${namespace.root}") String namespaceRoot) {
         this.termedRequester = termedRequester;
         this.groupManagementService = groupManagementService;
         this.termedService = frontendTermedService;
         this.userProvider = userProvider;
         this.authorizationManager = authorizationManager;
+        this.ytiMQService = ytiMQService;
+        this.jmsMessagingTemplate = jmsMessagingTemplate;
         this.namespaceRoot = namespaceRoot;
     }
 
@@ -119,7 +123,7 @@ public class NtrfMapper {
      * @param ntrfDocument
      * @return
      */
-   String mapNtrfDocument( UUID vocabularyId, VOCABULARY ntrfDocument, UUID userId) {
+   String mapNtrfDocument( String jobtoken, UUID vocabularyId, VOCABULARY ntrfDocument, UUID userId) {
         Graph vocabulary = null;
         logger.info("mapNtRfDocument: Vocabularity Id:"+vocabularyId);
         Long startTime = new Date().getTime();
@@ -152,11 +156,18 @@ public class NtrfMapper {
         System.out.println("    userProvider="+userProvider.getUser());
         List<GenericNode> addNodeList = new ArrayList<>();
 
+        ImportStatusResponse response = new ImportStatusResponse();
+        response.setStatus("Import started");
+        System.out.println("Active user="+ userId);
+
+        ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         int flushCount = 0;
+        int currentCount = 0;
         for(RECORD o:records){
             currentRecord=o.getNumb();
             handleRECORD(vocabulary, o, addNodeList);
             flushCount++;
+            currentCount++;
             if(flushCount >500){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
@@ -164,6 +175,9 @@ public class NtrfMapper {
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
                 updateAndDeleteInternalNodes(userId, operation,true);
                 addNodeList.clear();
+                response.setStatus("Processing records");
+                response.setProgress(currentCount+"/"+records.size());
+                ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             }
         }
         GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
@@ -178,7 +192,7 @@ public class NtrfMapper {
         idMap.clear();
         typeMap.clear();
         initImport(vocabularyId);
-        handleLinks(userId, vocabulary);
+        handleLinks(userId, jobtoken, vocabulary);
 
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
@@ -186,6 +200,9 @@ public class NtrfMapper {
             handleDIAG(vocabulary, o, addNodeList);
         }
 
+       response.setStatus("Processing DIAG");
+       response.setProgress("90/100");
+       ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         // Add DIAG-list to vocabulary
         operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
@@ -195,10 +212,16 @@ public class NtrfMapper {
         logger.info("NTRF-imported "+records.size()+" terms.");
         System.out.println("Status----------------------------------------");
 //        JsonUtils.prettyPrintJson(statusList);
-       return "{\"status\":\"Imported "+records.size()+" terms\",\"Errors\":"+JsonUtils.prettyPrintJsonAsString(statusList)+"\"}";
+       response.setStatus("Ready");
+       response.setProgress("100/100");
+       response.setStatistics("Total="+records.size()+" Warnings="+statusList.size());
+
+       response.setPayload(JsonUtils.prettyPrintJsonAsString(statusList));
+       ytiMQService.setStatus(YtiMQService.STATUS_READY, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
+       return response.toString();
    }
 
-    private void handleLinks(UUID userId, Graph vocabulary){
+    private void handleLinks(UUID userId, String jobtoken, Graph vocabulary){
         List<GenericNode> addNodeList = new ArrayList<>();
         if(nconList != null) {
             for(NconRef nref:nconList){
@@ -1002,6 +1025,32 @@ public class NtrfMapper {
             refId = createdIdMap.get(rrefId);
 
         System.out.println("handleRCONref id:"+rrefId+" -> " +refId);
+        /* oppiminen -> abea9901-86de-3901-bb41-89b2f1184f34
+                     "references": {
+      "prefLabelXl": [
+        {
+          "id": "dede45a2-74ac-459d-be52-a22cffc52dc0",
+          "type": {
+            "id": "Term",
+            "graph": {
+              "id": "9c2782be-5f75-4cd7-80fa-806a8abfd4e2"
+            }
+          }
+        }
+      ],
+      "related": [
+        {
+          "id": "abea9901-86de-3901-bb41-89b2f1184f34",
+          "type": {
+            "id": "Concept",
+            "graph": {
+              "id": "9c2782be-5f75-4cd7-80fa-806a8abfd4e2"
+            }
+          }
+        }
+      ]
+    },
+                     */
         List<Identifier> ref = null;
         ref = references.get("related");
         if (ref == null)
@@ -1243,16 +1292,6 @@ public class NtrfMapper {
                     updateSources(((SOURF)de).getContent(), lang, termProperties);
                 }  else if (de instanceof REMK) {
                     handleREMK(lang,(REMK)de,termProperties, vocabularity);
-                }else if(de instanceof JAXBElement){
-                    JAXBElement elem =(JAXBElement)de;
-                    if(elem.getName().toString().equalsIgnoreCase("HOGR")){
-                        Attribute att = new Attribute(lang, elem.getValue().toString());
-                        addProperty("termHomographNumber", termProperties,  att);
-                    } else if(elem.getName().toString().equalsIgnoreCase("fi.vm.yti.terminology.api.model.ntrf.LINK")){
-                        LINK li = (LINK)elem.getValue();
-                        System.out.println("DEF, jaxb-Link found:"+li.getHref());
-                    } else
-                        System.out.println(elem.getValue().getClass().getName()+" -- DEF, unhandled JAXB:"+elem.getName().toString()+"  value:"+elem.getValue().toString());
                 } else if(de instanceof LINK){
                     LINK li = (LINK)de;
                     defString = defString.concat("<a href='"+li.getHref()+"' data-type='external'>"+li.getContent().get(0).toString().trim()+"</a>");
@@ -1269,7 +1308,7 @@ public class NtrfMapper {
             logger.debug("Definition="+defString);
         // Add definition if exist.
         if(!defString.isEmpty()) {
-            Attribute att = new Attribute(lang, defString);
+            Attribute att = new Attribute(lang, defString.trim());
             addProperty("definition", parentProperties, att);
             return att;
         } else
@@ -1286,7 +1325,6 @@ public class NtrfMapper {
             if(de instanceof  String) {
                 if(logger.isDebugEnabled())
                     logger.debug("  Parsing note-string:" + de.toString());
-                System.out.println("str:"+de.toString());
                 noteString = noteString.concat(de.toString());
             } else if(de instanceof SOURF){
                 if(((SOURF)de).getContent()!= null && ((SOURF)de).getContent().size() >0) {
