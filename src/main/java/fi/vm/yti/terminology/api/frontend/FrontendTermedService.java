@@ -373,9 +373,11 @@ public class FrontendTermedService {
         }
 
         if (findTermedUser(user) == null) {
+            logger.error("about to call createTermedUser and user == " + user.toString() + " and externalUserId == " + externalUserId);
             createTermedUser(user, externalUserId);
         }
 
+        logger.error("at the end of the method user is == " + user.toString());
         return user.getId();
     }
 
