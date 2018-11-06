@@ -5,11 +5,14 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
+import fi.vm.yti.terminology.api.integration.IntegrationService;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -42,6 +45,8 @@ public class FrontendTermedService {
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
+
+    private static final Logger logger = LoggerFactory.getLogger(FrontendTermedService.class);
 
     @Autowired
     public FrontendTermedService(TermedRequester termedRequester,
@@ -333,6 +338,8 @@ public class FrontendTermedService {
 
         //UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
         UUID username = ensureTermedUser(externalUserId);
+
+        logger.error("username is " + username);
 
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
