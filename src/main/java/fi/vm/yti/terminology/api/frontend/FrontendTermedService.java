@@ -336,10 +336,7 @@ public class FrontendTermedService {
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
 
-        //UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
         UUID username = ensureTermedUser(externalUserId);
-
-        logger.error("username is " + username);
 
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
@@ -373,11 +370,9 @@ public class FrontendTermedService {
         }
 
         if (findTermedUser(user) == null) {
-            logger.error("about to call createTermedUser and user == " + user.toString() + " and externalUserId == " + externalUserId);
             createTermedUser(user, externalUserId);
         }
 
-        logger.error("at the end of the method user is == " + user.toString());
         if (externalUserId != null) {
             return externalUserId;
         } else {
@@ -397,7 +392,6 @@ public class FrontendTermedService {
         Parameters params = Parameters.single("sync", "true");
         String userIdForTermedUser = externalUserId == null ? user.getId().toString() : externalUserId.toString();
         TermedUser termedUser = new TermedUser(userIdForTermedUser, USER_PASSWORD, "ADMIN");
-        logger.error("in createTermedUser just before exchange call the termedUser is == " + termedUser.toString());
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 
