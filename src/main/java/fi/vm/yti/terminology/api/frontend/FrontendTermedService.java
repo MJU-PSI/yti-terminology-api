@@ -274,7 +274,7 @@ public class FrontendTermedService {
         params.add("disconnect", Boolean.toString(disconnect));
         params.add("sync", Boolean.toString(sync));
 
-        UUID username = ensureTermedUser(false);
+        UUID username = ensureTermedUser(null);
 
         termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(), USER_PASSWORD);
     }
@@ -332,7 +332,7 @@ public class FrontendTermedService {
         params.add("sync", String.valueOf(sync));
 
         //UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
-        UUID username = ensureTermedUser(true);
+        UUID username = ensureTermedUser(externalUserId);
 
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
@@ -357,16 +357,16 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, metaNodes);
     }
 
-    private UUID ensureTermedUser(boolean allowAnonymous) {
+    private UUID ensureTermedUser(UUID externalUserId) {
 
         YtiUser user = userProvider.getUser();
 
-        if (user.isAnonymous() && !allowAnonymous) {
+        if (user.isAnonymous() && externalUserId != null) {
             throw new RuntimeException("Logged in user needed for the operation");
         }
 
         if (findTermedUser(user) == null) {
-            createTermedUser(user);
+            createTermedUser(user, externalUserId);
         }
 
         return user.getId();
@@ -380,9 +380,10 @@ public class FrontendTermedService {
         return termedRequester.exchange("/users", GET, params, TermedUser.class);
     }
 
-    private void createTermedUser(YtiUser user) {
+    private void createTermedUser(YtiUser user, UUID externalUserId) {
         Parameters params = Parameters.single("sync", "true");
-        TermedUser termedUser = new TermedUser(user.getId().toString(), USER_PASSWORD, "ADMIN");
+        String userIdForTermedUser = externalUserId == null ? user.getId().toString() : externalUserId.toString();
+        TermedUser termedUser = new TermedUser(userIdForTermedUser, USER_PASSWORD, "ADMIN");
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 
