@@ -274,7 +274,7 @@ public class FrontendTermedService {
         params.add("disconnect", Boolean.toString(disconnect));
         params.add("sync", Boolean.toString(sync));
 
-        UUID username = ensureTermedUser();
+        UUID username = ensureTermedUser(false);
 
         termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(), USER_PASSWORD);
     }
@@ -332,7 +332,7 @@ public class FrontendTermedService {
         params.add("sync", String.valueOf(sync));
 
         //UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
-        UUID username = ensureTermedUser();
+        UUID username = ensureTermedUser(true);
 
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
@@ -357,11 +357,11 @@ public class FrontendTermedService {
         termedRequester.exchange("/graphs/" + graphId + "/types", HttpMethod.DELETE, params, String.class, metaNodes);
     }
 
-    private UUID ensureTermedUser() {
+    private UUID ensureTermedUser(boolean allowAnonymous) {
 
         YtiUser user = userProvider.getUser();
 
-        if (user.isAnonymous()) {
+        if (user.isAnonymous() && !allowAnonymous) {
             throw new RuntimeException("Logged in user needed for the operation");
         }
 
