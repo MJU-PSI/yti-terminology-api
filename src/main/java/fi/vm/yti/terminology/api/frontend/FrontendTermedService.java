@@ -361,7 +361,7 @@ public class FrontendTermedService {
 
         YtiUser user = userProvider.getUser();
 
-        if (user.isAnonymous() && externalUserId != null) {
+        if (user.isAnonymous() && externalUserId == null) {
             throw new RuntimeException("Logged in user needed for the operation");
         }
 
