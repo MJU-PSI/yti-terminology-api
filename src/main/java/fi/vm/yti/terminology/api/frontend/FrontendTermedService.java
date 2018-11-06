@@ -378,7 +378,11 @@ public class FrontendTermedService {
         }
 
         logger.error("at the end of the method user is == " + user.toString());
-        return user.getId();
+        if (externalUserId != null) {
+            return externalUserId;
+        } else {
+            return user.getId();
+        }
     }
 
     private @Nullable TermedUser findTermedUser(YtiUser user) {
@@ -393,6 +397,7 @@ public class FrontendTermedService {
         Parameters params = Parameters.single("sync", "true");
         String userIdForTermedUser = externalUserId == null ? user.getId().toString() : externalUserId.toString();
         TermedUser termedUser = new TermedUser(userIdForTermedUser, USER_PASSWORD, "ADMIN");
+        logger.error("in createTermedUser just before exchange call the termedUser is == " + termedUser.toString());
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 
