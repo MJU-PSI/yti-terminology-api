@@ -373,7 +373,7 @@ public class FrontendTermedService {
     }
 
     private @Nullable TermedUser findTermedUser(YtiUser user) {
-        if (user == null) {
+        if (user == null || user.getId() == null) {
             return null;
         }
         Parameters params = Parameters.single("username", user.getId().toString());
