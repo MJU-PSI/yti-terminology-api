@@ -331,7 +331,8 @@ public class FrontendTermedService {
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
 
-        UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
+        //UUID username = externalUserId == null ? ensureTermedUser() : externalUserId;
+        UUID username = ensureTermedUser();
 
         this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), USER_PASSWORD);
     }
