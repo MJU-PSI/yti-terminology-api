@@ -757,6 +757,9 @@ public class NtrfMapper {
                 addProperty("prefLabel", properties, att);
             } else if(li instanceof GRAM && li != null ){
                 handleGRAM((GRAM)li, properties);
+               // Add actual pref-label for term
+                Attribute att = new Attribute(lang, ((GRAM)li).getContent().trim());
+                addProperty("prefLabel", properties, att);            
             } else {
                 System.out.println(" TERM: unhandled contentclass="+li.getClass().getName()+" value="+li.toString());
             }
@@ -870,6 +873,8 @@ public class NtrfMapper {
     private void handleGRAM(GRAM gt, Map<String, List<Attribute>> properties){
         if(logger.isDebugEnabled())
             logger.debug("Grammatical specification");
+            System.out.println("handleGram");
+
         // termConjugation (single, plural)
         if(gt.getValue() != null && gt.getValue().equalsIgnoreCase("pl")){
             // Currently not localized
@@ -1025,32 +1030,6 @@ public class NtrfMapper {
             refId = createdIdMap.get(rrefId);
 
         System.out.println("handleRCONref id:"+rrefId+" -> " +refId);
-        /* oppiminen -> abea9901-86de-3901-bb41-89b2f1184f34
-                     "references": {
-      "prefLabelXl": [
-        {
-          "id": "dede45a2-74ac-459d-be52-a22cffc52dc0",
-          "type": {
-            "id": "Term",
-            "graph": {
-              "id": "9c2782be-5f75-4cd7-80fa-806a8abfd4e2"
-            }
-          }
-        }
-      ],
-      "related": [
-        {
-          "id": "abea9901-86de-3901-bb41-89b2f1184f34",
-          "type": {
-            "id": "Concept",
-            "graph": {
-              "id": "9c2782be-5f75-4cd7-80fa-806a8abfd4e2"
-            }
-          }
-        }
-      ]
-    },
-                     */
         List<Identifier> ref = null;
         ref = references.get("related");
         if (ref == null)
@@ -1063,6 +1042,82 @@ public class NtrfMapper {
             statusList.put(currentRecord,
                     new StatusMessage(currentRecord,
                             "RCON reference match failed. for " + rrefId));
+        }
+        System.out.println("After add ="+ref);
+    }
+
+    /**
+     * NTRF Related-concept parsing
+     * Can be direct hierarchical or  partitive reference
+     *     <BCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON>
+     *     <BCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON>
+     *     <BCON href="#tmpOKSAID456">lukiokoulutuksen</RCON>*
+     * @param o
+     * @param references
+     */
+    private void handleBCONRef(BCON o, Map<String, List<Identifier>>references) {
+        if(logger.isDebugEnabled())
+            logger.debug("handleBCON ref:" + o.getHref());
+        String rrefId = o.getHref();
+        // Remove #
+        if (rrefId.startsWith("#"))
+            rrefId = o.getHref().substring(1);
+
+        UUID refId = idMap.get(rrefId);
+        if (refId == null)
+            refId = createdIdMap.get(rrefId);
+
+        System.out.println("handleBCONref id:"+rrefId+" -> " +refId);
+        List<Identifier> ref = null;
+        ref = references.get("broader");
+        if (ref == null)
+            ref = new ArrayList<>();
+        if (refId != null) {
+            ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+            references.put("related", ref);
+        }else {
+            logger.warn("BCON reference match failed. for " + rrefId);
+            statusList.put(currentRecord,
+                    new StatusMessage(currentRecord,
+                            "BCON reference match failed. for " + rrefId));
+        }
+        System.out.println("After add ="+ref);
+    }
+
+    /**
+     * NTRF Related-concept parsing
+     * Can be direct hierarchical or  partitive reference
+     *     <NCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON>
+     *     <NCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON>
+     *     <NCON href="#tmpOKSAID456">lukiokoulutuksen</RCON>*
+     * @param o
+     * @param references
+     */
+    private void handleNCONRef(NCON o, Map<String, List<Identifier>>references) {
+        if(logger.isDebugEnabled())
+            logger.debug("handleNCON ref:" + o.getHref());
+        String rrefId = o.getHref();
+        // Remove #
+        if (rrefId.startsWith("#"))
+            rrefId = o.getHref().substring(1);
+
+        UUID refId = idMap.get(rrefId);
+        if (refId == null)
+            refId = createdIdMap.get(rrefId);
+
+        System.out.println("handleNCONref id:"+rrefId+" -> " +refId);
+        List<Identifier> ref = null;
+        ref = references.get("isPartOf");
+        if (ref == null)
+            ref = new ArrayList<>();
+        if (refId != null) {
+            ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+            references.put("related", ref);
+        }else {
+            logger.warn("NCON reference match failed. for " + rrefId);
+            statusList.put(currentRecord,
+                    new StatusMessage(currentRecord,
+                            "NCON reference match failed. for " + rrefId));
         }
         System.out.println("After add ="+ref);
     }
@@ -1172,13 +1227,18 @@ public class NtrfMapper {
             logger.debug("handleDEF-part:"+def.getContent());
 
         String defString="";
-        System.out.println("handleDEF start" + defString);
 
         List<?> defItems = def.getContent();
         for(Object de:defItems) {
-            System.out.println("   handleDEF block:" + de.getClass().getName());
             if(de instanceof  String) {
-                defString =defString.concat(((String)de).trim());
+                String str = (String)de;
+                // trim and add space
+                if(defString.isEmpty())
+                    defString = defString.concat(str.trim()+" ");
+                else if(defString.endsWith(" "))
+                    defString =defString.concat(str.trim()+" ");
+                else // Add space befor and after
+                    defString =defString.concat(" "+str.trim()+" ");
             }
             else {
                 if(de instanceof  RCON){
@@ -1369,6 +1429,78 @@ public class NtrfMapper {
                         logger.debug("handleDEF RCON:" + noteString);
                     // Add also reference
                     handleRCONRef(rc, parentReferences);
+                }
+            } else if(de instanceof BCON){
+                BCON bc = (BCON)de;
+                if(bc.getContent()!= null && bc.getContent().size() >0) {
+                    System.out.println(" ADD NOTE BCON:"+bc.getHref());
+                    String hrefid=null;
+                    noteString = noteString.concat("<a href='"+
+                            vocabularity.getUri());
+                    // Remove # from uri
+                    if(bc.getHref().startsWith("#")) {
+                        hrefid=bc.getHref().substring(1);
+                        noteString = noteString.concat(hrefid + "'");
+                    } else
+                        noteString = noteString.concat(bc.getHref() + "'");
+                    if(bc.getTypr() != null && !bc.getTypr().isEmpty()) {
+                        noteString = noteString.concat(" data-typr ='" +
+                                bc.getTypr()+"'");
+                    }
+
+                    String hrefText ="";
+                    List<Serializable> content = bc.getContent();
+                    for( Serializable c:content){
+                        if(c instanceof  JAXBElement){
+                            JAXBElement el = (JAXBElement)c;
+                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
+                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                            }
+                        } else if(c instanceof String) {
+                            hrefText = hrefText+c;
+                        }
+                    }
+                    noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
+                    if(logger.isDebugEnabled())
+                        logger.debug("handleDEF RCON:" + noteString);
+                    // Add also reference
+                    handleBCONRef(bc, parentReferences);
+                }
+            } else if(de instanceof NCON){
+                NCON nc = (NCON)de;
+                if(nc.getContent()!= null && nc.getContent().size() >0) {
+                    System.out.println(" ADD NOTE NCON:"+nc.getHref());
+                    String hrefid=null;
+                    noteString = noteString.concat("<a href='"+
+                            vocabularity.getUri());
+                    // Remove # from uri
+                    if(nc.getHref().startsWith("#")) {
+                        hrefid=nc.getHref().substring(1);
+                        noteString = noteString.concat(hrefid + "'");
+                    } else
+                        noteString = noteString.concat(nc.getHref() + "'");
+                    if(nc.getTypr() != null && !nc.getTypr().isEmpty()) {
+                        noteString = noteString.concat(" data-typr ='" +
+                                nc.getTypr()+"'");
+                    }
+
+                    String hrefText ="";
+                    List<Serializable> content = nc.getContent();
+                    for( Serializable c:content){
+                        if(c instanceof  JAXBElement){
+                            JAXBElement el = (JAXBElement)c;
+                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
+                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                            }
+                        } else if(c instanceof String) {
+                            hrefText = hrefText+c;
+                        }
+                    }
+                    noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
+                    if(logger.isDebugEnabled())
+                        logger.debug("handleDEF NCON:" + noteString);
+                    // Add also reference
+                    handleNCONRef(nc, parentReferences);
                 }
             } else if(de instanceof LINK){
                 LINK lc = (LINK)de;
