@@ -4,6 +4,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.Status;
 import fi.vm.yti.terminology.api.model.ntrf.*;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
@@ -157,7 +158,11 @@ public class NtrfMapper {
         List<GenericNode> addNodeList = new ArrayList<>();
 
         ImportStatusResponse response = new ImportStatusResponse();
-        response.setStatus("Import started");
+        response.setStatus(Status.PROCESSING);
+        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Import started"));
+        response.setProcessingTotal(records.size());
+        response.setProgress(0);
+
         System.out.println("Active user="+ userId);
 
         ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
@@ -175,8 +180,9 @@ public class NtrfMapper {
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
                 updateAndDeleteInternalNodes(userId, operation,true);
                 addNodeList.clear();
-                response.setStatus("Processing records");
-                response.setProgress(currentCount+"/"+records.size());
+                response.setStatus(Status.PROCESSING);
+                response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing records"));
+                response.setProgress(currentCount);
                 ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             }
         }
@@ -200,9 +206,10 @@ public class NtrfMapper {
             handleDIAG(vocabulary, o, addNodeList);
         }
 
-       response.setStatus("Processing DIAG");
-       response.setProgress("90/100");
-       ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
+        response.setStatus(Status.PROCESSING);
+        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing DIAG"));
+        response.setProgress(records.size());
+        ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         // Add DIAG-list to vocabulary
         operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
@@ -212,12 +219,18 @@ public class NtrfMapper {
         logger.info("NTRF-imported "+records.size()+" terms.");
         System.out.println("Status----------------------------------------");
 //        JsonUtils.prettyPrintJson(statusList);
-       response.setStatus("Ready");
-       response.setProgress("100/100");
-       response.setStatistics("Total="+records.size()+" Warnings="+statusList.size());
 
-       response.setPayload(JsonUtils.prettyPrintJsonAsString(statusList));
+        if(statusList.size()>0)
+            response.setStatus(Status.SUCCESS_WITH_ERRORS);
+        else
+            response.setStatus(Status.SUCCESS);
+
+        response.setStatusMessage(new ImportStatusMessage("Vocabulary",JsonUtils.prettyPrintJsonAsString(statusList)));
+//        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing done! "+"Total="+records.size()+" Warnings="+statusList.size()));
+        response.setProgress(records.size());
+
        ytiMQService.setStatus(YtiMQService.STATUS_READY, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
+       statusList.clear();
        return response.toString();
    }
 
@@ -350,10 +363,10 @@ public class NtrfMapper {
             nodeList.forEach(o -> {
                 if (logger.isDebugEnabled())
                     logger.debug(" Code:" + o.getCode() + " UUID:" + o.getId().toString() + " URI:" + o.getUri());
-                if (!o.getCode().isEmpty()) {
+                if (o.getCode()!= null && !o.getCode().isEmpty()) {
                     idMap.put(o.getCode(), o.getId());
                 }
-                if (!o.getUri().isEmpty()) {
+                if (o.getUri()!=null && !o.getUri().isEmpty()) {
                     idMap.put(o.getUri(), o.getId());
                 }
             });
@@ -541,7 +554,9 @@ public class NtrfMapper {
             editorialNote = r.getStat();
             // Drop ulottuvuus and continue
             if(r.getStat().equalsIgnoreCase("Ulottuvuus")) {
-                System.out.println("Dropping ulottuvuus type node");
+                System.out.println("Dropping 'ulottuvuus' type node");
+                statusList.put(currentRecord,new StatusMessage(currentRecord,
+                "Dropping 'ulottuvuus' type record"));
                 return;
             }
         }
@@ -751,15 +766,17 @@ public class NtrfMapper {
                             Map<String, List<Attribute>> properties){
         if(logger.isDebugEnabled())
             logger.debug("Handle Term:"+term.toString());
-        term.getContent().forEach( li-> {
+            term.getContent().forEach( li-> {
             if (li instanceof String) {
                 Attribute att = new Attribute(lang, li.toString().trim());
                 addProperty("prefLabel", properties, att);
+                System.out.println("Handle Term:"+li.toString().trim());
             } else if(li instanceof GRAM && li != null ){
                 handleGRAM((GRAM)li, properties);
                // Add actual pref-label for term
                 Attribute att = new Attribute(lang, ((GRAM)li).getContent().trim());
                 addProperty("prefLabel", properties, att);            
+                System.out.println("Handle Term with GRAM:"+((GRAM)li).getContent().trim());
             } else {
                 System.out.println(" TERM: unhandled contentclass="+li.getClass().getName()+" value="+li.toString());
             }
@@ -774,7 +791,6 @@ public class NtrfMapper {
         if(logger.isDebugEnabled())
             logger.debug("Handle Te:"+tc.toString());
         // LANG/TE/TERM
-
         if(tc.getTERM()!=null){
             handleTERM(tc.getTERM(),lang,properties);
         }
@@ -873,7 +889,7 @@ public class NtrfMapper {
     private void handleGRAM(GRAM gt, Map<String, List<Attribute>> properties){
         if(logger.isDebugEnabled())
             logger.debug("Grammatical specification");
-            System.out.println("handleGram");
+            System.out.println("handleGram:"+gt.getContent());
 
         // termConjugation (single, plural)
         if(gt.getValue() != null && gt.getValue().equalsIgnoreCase("pl")){
@@ -1375,7 +1391,11 @@ public class NtrfMapper {
             return null;
     }
 
-    private Attribute  handleNOTE( NOTE note, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>> parentReferences, Map<String, List<Attribute>>  termProperties, Graph vocabularity){
+    private Attribute  handleNOTE( NOTE note,
+     String lang, Map<String, List<Attribute>>  parentProperties,
+      Map<String, List<Identifier>> parentReferences,
+      Map<String, List<Attribute>>  termProperties,
+      Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleNOTE-part"+note.getContent());
 
@@ -1383,21 +1403,26 @@ public class NtrfMapper {
         for(Object de:note.getContent()) {
             System.out.println("Add NOTE:"+de.getClass().getName());
             if(de instanceof  String) {
-                if(logger.isDebugEnabled())
+                if(logger.isDebugEnabled())                
                     logger.debug("  Parsing note-string:" + de.toString());
-                noteString = noteString.concat(de.toString());
-            } else if(de instanceof SOURF){
-                if(((SOURF)de).getContent()!= null && ((SOURF)de).getContent().size() >0) {
-                    handleSOURF((SOURF)de, lang, termProperties,vocabularity);
-                    // Don't add sourf-string into the note-field, just add them  to the sources-list
-                    // noteString=noteString.concat(((SOURF)de).getContent().toString().trim());
-                    // Add  refs as string and  construct lines four sources-part.
-                    updateSources(((SOURF)de).getContent(), lang, termProperties);
-                }
+                String str = (String)de;
+                // trim and add space
+                if(noteString.isEmpty())
+                    noteString = noteString.concat(str.trim()+" ");
+                else if(noteString.endsWith(" "))
+                    noteString = noteString.concat(str.trim()+" ");
+                else // Add space befor and after
+                    noteString = noteString.concat(" "+str.trim()+" ");
+                } else if(de instanceof SOURF){
+                    if(((SOURF)de).getContent()!= null && ((SOURF)de).getContent().size() >0) {
+                        handleSOURF((SOURF)de, lang, termProperties,vocabularity);
+                        // Don't add sourf-string into the note-field, just add them  to the sources-list
+                        // noteString=noteString.concat(((SOURF)de).getContent().toString().trim());
+                        // Add  refs as string and  construct lines four sources-part.
+                        updateSources(((SOURF)de).getContent(), lang, termProperties);
+                    }
             } else if(de instanceof RCON){
-                RCON rc = (RCON)de;
-                if(rc.getContent()!= null && rc.getContent().size() >0) {
-                    System.out.println(" ADD NOTE RCON:"+rc.getHref());
+                    RCON rc=(RCON)de;
                     String hrefid=null;
                     noteString = noteString.concat("<a href='"+
                             vocabularity.getUri());
@@ -1424,12 +1449,12 @@ public class NtrfMapper {
                             hrefText = hrefText+c;
                         }
                     }
-                    noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
+                    noteString = noteString.concat(">"+hrefText.trim()+ "</a>");
+                    System.out.println("handleNOTE  refStr="+noteString);
                     if(logger.isDebugEnabled())
-                        logger.debug("handleDEF RCON:" + noteString);
+                        logger.debug("handleNOTE RCON:" + noteString);
                     // Add also reference
                     handleRCONRef(rc, parentReferences);
-                }
             } else if(de instanceof BCON){
                 BCON bc = (BCON)de;
                 if(bc.getContent()!= null && bc.getContent().size() >0) {
@@ -1566,7 +1591,7 @@ public class NtrfMapper {
 
         // Add note if exist.
         if(!noteString.isEmpty()) {
-            Attribute att = new Attribute(lang, noteString);
+            Attribute att = new Attribute(lang, noteString.trim());
             addProperty("note", parentProperties, att);
             return att;
         } else

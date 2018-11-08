@@ -84,7 +84,7 @@ public class YtiMQService {
                     System.out.println("Timestamp="+(long)mess.getHeaders().get("timestamp"));
                     long expirationtime=System.currentTimeMillis() - (long)mess.getHeaders().get("timestamp");
                     System.out.println("current_time-stamp="+expirationtime);
-                    if( expirationtime > 30 * 1000) {
+                    if( expirationtime > 60 * 1000) {
                         return HttpStatus.OK;
                     } else
                         return HttpStatus.PROCESSING;
