@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 // Don't marshall null values
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -51,7 +53,7 @@ public class ImportStatusResponse {
     /**
      * Actual human readable explanation message
      */
-    ImportStatusMessage statusMessage;
+    List<ImportStatusMessage> statusMessages = new ArrayList<>();
 
     public Status getStatus() {
         return status;
@@ -61,12 +63,16 @@ public class ImportStatusResponse {
         this.status = status;
     }
 
-    public ImportStatusMessage getStatusMessage() {
-        return statusMessage;
+    public List<ImportStatusMessage> getStatusMessage() {
+        return statusMessages;
     }
 
     public void setStatusMessage(ImportStatusMessage statusMessage) {
-        this.statusMessage = statusMessage;
+        this.statusMessages.add( statusMessage);
+    }
+
+    public void clearStatusMessages() {
+        this.statusMessages.clear();
     }
 
     public int getProgress() {
@@ -80,11 +86,24 @@ public class ImportStatusResponse {
 
     public int getProcessingTotal() {
         return processingTotal;
-
     }
 
     public void setProcessingTotal(int total) {
         this.processingTotal = total;
+    }
+
+    public int getResultsError() {
+        return resultsError;
+    }
+    public void setSesultsError(int total) {
+        this.resultsError = total;
+    }
+
+    public int getResultsWarning() {
+        return resultsWarning;
+    }
+    public void setResultsWarning(int total) {
+        this.resultsError = total;
     }
 
     public String toString() {
