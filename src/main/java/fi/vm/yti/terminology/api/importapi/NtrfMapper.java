@@ -241,7 +241,7 @@ public class NtrfMapper {
         response.setProgress(records.size());
         response.setResultsWarning(statusList.size());
 
-        ImportStatusResponse test=ImportStatusResponse.fromString(JsonUtils.prettyPrintJsonAsString(response));
+       // ImportStatusResponse test=ImportStatusResponse.fromString(JsonUtils.prettyPrintJsonAsString(response));
        ytiMQService.setStatus(YtiMQService.STATUS_READY, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
        statusList.clear();
        return response.toString();
@@ -1361,6 +1361,7 @@ public class NtrfMapper {
                     // Add also reference
                     handleBCON(bc, parentReferences);
                 }else if(de instanceof NCON){
+                    // TODO! proper support for narrover concepts, currently just rip links 
                     //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
                     // >opetus- ja tutkimushenkilöstön</BCON> osa, jonka tehtävissä suunnitellaan,
                     // koordinoidaan ja johdetaan erittäin laajoja kokonaisuuksia, tehtäviin sisältyy kokonaisvaltaista
@@ -1370,6 +1371,7 @@ public class NtrfMapper {
                     // <NCON href="#tmpOKSAID450" typr="generic">esiopetusta</NCON></DEF>
 
                     NCON nc=(NCON)de;
+                    /*
                     defString = defString.concat("<a href='"+
                             vocabularity.getUri());
                     // Remove # from uri
@@ -1381,6 +1383,7 @@ public class NtrfMapper {
                         defString = defString.concat(" data-typr ='" +
                                 nc.getTypr()+"'");
                     }
+                    */
                     String hrefText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
@@ -1392,8 +1395,14 @@ public class NtrfMapper {
                         } else if(c instanceof String) {
                             hrefText = hrefText+c;
                         }
-                    }
-                    defString = defString.concat(">"+hrefText.trim()+ "</a>");
+                    }     
+                    //defString = defString.concat(">"+hrefText.trim()+ "</a>");                    
+                    defString = defString.concat(hrefText);
+                    statusList.put(currentRecord,
+                                        new StatusMessage(
+                                            currentRecord,
+                                            "Warning:NCON reference removed" + nc.getHref() + " value:"+hrefText)
+                                    );
                 } else if (de instanceof SOURF){
                     handleSOURF((SOURF)de, null, termProperties, vocabularity);
 //                    handleSOURF((SOURF)de, lang, termProperties, vocabularity);
@@ -1523,28 +1532,36 @@ public class NtrfMapper {
                 NCON nc = (NCON)de;
                 if(nc.getContent()!= null && nc.getContent().size() >0) {
                     System.out.println(" ADD NOTE NCON:"+nc.getHref());
-                    String hrefid=null;
+                    /*
                     noteString = noteString.concat("<a href='"+
                             vocabularity.getUri());
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(nc.getHref(),nc.getTypr()));
-                    String hrefText ="";
+                    */
+                    String refText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                                refText = refText+"("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
-                            hrefText = hrefText+c;
+                            refText = refText+c;
                         }
                     }
-                    noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
+//                    noteString = noteString.concat(">"+refText.trim()+ "</a> ");
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF NCON:" + noteString);
                     // Add also reference
-                    handleNCONRef(nc, parentReferences);
+                    //handleNCONRef(nc, parentReferences);
+                    noteString = noteString.concat(refText);
+                    statusList.put(currentRecord,
+                                    new StatusMessage(
+                                                      currentRecord,
+                                                      "Warning:NCON reference removed" + nc.getHref() + " value:"+refText
+                                                      )
+                                    );                   
                 }
             } else if(de instanceof LINK){
                 LINK lc = (LINK)de;
