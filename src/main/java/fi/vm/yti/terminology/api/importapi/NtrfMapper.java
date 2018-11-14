@@ -783,17 +783,12 @@ public class NtrfMapper {
         String termName = "";
         List<Object> content = term.getContent();
         for(Object li:content){
-//        term.getContent().forEach(li -> {            
             if (li instanceof String) {
-//                Attribute att = new Attribute(lang, li.toString().trim());
-//                addProperty("prefLabel", properties, att);
                 termName = termName.concat(li.toString().trim()+" ");
                 System.out.println("Handle Term:" + li.toString().trim());
             } else if (li instanceof GRAM && li != null) {
                 handleGRAM((GRAM) li, properties);
                 // Add actual pref-label for term
-//                Attribute att = new Attribute(lang, ((GRAM) li).getContent().trim());
-//                addProperty("prefLabel", properties, att);
                 System.out.println("Handle Term with GRAM:" + ((GRAM) li).getContent().trim()+" ");
                 termName = termName.concat(((GRAM) li).getContent());
             } else {
@@ -805,8 +800,6 @@ public class NtrfMapper {
             Attribute att = new Attribute(lang, termName.trim());
             addProperty("prefLabel", properties, att);
         }
-//        });
-        System.out.println("Handle TERM: full string="+termName);
     }
 
     private void handleTE(Termcontent tc,
@@ -1122,7 +1115,7 @@ public class NtrfMapper {
             ref = new ArrayList<>();
         if (refId != null) {
             ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
-            references.put("related", ref);
+            references.put("broader", ref);
         }else {
             logger.warn("BCON reference match failed. for " + rrefId);
             statusList.put(currentRecord,
@@ -1294,20 +1287,10 @@ public class NtrfMapper {
                     // <a href="http://uri.suomi.fi/terminology/oksa/tmpOKSAID122" data-typr="partitive">koulutuksesta (2)</a>
                     // <DEF>suomalaista <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON> vastaava <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON> <BCON href="#tmpOKSAID1401" typr="generic">tutkinto</BCON>, joka suoritetaan kaksivuotisen <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON> päätteeksi<SOURF>opintoluotsi + rk + tr34</SOURF></DEF>
                     RCON rc=(RCON)de;
-                    String hrefid=null;
                     defString = defString.concat("<a href='"+
                             vocabularity.getUri());
                     // Remove # from uri
-                    if(rc.getHref().startsWith("#")) {
-                        hrefid=rc.getHref().substring(1);
-                        defString = defString.concat(hrefid + "'");
-                    } else
-                        defString = defString.concat(rc.getHref() + "'");
-                    if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
-                        defString = defString.concat(" data-typr ='" +
-                                rc.getTypr()+"'");
-                    }
-
+                    defString = defString.concat(getCleanRef(rc.getHref(),rc.getTypr()));
                     String hrefText ="";
                     List<Serializable> content = rc.getContent();
                     for( Serializable c:content){
@@ -1321,6 +1304,7 @@ public class NtrfMapper {
                         }
                     }
                     defString = defString.concat(">"+hrefText.trim()+ "</a>");
+                    System.out.println("handleDEF  refStr="+defString);
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF RCON:" + defString);
                     // Add also reference
@@ -1337,14 +1321,7 @@ public class NtrfMapper {
                     defString = defString.concat("<a href='"+
                             vocabularity.getUri());
                     // Remove # from uri
-                    if(bc.getHref().startsWith("#")) {
-                        defString = defString.concat(bc.getHref().substring(1) + "'");
-                    } else
-                        defString = defString.concat(bc.getHref() + "'");
-                    if(bc.getTypr() != null && !bc.getTypr().isEmpty()) {
-                        defString = defString.concat(" data-typr ='" +
-                                bc.getTypr()+"'");
-                    }
+                    defString = defString.concat(getCleanRef(bc.getHref(),bc.getTypr()));
                     String hrefText ="";
                     List<Serializable> content = bc.getContent();
                     for( Serializable c:content){
@@ -1359,7 +1336,7 @@ public class NtrfMapper {
                     }
                     defString = defString.concat(">"+hrefText.trim()+ "</a>");
                     // Add also reference
-                    handleBCON(bc, parentReferences);
+                    handleBCONRef(bc, parentReferences);
                 }else if(de instanceof NCON){
                     // TODO! proper support for narrover concepts, currently just rip links 
                     //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
@@ -1371,19 +1348,6 @@ public class NtrfMapper {
                     // <NCON href="#tmpOKSAID450" typr="generic">esiopetusta</NCON></DEF>
 
                     NCON nc=(NCON)de;
-                    /*
-                    defString = defString.concat("<a href='"+
-                            vocabularity.getUri());
-                    // Remove # from uri
-                    if(nc.getHref().startsWith("#")) {
-                        defString = defString.concat(nc.getHref().substring(1) + "'");
-                    } else
-                        defString = defString.concat(nc.getHref() + "'");
-                    if(nc.getTypr() != null && !nc.getTypr().isEmpty()) {
-                        defString = defString.concat(" data-typr ='" +
-                                nc.getTypr()+"'");
-                    }
-                    */
                     String hrefText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
