@@ -140,8 +140,10 @@ public class IntegrationService {
             if (logger.isDebugEnabled())
                 logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
             // Fetch created concept and get it's URI, set it to the returned json
+            // Return also it's UUID
             GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
-            incomingConcept.setUri(createdConcept.getUri());
+            incomingConcept.setUri(createdConcept.getUri());  
+            incomingConcept.setIdentifier(createdConcept.getId());          
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
     }

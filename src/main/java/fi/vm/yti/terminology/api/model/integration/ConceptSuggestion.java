@@ -13,11 +13,13 @@ public final class ConceptSuggestion {
         "creator":"45778009-804c-4aba-a836-f5c911ea5ef1",
         "vocabulary":"55778009-804c-4aba-a836-f5c911ea5ef1",
         "uri":"http://uri.suomi.fi/terminology/kira/"
+        "identifier":"e15c8009-804c-4aba-a836-f5c911ea5ef1"
     }
 */
     private Attribute prefLabel=null;
     private Attribute definition=null;
     private String creator=null;
+    private UUID identifier=null;
 
     public void setCreator(String creator) {
         this.creator = creator;
@@ -29,6 +31,10 @@ public final class ConceptSuggestion {
 
     public void setUri(String uri) {
         this.uri = uri;
+    }
+
+    public void setIdentifier(UUID id) {
+        this.identifier = id;
     }
 
     private UUID vocabulary=null;
@@ -73,6 +79,10 @@ public final class ConceptSuggestion {
 
     public String getUri() {
         return uri;
+    }
+
+    public UUID getIdentifier() {
+        return identifier;
     }
 
     @Override
