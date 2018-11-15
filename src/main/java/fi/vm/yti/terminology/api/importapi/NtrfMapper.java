@@ -326,8 +326,9 @@ public class NtrfMapper {
                         // get objects reference list and add
                         Map<String, List<Identifier>> refMap = gn.getReferences();
                         List<Identifier> ref = null;
-                        if (rref.getType().equalsIgnoreCase("generic")) {
-                            ref = refMap.get("broader");
+
+                        if (rref != null && rref.getType().equalsIgnoreCase("generic")) {
+                            ref = refMap.get("related");
                         } else
                             ref = refMap.get("isPartOf");
                         if (ref == null)
@@ -599,11 +600,13 @@ public class NtrfMapper {
 
         // Resolve terms and  collect list of them for insert.
         List<GenericNode> terms = new ArrayList<>();
+        // Needs to be final for lambda
+        final UUID concept = currentId;
         // Filter LANG elemets as list.
         List<LANG> langs = r.getLANG();
         langs.forEach(o -> {
             // RECORD/LANG/TE/TERM -> prefLabel
-            hadleLANG(terms, o, properties, references, vocabularity);
+            hadleLANG(concept, terms, o, properties, references, vocabularity);
         });
         // Filter CLAS elemets as list
         List<CLAS> clas = r.getCLAS();
@@ -694,7 +697,7 @@ public class NtrfMapper {
      * @param o LANGType containing incoming NTRF-block
      * @param vocabularity Graph-element containing  information of  parent vocabularity like id and base-uri
      */
-    private int hadleLANG(List<GenericNode> termsList, LANG o, Map<String, List<Attribute>> parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity)  {
+    private int hadleLANG(UUID currentConcept, List<GenericNode> termsList, LANG o, Map<String, List<Attribute>> parentProperties, Map<String, List<Identifier>> parentReferences, Graph vocabularity)  {
         // generate random UUID as a code and use it as part if the generated URI
         String code = UUID.randomUUID().toString();
 
@@ -723,12 +726,12 @@ public class NtrfMapper {
         List<DEF> def = o.getDEF();
         // Definition is complex multi-line object which needs to be resolved
         for(DEF d:def){
-            handleDEF(d, o.getValue().value(), parentProperties, parentReferences, properties,vocabularity);
+            handleDEF(currentConcept, d, o.getValue().value(), parentProperties, parentReferences, properties,vocabularity);
         }
         // NOTE
         List<NOTE> notes = o.getNOTE();
         for(NOTE n:notes){
-            handleNOTE(n, o.getValue().value(), parentProperties, parentReferences, properties, vocabularity);
+            handleNOTE(currentConcept, n, o.getValue().value(), parentProperties, parentReferences, properties, vocabularity);
         }
 
         // SY (synonym) is just like TE
@@ -1058,7 +1061,7 @@ public class NtrfMapper {
      * @param o
      * @param references
      */
-    private void handleRCONRef(RCON o, Map<String, List<Identifier>>references) {
+    private void handleRCONRef(UUID currentConcept, RCON o, Map<String, List<Identifier>>references) {
         if(logger.isDebugEnabled())
             logger.debug("handleRCON ref:" + o.getHref());
         String rrefId = o.getHref();
@@ -1083,6 +1086,15 @@ public class NtrfMapper {
             statusList.put(currentRecord,
                     new StatusMessage(currentRecord,
                             "RCON reference match failed. for " + rrefId));
+            // Add placeholder and  hope for best
+            System.out.println("Can't resolve RCON-reference ID for " + rrefId);
+            RconRef rconRef = new RconRef();
+            rconRef.setReferenceString(rrefId);
+            // Null id, as a placeholder
+            rconRef.setId(NULL_ID);
+            rconRef.setType(o.getTypr());
+            rconRef.setTargetId(currentConcept);
+            rconList.add(rconRef);
         }
         System.out.println("After add ="+ref);
     }
@@ -1101,9 +1113,10 @@ public class NtrfMapper {
             logger.debug("handleBCON ref:" + o.getHref());
         String rrefId = o.getHref();
         // Remove #
-        if (rrefId.startsWith("#"))
+        if (rrefId.startsWith("#")){
             rrefId = o.getHref().substring(1);
-
+            logger.info("Internal BCON reference");
+        }
         UUID refId = idMap.get(rrefId);
         if (refId == null)
             refId = createdIdMap.get(rrefId);
@@ -1161,46 +1174,6 @@ public class NtrfMapper {
                             "NCON reference match failed. for " + rrefId));
         }
         System.out.println("After add ="+ref);
-    }
-
-    private void handleRCON(RCON o, UUID relatedConceptId) {
-        Map<String, List<Identifier>>references;
-        if(logger.isDebugEnabled())
-            logger.debug("handleRCON:" + o.getHref());
-        String rrefId = o.getHref();
-        if(rrefId!= null) {
-            // Remove #
-            if (rrefId.startsWith("#"))
-                rrefId = o.getHref().substring(1);
-
-            UUID refId = idMap.get(rrefId);
-            if (refId == null)
-                refId = createdIdMap.get(rrefId);
-
-            if (refId == null) {
-                // Add placeholder for and resolve it after all items are created
-                System.out.println("Can't resolve RCON-reference ID for " + rrefId);
-                RconRef rconRef = new RconRef();
-                rconRef.setReferenceString(rrefId);
-                // Null id, as a placeholder
-                rconRef.setId(NULL_ID);
-                rconRef.setType(o.getTypr());
-                rconRef.setTargetId(relatedConceptId);
-                rconList.add(rconRef);
-            } else {
-                RconRef rconRef = new RconRef();
-                rconRef.setReferenceString(rrefId);
-                rconRef.setId(refId);
-                rconRef.setType(o.getTypr());
-                rconRef.setTargetId(relatedConceptId);
-                rconList.add(rconRef);
-            }
-        } else {
-            logger.warn("RCON with NULL href. Cant resolve.");
-            statusList.put(currentRecord,
-                    new StatusMessage(currentRecord,
-                            "RCON reference match failed. for " + rrefId));
-        }
     }
 
     private void handleNCON(NCON o, UUID broaderConceptId) {
@@ -1263,7 +1236,7 @@ public class NtrfMapper {
         }
     }
 
-    private Attribute  handleDEF( DEF def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>>parentReferences, Map<String, List<Attribute>>  termProperties,  Graph vocabularity){
+    private Attribute  handleDEF( UUID currentConcept, DEF def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>>parentReferences, Map<String, List<Attribute>>  termProperties,  Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("handleDEF-part:"+def.getContent());
 
@@ -1308,7 +1281,7 @@ public class NtrfMapper {
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF RCON:" + defString);
                     // Add also reference
-                    handleRCONRef(rc, parentReferences);
+                    handleRCONRef(currentConcept, rc, parentReferences);
                 }else if(de instanceof BCON){
                     //<DEF><RCON href="#tmpOKSAID162">yliopiston</RCON> <BCON href="#tmpOKSAID187" typr="partitive"
                     // >opetus- ja tutkimushenkilöstön</BCON> osa, jonka tehtävissä suunnitellaan,
@@ -1411,7 +1384,7 @@ public class NtrfMapper {
         return ref;
     }
 
-    private Attribute  handleNOTE( NOTE note,
+    private Attribute  handleNOTE(UUID currentConcept, NOTE note,
      String lang, Map<String, List<Attribute>>  parentProperties,
       Map<String, List<Identifier>> parentReferences,
       Map<String, List<Attribute>>  termProperties,
@@ -1465,7 +1438,7 @@ public class NtrfMapper {
                     if(logger.isDebugEnabled())
                         logger.debug("handleNOTE RCON:" + noteString);
                     // Add also reference
-                    handleRCONRef(rc, parentReferences);
+                    handleRCONRef(currentConcept, rc, parentReferences);
             } else if(de instanceof BCON){
                 BCON bc = (BCON)de;
                 if(bc.getContent()!= null && bc.getContent().size() >0) {
@@ -1554,7 +1527,7 @@ public class NtrfMapper {
                                 rc.getTypr()+"'");
                     }
                     noteString = noteString.concat(">"+rc.getContent().get(0)+ "</a> ");
-                    handleRCONRef(rc, parentReferences);
+                    handleRCONRef(currentConcept, rc, parentReferences);
                 }
                 else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
                     SOURF sf = (SOURF)j.getValue();
