@@ -1022,6 +1022,12 @@ public class NtrfMapper {
         // Remove #
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
+        if(brefId != null && brefId.isEmpty()){
+            statusList.put(currentRecord,
+                    new StatusMessage(currentRecord,
+                            "BCON reference match failed for '#'. Empty href "));
+            return; // No point to continue
+        }
 
         UUID refId = idMap.get(brefId);
         if (refId == null)
@@ -1096,7 +1102,6 @@ public class NtrfMapper {
             rconRef.setTargetId(currentConcept);
             rconList.add(rconRef);
         }
-        System.out.println("After add ="+ref);
     }
 
     /**
@@ -1179,12 +1184,10 @@ public class NtrfMapper {
              nconRef.setId(NULL_ID);
              nconRef.setType(o.getTypr());
              nconRef.setTargetId(currentConcept);
-             nconList.add(nconRef);
-                            
+             nconList.add(nconRef);                            
         }
         System.out.println("After add ="+ref);
     }
-
     private void handleNCON(NCON o, UUID broaderConceptId) {
         Map<String, List<Identifier>>references;
         if(logger.isDebugEnabled())
@@ -1277,16 +1280,23 @@ public class NtrfMapper {
                     String hrefText ="";
                     List<Serializable> content = rc.getContent();
                     for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
+                        if(c instanceof  JAXBElement){                            
                             JAXBElement el = (JAXBElement)c;
+                            System.out.println("handleDEF->RCON->el="+el.getName().toString());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
                                 hrefText = hrefText+"("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
-                            hrefText = hrefText+c;
+                            System.out.println("handleDEF->RCON-> string=<"+c+">");
+                            hrefText = hrefText+((String)c).trim();
                         }
                     }
-                    defString = defString.concat(">"+hrefText.trim()+ "</a>");
+                    // Remove newlines
+                    hrefText = hrefText.replaceAll("\n", "");
+
+                    hrefText = hrefText.trim();
+                    System.out.println("Trimmed:"+hrefText);
+                    defString = defString.concat(">"+hrefText+ "</a>");
                     System.out.println("handleDEF  refStr="+defString);
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF RCON:" + defString);
@@ -1311,7 +1321,7 @@ public class NtrfMapper {
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                                hrefText = hrefText+" ("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
                             hrefText = hrefText+c;
@@ -1368,11 +1378,11 @@ public class NtrfMapper {
                 }
             }
         }
-        System.out.println("handleDEF definition:<" + defString+">");
         if(logger.isDebugEnabled())
             logger.debug("Definition="+defString);
         // Add definition if exist.
         if(!defString.isEmpty()) {
+            // clean commans and points
             defString = defString.replaceAll(" , ", ", ");
             defString = defString.replaceAll(" . ", ". ");
             Attribute att = new Attribute(lang, defString.trim());
@@ -1410,7 +1420,6 @@ public class NtrfMapper {
                 if(logger.isDebugEnabled())                
                     logger.debug("  Parsing note-string:" + de.toString());
                 String str = (String)de;
-                System.out.println("Add NOTE:str="+str);
                 // trim and add space
                 if(noteString.isEmpty())
                     noteString = noteString.concat(str.trim()+" ");
@@ -1428,8 +1437,6 @@ public class NtrfMapper {
                         updateSources(((SOURF)de).getContent(), lang, termProperties);
                     }
             } else if(de instanceof RCON){
-                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
-
                     RCON rc=(RCON)de;
                     noteString = noteString.concat("<a href='"+
                             vocabularity.getUri());
@@ -1440,11 +1447,12 @@ public class NtrfMapper {
                     for( Serializable c:content){
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
+                            System.out.println("JAXB-element:"+el.getName().toString());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
                                 hrefText = hrefText+"("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
-                            hrefText = hrefText+c;
+                            hrefText = hrefText+((String)c).trim();
                         }
                     }
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a>");
@@ -1454,11 +1462,8 @@ public class NtrfMapper {
                     // Add also reference
                     handleRCONRef(currentConcept, rc, parentReferences);
             } else if(de instanceof BCON){
-                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
-
                 BCON bc = (BCON)de;
                 if(bc.getContent()!= null && bc.getContent().size() >0) {
-                    System.out.println(" ADD NOTE BCON:"+bc.getHref());
                     noteString = noteString.concat("<a href='"+
                             vocabularity.getUri());
                     // Remove # from uri
@@ -1469,12 +1474,14 @@ public class NtrfMapper {
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                                hrefText = hrefText+" ("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
                             hrefText = hrefText+c;
                         }
                     }
+                    // Remove newlines
+                    hrefText = hrefText.replaceAll("\n", "");
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF RCON:" + noteString);
@@ -1482,11 +1489,8 @@ public class NtrfMapper {
                     handleBCONRef(bc, parentReferences);
                 }
             } else if(de instanceof NCON){
-                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
-
                 NCON nc = (NCON)de;
                 if(nc.getContent()!= null && nc.getContent().size() >0) {
-                    System.out.println(" ADD NOTE NCON:"+nc.getHref());
                     String refText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
@@ -1512,19 +1516,14 @@ public class NtrfMapper {
                                     );                   
                 }
             } else if(de instanceof LINK){
-                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
-
                 LINK lc = (LINK)de;
                 if(lc.getContent()!= null && lc.getContent().size() >0) {
-                    System.out.println(" ADD NOTE LINK:"+lc.getHref());
                     // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
                     String url=lc.getHref().substring(5);
                     noteString = noteString.concat("<a href='"+url+"' data-type='external'>"+lc.getContent().get(0).toString().trim()+"</a> ");
                     System.out.println("Add LINK:"+url);
                 }
             } else if(de instanceof JAXBElement){
-                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
-
                 JAXBElement j = (JAXBElement)de;
                 if(logger.isDebugEnabled())
                     logger.debug("  Parsing note-elem:" + j.getName()+"");
@@ -1582,10 +1581,8 @@ public class NtrfMapper {
 
         // Add note if exist.
         if(!noteString.isEmpty()) {
-            System.out.println("FixNote:"+noteString);
             noteString = noteString.replaceAll(" , ", ", ");
             noteString = noteString.replaceAll(" . ", ". ");
-            System.out.println("AfterFix:"+noteString);
             Attribute att = new Attribute(lang, noteString.trim());
             addProperty("note", parentProperties, att);
             return att;
