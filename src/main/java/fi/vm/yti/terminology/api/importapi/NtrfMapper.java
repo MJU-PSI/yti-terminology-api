@@ -327,7 +327,7 @@ public class NtrfMapper {
                         Map<String, List<Identifier>> refMap = gn.getReferences();
                         List<Identifier> ref = null;
 
-                        if (rref != null && rref.getType().equalsIgnoreCase("generic")) {
+                        if (rref != null && rref.getType()!= null && rref.getType().equalsIgnoreCase("generic")) {
                             ref = refMap.get("related");
                         } else
                             ref = refMap.get("isPartOf");
@@ -336,7 +336,7 @@ public class NtrfMapper {
                         // @TODO! Go through refList and add only if missing.
                         // Generic = broader concept, partitive = related concept
                         ref.add(new Identifier(rref.getTargetId(), typeMap.get("Concept").getDomain()));
-                        if (rref.getType().equalsIgnoreCase("generic")) {
+                        if ( rref != null && rref.getType() != null && rref.getType().equalsIgnoreCase("generic")) {
                             refMap.put("broader", ref);
                         } else
                             refMap.put("isPartOf", ref);
@@ -1147,7 +1147,7 @@ public class NtrfMapper {
      * @param o
      * @param references
      */
-    private void handleNCONRef(NCON o, Map<String, List<Identifier>>references) {
+    private void handleNCONRef(UUID currentConcept, NCON o, Map<String, List<Identifier>>references) {
         if(logger.isDebugEnabled())
             logger.debug("handleNCON ref:" + o.getHref());
         String rrefId = o.getHref();
@@ -1172,6 +1172,15 @@ public class NtrfMapper {
             statusList.put(currentRecord,
                     new StatusMessage(currentRecord,
                             "NCON reference match failed. for " + rrefId));
+             // Add placeholder and  hope for best
+             NconRef nconRef = new NconRef();
+             nconRef.setReferenceString(rrefId);
+             // Null id, as a placeholder
+             nconRef.setId(NULL_ID);
+             nconRef.setType(o.getTypr());
+             nconRef.setTargetId(currentConcept);
+             nconList.add(nconRef);
+                            
         }
         System.out.println("After add ="+ref);
     }
@@ -1247,12 +1256,13 @@ public class NtrfMapper {
             if(de instanceof  String) {
                 String str = (String)de;
                 // trim and add space
-                if(defString.isEmpty())
+                if(defString.isEmpty()){
                     defString = defString.concat(str.trim()+" ");
-                else if(defString.endsWith(" "))
-                    defString =defString.concat(str.trim()+" ");
-                else // Add space befor and after
+                } else if(defString.endsWith(" ")){                 
+                    defString =defString.concat(str.trim()+" ");                
+                } else{  // Add space befor and after if 
                     defString =defString.concat(" "+str.trim()+" ");
+                }
             }
             else {
                 if(de instanceof  RCON){
@@ -1363,6 +1373,8 @@ public class NtrfMapper {
             logger.debug("Definition="+defString);
         // Add definition if exist.
         if(!defString.isEmpty()) {
+            defString = defString.replaceAll(" , ", ", ");
+            defString = defString.replaceAll(" . ", ". ");
             Attribute att = new Attribute(lang, defString.trim());
             addProperty("definition", parentProperties, att);
             return att;
@@ -1394,17 +1406,17 @@ public class NtrfMapper {
 
         String noteString="";
         for(Object de:note.getContent()) {
-            System.out.println("Add NOTE:"+de.getClass().getName());
             if(de instanceof  String) {
                 if(logger.isDebugEnabled())                
                     logger.debug("  Parsing note-string:" + de.toString());
                 String str = (String)de;
+                System.out.println("Add NOTE:str="+str);
                 // trim and add space
                 if(noteString.isEmpty())
                     noteString = noteString.concat(str.trim()+" ");
-                else if(noteString.endsWith(" "))
+                else if(noteString.endsWith(" ")){
                     noteString = noteString.concat(str.trim()+" ");
-                else // Add space befor and after
+                } else // Add space befor and after
                     noteString = noteString.concat(" "+str.trim()+" ");
                 } else if(de instanceof SOURF){
                     if(((SOURF)de).getContent()!= null && ((SOURF)de).getContent().size() >0) {
@@ -1416,6 +1428,8 @@ public class NtrfMapper {
                         updateSources(((SOURF)de).getContent(), lang, termProperties);
                     }
             } else if(de instanceof RCON){
+                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
+
                     RCON rc=(RCON)de;
                     noteString = noteString.concat("<a href='"+
                             vocabularity.getUri());
@@ -1440,6 +1454,8 @@ public class NtrfMapper {
                     // Add also reference
                     handleRCONRef(currentConcept, rc, parentReferences);
             } else if(de instanceof BCON){
+                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
+
                 BCON bc = (BCON)de;
                 if(bc.getContent()!= null && bc.getContent().size() >0) {
                     System.out.println(" ADD NOTE BCON:"+bc.getHref());
@@ -1466,15 +1482,11 @@ public class NtrfMapper {
                     handleBCONRef(bc, parentReferences);
                 }
             } else if(de instanceof NCON){
+                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
+
                 NCON nc = (NCON)de;
                 if(nc.getContent()!= null && nc.getContent().size() >0) {
                     System.out.println(" ADD NOTE NCON:"+nc.getHref());
-                    /*
-                    noteString = noteString.concat("<a href='"+
-                            vocabularity.getUri());
-                    // Remove # from uri
-                    noteString = noteString.concat(getCleanRef(nc.getHref(),nc.getTypr()));
-                    */
                     String refText ="";
                     List<Serializable> content = nc.getContent();
                     for( Serializable c:content){
@@ -1487,7 +1499,6 @@ public class NtrfMapper {
                             refText = refText+c;
                         }
                     }
-//                    noteString = noteString.concat(">"+refText.trim()+ "</a> ");
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF NCON:" + noteString);
                     // Add also reference
@@ -1501,6 +1512,8 @@ public class NtrfMapper {
                                     );                   
                 }
             } else if(de instanceof LINK){
+                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
+
                 LINK lc = (LINK)de;
                 if(lc.getContent()!= null && lc.getContent().size() >0) {
                     System.out.println(" ADD NOTE LINK:"+lc.getHref());
@@ -1510,6 +1523,8 @@ public class NtrfMapper {
                     System.out.println("Add LINK:"+url);
                 }
             } else if(de instanceof JAXBElement){
+                System.out.println("Add NOTE:obj="+de.getClass().getTypeName());
+
                 JAXBElement j = (JAXBElement)de;
                 if(logger.isDebugEnabled())
                     logger.debug("  Parsing note-elem:" + j.getName()+"");
@@ -1557,13 +1572,20 @@ public class NtrfMapper {
                             new StatusMessage(currentRecord,
                                     "Unhandled note-class " + j.getName().toString()));
                 }
+            } else {
+                System.out.println("Unhandled note-class "+de.getClass().getTypeName());
             }
+
             if(logger.isDebugEnabled())
                 logger.debug("note-String="+noteString);
         };
 
         // Add note if exist.
         if(!noteString.isEmpty()) {
+            System.out.println("FixNote:"+noteString);
+            noteString = noteString.replaceAll(" , ", ", ");
+            noteString = noteString.replaceAll(" . ", ". ");
+            System.out.println("AfterFix:"+noteString);
             Attribute att = new Attribute(lang, noteString.trim());
             addProperty("note", parentProperties, att);
             return att;
