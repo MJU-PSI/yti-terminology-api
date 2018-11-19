@@ -44,7 +44,7 @@ final class Concept {
         this.label = label;
         this.altLabel = altLabel;
         this.definition = definition;
-        this.status = status;
+        this.status = status != null ? status : "DRAFT";
         this.broaderIds = broaderIds;
         this.narrowerIds = narrowerIds;
         this.lastModifiedDate = lastModifiedDate;
