@@ -6,4 +6,5 @@ public class Configuration {
     public String dataModelUrl;
     public String groupmanagementUrl;
     public String env;
+    public boolean restrictFilterOptions;
 }
