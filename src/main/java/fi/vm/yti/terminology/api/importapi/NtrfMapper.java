@@ -216,7 +216,7 @@ public class NtrfMapper {
             handleRECORD(vocabulary, o, addNodeList);
             flushCount++;
             currentCount++;
-            if(flushCount >100){
+            if(flushCount >2){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
