@@ -216,7 +216,7 @@ public class NtrfMapper {
             handleRECORD(vocabulary, o, addNodeList);
             flushCount++;
             currentCount++;
-            if(flushCount >2){
+            if(flushCount >1000){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -263,9 +263,11 @@ public class NtrfMapper {
         operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-        if(!updateAndDeleteInternalNodes(userId, operation, true)){
+
+            if(!updateAndDeleteInternalNodes(userId, operation, true)){
             System.err.println("Diag termed error");
         }
+        
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
         logger.info("NTRF-imported "+records.size()+" terms.");
         System.out.println("Status----------------------------------------");
