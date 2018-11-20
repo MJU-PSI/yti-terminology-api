@@ -31,6 +31,7 @@ public class FrontendController {
     private final String groupManagementUrl;
     private final boolean fakeLoginAllowed;
     private final ServiceUrls serviceUrls;
+    private final boolean restrictFilterOptions;
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
@@ -41,7 +42,8 @@ public class FrontendController {
                               @Value("${namespace.root}") String namespaceRoot,
                               @Value("${groupmanagement.public.url}") String groupManagementUrl,
                               @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed,
-                              ServiceUrls serviceUrls) {
+                              ServiceUrls serviceUrls,
+                              @Value("${front.restrictFilterOptions}") boolean restrictFilterOptions) {
         this.termedService = termedService;
         this.elasticSearchService = elasticSearchService;
         this.groupManagementService = groupManagementService;
@@ -50,6 +52,7 @@ public class FrontendController {
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
         this.serviceUrls = serviceUrls;
+        this.restrictFilterOptions = restrictFilterOptions;
     }
 
     @RequestMapping(value = "/groupManagementUrl", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -227,6 +230,7 @@ public class FrontendController {
         conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
         conf.env = this.serviceUrls.getEnv();
+        conf.restrictFilterOptions = this.restrictFilterOptions;
 
         return conf;
     }
