@@ -85,27 +85,28 @@ public class ImportService {
         System.out.println(" ImportService.getStatus Status_full="+full);
         ImportStatusResponse response = new ImportStatusResponse();
 
-        if(full){
-            status = ytiMQService.getStatus(jobtoken, statusString);
-            System.out.println("full importservice.getStatus="+status + " StatusString="+statusString);
-            response = ImportStatusResponse.fromString(statusString.toString());
-        } else
-            status = ytiMQService.getStatus(jobtoken);
-        System.out.println("Status class="+status.getClass().getName());
+        // Get always full state
+        status = ytiMQService.getStatus(jobtoken, statusString);
+
         // Construct  response
         if(status == HttpStatus.OK){
-            if(full)
-                response = ImportStatusResponse.fromString(statusString.toString());
-                response.setStatus(ImportStatusResponse.Status.SUCCESS);
-            } else if(status == HttpStatus.NOT_ACCEPTABLE){
+            response = ImportStatusResponse.fromString(statusString.toString());
+            if(!full){
+                // Remove status messages if not needed
+                response.getStatusMessage().clear();
+            }
+            response.setStatus(ImportStatusResponse.Status.SUCCESS);
+        } else if(status == HttpStatus.NOT_ACCEPTABLE){
                 response.setStatus(Status.FAILURE);
-                response.setStatusMessage( new ImportStatusMessage("Vocabulary","Import operation already started"));
+                response.getStatusMessage().clear();
+                response.addStatusMessage( new ImportStatusMessage("Vocabulary","Import operation already started"));
         } else if (status ==  HttpStatus.PROCESSING){
-                if(full)
-                    response = ImportStatusResponse.fromString(statusString.toString());
-                System.out.println("Procerssing response="+statusString.toString());
-                response.setStatus(ImportStatusResponse.Status.PROCESSING);
-                System.out.println(" Processing StatusString="+statusString);
+            response = ImportStatusResponse.fromString(statusString.toString());
+            if(!full){
+                // Remove status messages if not needed
+                response.getStatusMessage().clear();
+            }
+            response.setStatus(ImportStatusResponse.Status.PROCESSING);
         } else {
                 response.setStatus(ImportStatusResponse.Status.NOT_FOUND);
         }
@@ -115,41 +116,6 @@ public class ImportService {
 
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(response), HttpStatus.OK);
     }
-
-
-    int phase=0;
-    ResponseEntity setStatus(UUID jobtoken){
-        System.out.println("SetStatus for "+jobtoken);
-        ImportStatusResponse response = new ImportStatusResponse();
-        response.setStatus(Status.PROCESSING);
-        response.setProcessingTotal(100);
-        response.setProgress(phase*10);
-        ImportStatusMessage m = new ImportStatusMessage("Vocabulary","phase"+(phase++));
-        System.out.println("\nCreated status me="+JsonUtils.prettyPrintJsonAsString(m));    
-        response.setStatusMessage(m);
-        System.out.println("\nCreated status message=\n"+JsonUtils.prettyPrintJsonAsString(response));
-        ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken.toString(),userProvider.getUser().getId().toString(),"http://yti.dev.fi/test", JsonUtils.prettyPrintJsonAsString(response));
-        // Query status information from ActiveMQ
-        HttpStatus status = ytiMQService.getStatus(jobtoken);
-        // Construct return message
-        if (status == HttpStatus.NOT_ACCEPTABLE){
-            response.setStatus(Status.FAILURE);
-            response.setStatusMessage( new ImportStatusMessage("Vocabulary","Import operation already started"));
-            return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(response), HttpStatus.NOT_ACCEPTABLE);
-        } else if (status == HttpStatus.PROCESSING){
-            response.setStatus(ImportStatusResponse.Status.PROCESSING);
-            response.setProcessingTotal(100);
-            response.setProgress(10*phase);
-            System.out.println(" Processing StatusString="+response.getProgress()+"/"+response.getProcessingTotal());
-            return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(response), HttpStatus.OK);
-        } else if(status == HttpStatus.OK){
-            response.setStatus(ImportStatusResponse.Status.SUCCESS);
-            return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(response), HttpStatus.OK);
-        }
-        response.setStatus(Status.NOT_FOUND);
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(response), HttpStatus.OK);
-    }
-
 
     ResponseEntity checkIfImportIsRunning(String uri){
         System.out.println("CheckIfRunning");
@@ -213,7 +179,7 @@ public class ImportService {
             System.out.println("Incoming objects count=" + l.size());
             ImportStatusResponse response = new ImportStatusResponse();
             response.setStatus(Status.PREPROCESSING);
-            response.setStatusMessage(new ImportStatusMessage("Vocabulary",l.size()+" items validated"));
+            response.addStatusMessage(new ImportStatusMessage("Vocabulary",l.size()+" items validated"));
             response.setProcessingTotal(l.size());
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, operationId.toString(), userProvider.getUser().getId().toString(), vocabulary.getUri(),response.toString());
             StringWriter sw = new StringWriter();

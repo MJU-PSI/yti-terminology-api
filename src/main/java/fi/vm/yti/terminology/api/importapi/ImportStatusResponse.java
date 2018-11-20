@@ -1,16 +1,28 @@
 package fi.vm.yti.terminology.api.importapi;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.List;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
-// Don't marshall null values
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ImportStatusResponse {
-
+@JsonPropertyOrder({
+        "status",
+        "processingTotal",
+        "processingProgress",
+        "resultsCreated",
+        "resultsWarning",
+        "resultsError",
+        "statusMessage"
+})
+public class ImportStatusResponse implements Serializable
+{
     // Enum states for status
     public enum Status {
         QUEUED, PREPROCESSING, PROCESSING, POSTPROCESSING, SUCCESS, SUCCESS_WITH_ERRORS, FAILURE, NOT_FOUND
@@ -20,90 +32,155 @@ public class ImportStatusResponse {
      * Current job status. This is not required to go through all phases, but is
      * required to end up in either SUCCESS or FAILURE.
      */
-    Status status;
-    /**
-     * For phase PROCESSING the current progress, between 0 and processingTotal.
-     * Maybe null, meaning "unknoen". Unspecified for other phases.
-     */
-    int processingProgress;
+    @JsonProperty("status")
+    private Status status;
     /**
      * For phase PROCESSING the total goal. May change during processing. Must be
      * given if processingProgress is given. Unspecified for other phases.
      */
-    int processingTotal;
-
+    @JsonProperty("processingTotal")
+    private Integer processingTotal;
+    /**
+     * For phase PROCESSING the current progress, between 0 and processingTotal.
+     * Maybe null, meaning "unknown". Unspecified for other phases.
+     */
+    @JsonProperty("processingProgress")
+    private Integer processingProgress;
     /**
      * Total number of created entities. May differ from processingTotal for various
      * reasons, e.g., different level of abstraction, dropped (unsupported)
      * entities, and erroneous entities (resultsError).
      */
-    int resultsCreated;
+    @JsonProperty("resultsCreated")
+    private Integer resultsCreated;
     /**
      * Total number of generated warnings. These most likely concern the created
      * entities, but indicate that the source data did not meet requirements.
      */
-    int resultsWarning;
+    @JsonProperty("resultsWarning")
+    private Integer resultsWarning;
     /**
      * Total number of generated errors. These should relate to erroneous entities
      * which could not be created, although error number is not required to match
      * entity count.
      */
-    int resultsError;
-
+    @JsonProperty("resultsError")
+    private Integer resultsError;
+    @JsonProperty("statusMessage")
     /**
      * Actual human readable explanation message
      */
-    List<ImportStatusMessage> statusMessages = new ArrayList<>();
+    private List<ImportStatusMessage> statusMessage = new ArrayList<ImportStatusMessage>();
 
+    private final static long serialVersionUID = -1763183565228005833L;
+
+    /**
+     * No args constructor for use in serialization
+     *
+     */
+    public ImportStatusResponse() {
+    }
+
+    /**
+     *
+     * @param status
+     * @param resultsWarning
+     * @param resultsError
+     * @param resultsCreated
+     * @param processingProgress
+     * @param processingTotal
+     * @param statusMessage
+     */
+    public ImportStatusResponse(Status status, Integer processingTotal, Integer processingProgress, Integer resultsCreated, Integer resultsWarning, Integer resultsError, List<ImportStatusMessage> statusMessage) {
+        super();
+        this.status = status;
+        this.processingTotal = processingTotal;
+        this.processingProgress = processingProgress;
+        this.resultsCreated = resultsCreated;
+        this.resultsWarning = resultsWarning;
+        this.resultsError = resultsError;
+        this.statusMessage = statusMessage;
+    }
+
+    @JsonProperty("status")
     public Status getStatus() {
         return status;
     }
 
+    @JsonProperty("status")
     public void setStatus(Status status) {
         this.status = status;
     }
 
-    public List<ImportStatusMessage> getStatusMessage() {
-        return statusMessages;
-    }
-
-    public void setStatusMessage(ImportStatusMessage statusMessage) {
-        this.statusMessages.add( statusMessage);
-    }
-
-    public void clearStatusMessages() {
-        this.statusMessages.clear();
-    }
-
-    public int getProgress() {
-        return processingProgress;
-
-    }
-
-    public void setProgress(int progress) {
-        this.processingProgress = progress;
-    }
-
-    public int getProcessingTotal() {
+    @JsonProperty("processingTotal")
+    public Integer getProcessingTotal() {
         return processingTotal;
     }
 
-    public void setProcessingTotal(int total) {
-        this.processingTotal = total;
+    @JsonProperty("processingTotal")
+    public void setProcessingTotal(Integer processingTotal) {
+        this.processingTotal = processingTotal;
     }
 
-    public int getResultsError() {
-        return resultsError;
-    }
-    public void setSesultsError(int total) {
-        this.resultsError = total;
+    @JsonProperty("processingProgress")
+    public Integer getProcessingProgress() {
+        return processingProgress;
     }
 
-    public int getResultsWarning() {
+    @JsonProperty("processingProgress")
+    public void setProcessingProgress(Integer processingProgress) {
+        this.processingProgress = processingProgress;
+    }
+
+    @JsonProperty("resultsCreated")
+    public Integer getResultsCreated() {
+        return resultsCreated;
+    }
+
+    @JsonProperty("resultsCreated")
+    public void setResultsCreated(Integer resultsCreated) {
+        this.resultsCreated = resultsCreated;
+    }
+
+    @JsonProperty("resultsWarning")
+    public Integer getResultsWarning() {
         return resultsWarning;
     }
-    public void setResultsWarning(int total) {
-        this.resultsError = total;
+
+    @JsonProperty("resultsWarning")
+    public void setResultsWarning(Integer resultsWarning) {
+        this.resultsWarning = resultsWarning;
+    }
+
+    @JsonProperty("resultsError")
+    public Integer getResultsError() {
+        return resultsError;
+    }
+
+    @JsonProperty("resultsError")
+    public void setResultsError(Integer resultsError) {
+        this.resultsError = resultsError;
+    }
+
+    @JsonProperty("statusMessage")
+    public List<ImportStatusMessage> getStatusMessage() {
+        return statusMessage;
+    }
+
+    @JsonProperty("statusMessage")
+    public void setStatusMessage(List<ImportStatusMessage> statusMessage) {
+        this.statusMessage = statusMessage;
+    }
+
+    @JsonProperty("statusMessage")
+    public void addStatusMessage(ImportStatusMessage statusMessage) {
+        this.statusMessage.add(statusMessage);
+    }
+
+    @JsonIgnore
+    @JsonProperty("statusMessage")
+    public void clearStatusMessages() {
+        this.statusMessage.clear();
     }
 
     public String toString() {

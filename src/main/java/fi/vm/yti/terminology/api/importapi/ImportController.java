@@ -65,11 +65,4 @@ public class ImportController {
         System.out.println("ImportController.checkRunning using "+uri);
         return importService.checkIfImportIsRunning(uri);
     }
-
-    @RequestMapping(value = "/test/status/{jobtoken}", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity setStatus(@PathVariable("jobtoken") UUID id) {
-        importService.setStatus(id);
-        return importService.getStatus(id,false);
-    }
-
 }

@@ -1,22 +1,13 @@
 package fi.vm.yti.terminology.api.migration.task;
 
 import fi.vm.yti.migration.MigrationTask;
-import fi.vm.yti.terminology.api.migration.AttributeIndex;
 import fi.vm.yti.terminology.api.migration.MigrationService;
 import fi.vm.yti.terminology.api.migration.PropertyUtil;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.merge;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.prefLabel;
-import static fi.vm.yti.terminology.api.migration.PropertyUtil.type;
 
 /**
  * Migration for YTI-797, add descriptions to meta model and fix on typo in prefLabel.

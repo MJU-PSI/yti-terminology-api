@@ -1,15 +1,28 @@
 package fi.vm.yti.terminology.api.importapi;
 
-import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.terminology.api.TermedRequester;
-import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
-import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
-import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.Status;
-import fi.vm.yti.terminology.api.model.ntrf.*;
-import fi.vm.yti.terminology.api.model.termed.*;
-import fi.vm.yti.terminology.api.security.AuthorizationManager;
-import fi.vm.yti.terminology.api.util.JsonUtils;
-import fi.vm.yti.terminology.api.util.Parameters;
+import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
+import static org.springframework.http.HttpMethod.POST;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import javax.xml.bind.JAXBElement;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,22 +31,44 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
 
-import javax.xml.bind.JAXBElement;
-import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.*;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.stream.Collectors.toMap;
-import static org.springframework.http.HttpMethod.POST;
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
+import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.Status;
+import fi.vm.yti.terminology.api.model.ntrf.BCON;
+import fi.vm.yti.terminology.api.model.ntrf.CLAS;
+import fi.vm.yti.terminology.api.model.ntrf.DEF;
+import fi.vm.yti.terminology.api.model.ntrf.DIAG;
+import fi.vm.yti.terminology.api.model.ntrf.EQUI;
+import fi.vm.yti.terminology.api.model.ntrf.GRAM;
+import fi.vm.yti.terminology.api.model.ntrf.LANG;
+import fi.vm.yti.terminology.api.model.ntrf.LINK;
+import fi.vm.yti.terminology.api.model.ntrf.NCON;
+import fi.vm.yti.terminology.api.model.ntrf.NOTE;
+import fi.vm.yti.terminology.api.model.ntrf.RCON;
+import fi.vm.yti.terminology.api.model.ntrf.RECORD;
+import fi.vm.yti.terminology.api.model.ntrf.REF;
+import fi.vm.yti.terminology.api.model.ntrf.REFERENCES;
+import fi.vm.yti.terminology.api.model.ntrf.REFTEXT;
+import fi.vm.yti.terminology.api.model.ntrf.REMK;
+import fi.vm.yti.terminology.api.model.ntrf.SCOPE;
+import fi.vm.yti.terminology.api.model.ntrf.SOURF;
+import fi.vm.yti.terminology.api.model.ntrf.TERM;
+import fi.vm.yti.terminology.api.model.ntrf.Termcontent;
+import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
+import fi.vm.yti.terminology.api.model.termed.Attribute;
+import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
+import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import fi.vm.yti.terminology.api.model.termed.Graph;
+import fi.vm.yti.terminology.api.model.termed.Identifier;
+import fi.vm.yti.terminology.api.model.termed.MetaNode;
+import fi.vm.yti.terminology.api.model.termed.TypeId;
+import fi.vm.yti.terminology.api.security.AuthorizationManager;
+import fi.vm.yti.terminology.api.util.JsonUtils;
+import fi.vm.yti.terminology.api.util.Parameters;
 
 @Component
 public class NtrfMapper {
@@ -109,13 +144,21 @@ public class NtrfMapper {
         this.namespaceRoot = namespaceRoot;
     }
 
-    private void updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
+    private boolean updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
 
+        boolean rv = true;
         Parameters params = new Parameters();
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
-
-        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(), USER_PASSWORD);
+        try {
+            this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(), USER_PASSWORD);
+        } catch(HttpServerErrorException ex) {
+            logger.error(ex.getMessage());
+            System.err.println("Termed status:"+ex.getStatusText()+ "-- error "+ex.getMessage()+" -- "+ex.getResponseBodyAsString()); 
+            System.err.println(ex.getRawStatusCode()+", "+ex.getMostSpecificCause()+", "+ex.getRootCause()+", "+ex.getClass()); 
+            rv = false;
+        }        
+        return rv;
     }
 
     /**
@@ -159,9 +202,9 @@ public class NtrfMapper {
 
         ImportStatusResponse response = new ImportStatusResponse();
         response.setStatus(Status.PROCESSING);
-        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Import started"));
+        response.addStatusMessage(new ImportStatusMessage("Vocabulary","Import started"));
         response.setProcessingTotal(records.size());
-        response.setProgress(0);
+        response.setProcessingProgress(0);
 
         System.out.println("Active user="+ userId);
 
@@ -173,23 +216,29 @@ public class NtrfMapper {
             handleRECORD(vocabulary, o, addNodeList);
             flushCount++;
             currentCount++;
-            if(flushCount >500){
+            if(flushCount >100){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-                updateAndDeleteInternalNodes(userId, operation,true);
                 addNodeList.clear();
                 response.setStatus(Status.PROCESSING);
-                response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing records"));
-                response.setProgress(currentCount);
+                response.clearStatusMessages(); // Forget previous
+                if(!updateAndDeleteInternalNodes(userId, operation,true)){
+                    response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records, import failed for "+currentRecord));
+                } else {
+                    response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records"));
+                }
+                response.setProcessingProgress(currentCount);
                 ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             }
         }
         GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-        updateAndDeleteInternalNodes(userId, operation,true);
+        if(!updateAndDeleteInternalNodes(userId, operation,true)){
+            response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records, import failed for "+currentRecord));
+        }
         addNodeList.clear();
 
         Long endTime = new Date().getTime();
@@ -207,14 +256,16 @@ public class NtrfMapper {
         }
 
         response.setStatus(Status.PROCESSING);
-        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing DIAG"));
-        response.setProgress(records.size());
+        response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing DIAG"));
+        response.setProcessingProgress(records.size());
         ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         // Add DIAG-list to vocabulary
         operation = new GenericDeleteAndSave(emptyList(),addNodeList);
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-        updateAndDeleteInternalNodes(userId, operation, true);
+        if(!updateAndDeleteInternalNodes(userId, operation, true)){
+            System.err.println("Diag termed error");
+        }
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
         logger.info("NTRF-imported "+records.size()+" terms.");
         System.out.println("Status----------------------------------------");
@@ -231,14 +282,14 @@ public class NtrfMapper {
         // Add all status lines as individual members before 
         statusList.forEach((k,v)->{ 
             StatusMessage m = (StatusMessage)v;
-            response.setStatusMessage(new ImportStatusMessage(k,m.getMessage().toString()));
+            response.addStatusMessage(new ImportStatusMessage(k,m.getMessage().toString()));
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
         });
 
 //        response.setStatusMessage(new ImportStatusMessage("Vocabulary",JsonUtils.prettyPrintJsonAsString(statusList)));
 //        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing done! "+"Total="+records.size()+" Warnings="+statusList.size()));
         response.setProcessingTotal(records.size());
-        response.setProgress(records.size());
+        response.setProcessingProgress(records.size());
         response.setResultsWarning(statusList.size());
 
        // ImportStatusResponse test=ImportStatusResponse.fromString(JsonUtils.prettyPrintJsonAsString(response));
@@ -251,14 +302,19 @@ public class NtrfMapper {
         List<GenericNode> addNodeList = new ArrayList<>();
         if(nconList != null) {
             for(NconRef nref:nconList){
-                if (nref.getId() == NULL_ID) {
+                if (nref.getId().equals(NULL_ID)) {
                     UUID target = idMap.get(nref.referenceString);
-                    System.out.println("Resolving originally unresolved id:" + nref.referenceString);
                     if (target != null) {
                         // Update it
                         nref.setId(target);
                     } else {
-                        System.out.println("Can't resolve originally unresolved id:" + nref.referenceString);
+                        target = createdIdMap.get(nref.referenceString);
+                        if (target != null) {
+                            // Update it
+                            nref.setId(target);
+                        } else {
+                                System.out.println("Can't resolve originally unresolved id:" + nref.referenceString);
+                        }
                     }
                 }
                 if (nref.getId() != null && !nref.getId().equals(NULL_ID)) {
@@ -274,10 +330,12 @@ public class NtrfMapper {
                         List<Identifier> ref = null;
                         if (nref.getType().equalsIgnoreCase("generic")) {
                             ref = refMap.get("broader");
-                        } else
+                        } else{
                             ref = refMap.get("isPartOf");
-                        if (ref == null)
+                        }
+                        if (ref == null){
                             ref = new ArrayList<>();
+                        }
                         // @TODO! Go through refList and add only if missing.
                         // Generic = broader concept, partitive = related concept
                         ref.add(new Identifier(nref.getTargetId(), typeMap.get("Concept").getDomain()));
@@ -285,11 +343,11 @@ public class NtrfMapper {
                             refMap.put("broader", ref);
                         } else
                             refMap.put("isPartOf", ref);
-                        System.out.println("NREF-list="+refMap);
+//                        System.out.println("NREF-list="+refMap);
                         addNodeList.add(gn);
                     }
                 } else {
-                    System.out.println("Cant' resolve following! Nref-id=" + nref.getId() + "-- vocab=" + vocabulary.getId().toString());
+                    System.out.println("Cant' resolve following! NCON=" + nref.getReferenceString() + "-- vocab=" + vocabulary.getId().toString());
                 }
             }
             System.out.println("NCON size="+nconList.size());
@@ -298,21 +356,29 @@ public class NtrfMapper {
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
                 if (logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-                updateAndDeleteInternalNodes(userId, operation, true);
+                if(!updateAndDeleteInternalNodes(userId, operation, true)){
+                    System.err.println("NCON termed error ");
+                }
             }
         }
         addNodeList.clear();
         System.out.println(" Add resolved RCON-list");
         if(rconList != null) {
             for(RconRef rref:rconList){
-                if (rref.getId() == NULL_ID) {
+                if (rref.getId().equals(NULL_ID)) {
                     UUID target = idMap.get(rref.referenceString);
-                    System.out.println("Resolving originally unresolved id:" + rref.referenceString);
                     if (target != null) {
                         // Update it
                         rref.setId(target);
                     } else {
-                        System.out.println("Can't resolve originally unresolved id:" + rref.referenceString);
+                        // Try match with created map
+                        target = createdIdMap.get(rref.referenceString);
+                        if (target != null) {
+                            // Update it
+                            rref.setId(target);
+                        } else {   
+                            System.out.println("Can't resolve originally unresolved RCON id:" + rref.referenceString);
+                        }
                     }
                 }
                 if (rref.getId() != null && !rref.getId().equals(NULL_ID)) {
@@ -331,8 +397,9 @@ public class NtrfMapper {
                             ref = refMap.get("related");
                         } else
                             ref = refMap.get("isPartOf");
-                        if (ref == null)
+                        if (ref == null){
                             ref = new ArrayList<>();
+                        }
                         // @TODO! Go through refList and add only if missing.
                         // Generic = broader concept, partitive = related concept
                         ref.add(new Identifier(rref.getTargetId(), typeMap.get("Concept").getDomain()));
@@ -340,11 +407,10 @@ public class NtrfMapper {
                             refMap.put("broader", ref);
                         } else
                             refMap.put("isPartOf", ref);
-                        System.out.println("RREF-list="+refMap);
                         addNodeList.add(gn);
                     }
                 } else {
-                    System.out.println("Cant' resolve following! Rref-id=" + rref.getId() + "-- vocab=" + vocabulary.getId().toString());
+                    System.out.println("Cant' resolve following! RCON=" + rref.getReferenceString());
                 }
             }
             System.out.println("RCON size="+rconList.size());
@@ -353,7 +419,9 @@ public class NtrfMapper {
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
                 if (logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-                updateAndDeleteInternalNodes(userId, operation, true);
+                if(!updateAndDeleteInternalNodes(userId, operation, true)){
+                    System.err.println("RCON termed error");
+                }
             }
         }
     }
@@ -371,9 +439,7 @@ public class NtrfMapper {
 
         // Create hashmap to store information  between code/URI and UUID so that we can update values upon same vocabularity
         List<GenericNode> nodeList = termedService.getNodes(vocabularityId);
-        if(nodeList == null){
-            return false;
-        } else {
+        if(nodeList != null){        
             nodeList.forEach(o -> {
                 if (logger.isDebugEnabled())
                     logger.debug(" Code:" + o.getCode() + " UUID:" + o.getId().toString() + " URI:" + o.getUri());
@@ -384,8 +450,9 @@ public class NtrfMapper {
                     idMap.put(o.getUri(), o.getId());
                 }
             });
+            return true; 
         }
-        return true;
+        return false;
     }
 
     private void handleDIAG(Graph vocabularity, DIAG diag, List<GenericNode> addNodeList){
@@ -419,6 +486,15 @@ public class NtrfMapper {
             if (targetUUID == null) {
                 // try original
                 targetUUID = idMap.get(li.getHref());
+                // If still not found, try createdMap
+                if (targetUUID == null) {
+                    // try original
+                    targetUUID = createdIdMap.get(linkTarget);
+                    if (targetUUID == null) {
+                        // try original
+                        targetUUID = createdIdMap.get(li.getHref());
+                    }
+                }
             }
             if(targetUUID != null && !targetUUID.equals(NULL_ID)) {
                 memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
@@ -701,7 +777,8 @@ public class NtrfMapper {
         // generate random UUID as a code and use it as part if the generated URI
         String code = UUID.randomUUID().toString();
 
-        logger.info("Handle LANG:"+ o.getValue());
+        if(logger.isDebugEnabled())
+            logger.debug("Handle LANG:"+ o.getValue());
 
         // Attributes  are stored to property-list
         Map<String, List<Attribute>> properties = new HashMap<>();
@@ -788,7 +865,6 @@ public class NtrfMapper {
         for(Object li:content){
             if (li instanceof String) {
                 termName = termName.concat(li.toString().trim()+" ");
-                System.out.println("Handle Term:" + li.toString().trim());
             } else if (li instanceof GRAM && li != null) {
                 handleGRAM((GRAM) li, properties);
                 // Add actual pref-label for term
@@ -1064,16 +1140,16 @@ public class NtrfMapper {
      *     <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON>
      *     <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON>
      *     <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON>*
-     * @param o
+     * @param rc
      * @param references
      */
-    private void handleRCONRef(UUID currentConcept, RCON o, Map<String, List<Identifier>>references) {
+    private void handleRCONRef(UUID currentConcept, RCON rc, Map<String, List<Identifier>>references) {
         if(logger.isDebugEnabled())
-            logger.debug("handleRCON ref:" + o.getHref());
-        String rrefId = o.getHref();
+            logger.debug("handleRCON ref:" + rc.getHref());
+        String rrefId = rc.getHref();
         // Remove #
         if (rrefId.startsWith("#"))
-            rrefId = o.getHref().substring(1);
+            rrefId = rc.getHref().substring(1);
 
         UUID refId = idMap.get(rrefId);
         if (refId == null)
@@ -1086,6 +1162,7 @@ public class NtrfMapper {
             ref = new ArrayList<>();
         if (refId != null) {
             ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+            references.remove("related");
             references.put("related", ref);
         }else {
             logger.warn("RCON reference match failed. for " + rrefId);
@@ -1098,7 +1175,7 @@ public class NtrfMapper {
             rconRef.setReferenceString(rrefId);
             // Null id, as a placeholder
             rconRef.setId(NULL_ID);
-            rconRef.setType(o.getTypr());
+            rconRef.setType(rc.getTypr());
             rconRef.setTargetId(currentConcept);
             rconList.add(rconRef);
         }
@@ -1161,14 +1238,16 @@ public class NtrfMapper {
             rrefId = o.getHref().substring(1);
 
         UUID refId = idMap.get(rrefId);
-        if (refId == null)
+        if (refId == null){
             refId = createdIdMap.get(rrefId);
-
+        }
         System.out.println("handleNCONref id:"+rrefId+" -> " +refId);
         List<Identifier> ref = null;
         ref = references.get("isPartOf");
-        if (ref == null)
+        if (ref == null){
+            // not yet defined, create new one
             ref = new ArrayList<>();
+        }
         if (refId != null) {
             ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
             references.put("related", ref);
@@ -1188,6 +1267,7 @@ public class NtrfMapper {
         }
         System.out.println("After add ="+ref);
     }
+    
     private void handleNCON(NCON o, UUID broaderConceptId) {
         Map<String, List<Identifier>>references;
         if(logger.isDebugEnabled())
@@ -1199,10 +1279,8 @@ public class NtrfMapper {
                 nrefId = o.getHref().substring(1);
 
             UUID refId = idMap.get(nrefId);
-            if (refId == null)
-                refId = createdIdMap.get(nrefId);
-
             if (refId == null) {
+                refId = createdIdMap.get(nrefId);
                 // Add placeholder for and resolve it after all items are created
                 System.out.println("Can't resolve NCON-reference ID for " + nrefId);
                 NconRef nconRef = new NconRef();
@@ -1282,12 +1360,12 @@ public class NtrfMapper {
                     for( Serializable c:content){
                         if(c instanceof  JAXBElement){                            
                             JAXBElement el = (JAXBElement)c;
-                            System.out.println("handleDEF->RCON->el="+el.getName().toString());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
-                            }
+                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
+                            } else {
+                                logger.error("Unhandled JAXB-element:"+el.getName());
+                            } 
                         } else if(c instanceof String) {
-                            System.out.println("handleDEF->RCON-> string=<"+c+">");
                             hrefText = hrefText+((String)c).trim();
                         }
                     }
@@ -1295,7 +1373,6 @@ public class NtrfMapper {
                     hrefText = hrefText.replaceAll("\n", "");
 
                     hrefText = hrefText.trim();
-                    System.out.println("Trimmed:"+hrefText);
                     defString = defString.concat(">"+hrefText+ "</a>");
                     System.out.println("handleDEF  refStr="+defString);
                     if(logger.isDebugEnabled())
@@ -1447,7 +1524,6 @@ public class NtrfMapper {
                     for( Serializable c:content){
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
-                            System.out.println("JAXB-element:"+el.getName().toString());
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
                                 hrefText = hrefText+"("+el.getValue().toString()+")";
                             }
@@ -1456,9 +1532,8 @@ public class NtrfMapper {
                         }
                     }
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a>");
-                    System.out.println("handleNOTE  refStr="+noteString);
                     if(logger.isDebugEnabled())
-                        logger.debug("handleNOTE RCON:" + noteString);
+                        logger.debug("handleNOTE RCON:" + noteString.trim());
                     // Add also reference
                     handleRCONRef(currentConcept, rc, parentReferences);
             } else if(de instanceof BCON){
@@ -1484,7 +1559,7 @@ public class NtrfMapper {
                     hrefText = hrefText.replaceAll("\n", "");
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
                     if(logger.isDebugEnabled())
-                        logger.debug("handleDEF RCON:" + noteString);
+                        logger.debug("handleDEF BCON:" + noteString);
                     // Add also reference
                     handleBCONRef(bc, parentReferences);
                 }
@@ -1504,7 +1579,7 @@ public class NtrfMapper {
                         }
                     }
                     if(logger.isDebugEnabled())
-                        logger.debug("handleDEF NCON:" + noteString);
+                        logger.debug("handleDEF NCON:" + noteString.trim());
                     // Add also reference
                     //handleNCONRef(nc, parentReferences);
                     noteString = noteString.concat(refText);
@@ -1526,39 +1601,11 @@ public class NtrfMapper {
             } else if(de instanceof JAXBElement){
                 JAXBElement j = (JAXBElement)de;
                 if(logger.isDebugEnabled())
-                    logger.debug("  Parsing note-elem:" + j.getName()+"");
-                if(j.getName().toString().equalsIgnoreCase("RCON")){
-                    RCON rc=(RCON)j.getValue();
-                    noteString = noteString.concat("<a href='"+
-                            vocabularity.getUri());
-                    // Remove # from uri
-                    if(rc.getHref().startsWith("#")) {
-                        noteString = noteString.concat(rc.getHref().substring(1) + "'");
-                    } else
-                        noteString = noteString.concat(rc.getHref() + "'");
-                    if(rc.getTypr() != null && !rc.getTypr().isEmpty()) {
-                        noteString = noteString.concat(" data-typr ='" +
-                                rc.getTypr()+"'");
-                    }
-                    noteString = noteString.concat(">"+rc.getContent().get(0)+ "</a> ");
-                    handleRCONRef(currentConcept, rc, parentReferences);
-                }
-                else if(j.getName().toString().equalsIgnoreCase("SOURF")) {
-                    SOURF sf = (SOURF)j.getValue();
-                    if(sf.getContent()!= null && sf.getContent().size() >0) {
-                        noteString.concat(sf.getContent().toString());
-                        // Add  refs as string and  construct lines for sources-part.
-                        updateSources(sf.getContent(), lang, termProperties);
-                    }
-                } else if(j.getName().toString().equalsIgnoreCase("LINK")){
-                    // External link
-                    LINK l=(LINK)j.getValue();
-                    // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
-                    String url=l.getHref().substring(5);
-                    noteString = noteString.concat("<a href='"+url+"' data-type='external'>"+l.getContent().get(0)+"</a> ");
-                    System.out.println("Add LINK:"+url);
-                } else if(j.getName().toString().equalsIgnoreCase("HOGR")){
-                    noteString = noteString + "("+j.getValue().toString()+")";
+                    logger.debug("  Parsing note-elem:" + j.getName());
+                System.out.println("  Parsing note-elem:" + j.getName());
+
+                if(j.getName().toString().equalsIgnoreCase("HOGR")){
+                    noteString = noteString.trim() + " ("+j.getValue().toString()+")";
                 } else if(j.getName().toString().equalsIgnoreCase("B") || j.getName().toString().equalsIgnoreCase("I")){
                     // Remove Bold and Italics
                     noteString = noteString + j.getValue().toString();
@@ -1664,7 +1711,7 @@ public class NtrfMapper {
         // create new synonym node (Term)
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is  parent-uri/term-'code'
-        GenericNode node = null;
+        GenericNode node;
         UUID id = UUID.randomUUID();
         String code = id.toString();
 
