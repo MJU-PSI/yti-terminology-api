@@ -1448,7 +1448,7 @@ public class NtrfMapper {
                     handleREMK(lang,(REMK)de,termProperties, vocabulary);
                 } else if(de instanceof LINK){
                     LINK li = (LINK)de;
-                    String linkRef = parseLinkRef(li, vocabulary, currentConcept, parentReferences);
+                    String linkRef = parseLinkRef(li, vocabulary);
                     defString = defString.concat("<a href='"+li.getHref()+"' data-type='external'>"+li.getContent().get(0).toString().trim()+"</a>");
                 } else {
                     System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
@@ -1472,7 +1472,7 @@ public class NtrfMapper {
             return null;
     }
 
-    String parseLinkRef(LINK li,Graph vocabulary,UUID currentConcept,Map<String, List<Identifier>>references ){
+    String parseLinkRef(LINK li,Graph vocabulary){
         String linkRef = li.getHref();
         if(linkRef.startsWith("#")){
             //internal reference, generate url for it.
@@ -1481,35 +1481,7 @@ public class NtrfMapper {
             } else {
                 linkRef = vocabulary.getUri()+"/"+linkRef.substring(1);
             }
-            // Add related reference to concept
-            UUID refId = idMap.get(linkRef);
-            if (refId == null)
-                refId = createdIdMap.get(linkRef);
-                System.out.println("parseLinkRef id:"+li.getHref()+" -> " +linkRef);
-                List<Identifier> ref = null;
-                ref = references.get("related");
-                if (ref == null)
-                    ref = new ArrayList<>();
-                if (refId != null) {
-                    ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
-                    references.remove("related");
-                    references.put("related", ref);
-                }else {
-                    logger.warn("RCON reference match failed. for " + linkRef);
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord,
-                                    "RCON reference match failed. for " + linkRef));
-                    // Add placeholder and  hope for best
-                    System.out.println("Can't resolve RCON-reference ID for " + linkRef);
-                    RconRef rconRef = new RconRef();
-                    rconRef.setReferenceString(linkRef);
-                    // Null id, as a placeholder
-                    rconRef.setId(NULL_ID);
-                    rconRef.setType("generic"); 
-                    rconRef.setTargetId(currentConcept);
-                    rconList.add(rconRef);
-                }    
-        }
+        }        
         return linkRef;
     }
 
@@ -1640,7 +1612,7 @@ public class NtrfMapper {
                     // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
                     String linkRef = lc.getHref();
 
-                    linkRef = parseLinkRef(lc, vocabulary,currentConcept, parentReferences);
+                    linkRef = parseLinkRef(lc, vocabulary);
                     if(linkRef.startsWith("href:")){
                         linkRef=linkRef.substring(5);
                     }
