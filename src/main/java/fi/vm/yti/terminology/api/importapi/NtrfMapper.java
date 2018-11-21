@@ -211,26 +211,36 @@ public class NtrfMapper {
         ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         int flushCount = 0;
         int currentCount = 0;
+        int errorCount = 0;
         for(RECORD o:records){
             currentRecord=o.getNumb();
             handleRECORD(vocabulary, o, addNodeList);
             flushCount++;
             currentCount++;
+            response.setStatus(Status.PROCESSING);
+            response.clearStatusMessages(); // Forget previous
+            response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records"));
+            response.setProcessingProgress(currentCount);
+            response.setResultsError(errorCount);
+            ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
+            // Flush datablock to the termed
             if(flushCount >1000){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-                addNodeList.clear();
+                
                 response.setStatus(Status.PROCESSING);
                 response.clearStatusMessages(); // Forget previous
                 if(!updateAndDeleteInternalNodes(userId, operation,true)){
                     response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records, import failed for "+currentRecord));
+                    errorCount++;
                 } else {
                     response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing records"));
                 }
                 response.setProcessingProgress(currentCount);
                 ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
+                addNodeList.clear();
             }
         }
         GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
@@ -243,7 +253,7 @@ public class NtrfMapper {
 
         Long endTime = new Date().getTime();
 
-        // ReInitialize caches and after that, resolve ncon-references
+        // ReInitialize caches and after that, resolve rcon- and ncon-references
         idMap.clear();
         typeMap.clear();
         initImport(vocabularyId);
@@ -251,12 +261,13 @@ public class NtrfMapper {
 
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
+        System.out.println("DIAG-count="+DIAGList.size());
         for(DIAG o:DIAGList) {
             handleDIAG(vocabulary, o, addNodeList);
         }
 
         response.setStatus(Status.PROCESSING);
-        response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing DIAG"));
+        response.addStatusMessage(new ImportStatusMessage("Vocabulary","Processing DIAG number="+DIAGList.size()));
         response.setProcessingProgress(records.size());
         ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         // Add DIAG-list to vocabulary
@@ -264,12 +275,12 @@ public class NtrfMapper {
         if(logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
 
-            if(!updateAndDeleteInternalNodes(userId, operation, true)){
+        if(!updateAndDeleteInternalNodes(userId, operation, true)){
             System.err.println("Diag termed error");
         }
         
         System.out.println("Operation  took "+(endTime-startTime)/1000+"s");
-        logger.info("NTRF-imported "+records.size()+" terms.");
+        logger.info("NTRF-imported "+records.size()+" concepts.");
         System.out.println("Status----------------------------------------");
 //        JsonUtils.prettyPrintJson(statusList);
 
@@ -288,11 +299,10 @@ public class NtrfMapper {
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
         });
 
-//        response.setStatusMessage(new ImportStatusMessage("Vocabulary",JsonUtils.prettyPrintJsonAsString(statusList)));
-//        response.setStatusMessage(new ImportStatusMessage("Vocabulary","Processing done! "+"Total="+records.size()+" Warnings="+statusList.size()));
         response.setProcessingTotal(records.size());
         response.setProcessingProgress(records.size());
         response.setResultsWarning(statusList.size());
+        response.setResultsError(errorCount);
 
        // ImportStatusResponse test=ImportStatusResponse.fromString(JsonUtils.prettyPrintJsonAsString(response));
        ytiMQService.setStatus(YtiMQService.STATUS_READY, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
@@ -1160,8 +1170,10 @@ public class NtrfMapper {
         System.out.println("handleRCONref id:"+rrefId+" -> " +refId);
         List<Identifier> ref = null;
         ref = references.get("related");
+        /*
         if (ref == null)
             ref = new ArrayList<>();
+            
         if (refId != null) {
             ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
             references.remove("related");
@@ -1173,6 +1185,7 @@ public class NtrfMapper {
                             "RCON reference match failed. for " + rrefId));
             // Add placeholder and  hope for best
             System.out.println("Can't resolve RCON-reference ID for " + rrefId);
+            */
             RconRef rconRef = new RconRef();
             rconRef.setReferenceString(rrefId);
             // Null id, as a placeholder
@@ -1180,7 +1193,7 @@ public class NtrfMapper {
             rconRef.setType(rc.getTypr());
             rconRef.setTargetId(currentConcept);
             rconList.add(rconRef);
-        }
+//        }
     }
 
     /**
@@ -1219,7 +1232,6 @@ public class NtrfMapper {
                     new StatusMessage(currentRecord,
                             "BCON reference match failed. for " + rrefId));
         }
-        System.out.println("After add ="+ref);
     }
 
     /**
@@ -1243,7 +1255,9 @@ public class NtrfMapper {
         if (refId == null){
             refId = createdIdMap.get(rrefId);
         }
-        System.out.println("handleNCONref id:"+rrefId+" -> " +refId);
+
+        if(logger.isDebugEnabled())
+            logger.debug("handleNCONref id:"+rrefId+" -> " +refId);
         List<Identifier> ref = null;
         ref = references.get("isPartOf");
         if (ref == null){
@@ -1267,7 +1281,6 @@ public class NtrfMapper {
              nconRef.setTargetId(currentConcept);
              nconList.add(nconRef);                            
         }
-        System.out.println("After add ="+ref);
     }
     
     private void handleNCON(NCON o, UUID broaderConceptId) {
