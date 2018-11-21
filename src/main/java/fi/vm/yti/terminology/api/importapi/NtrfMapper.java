@@ -1328,7 +1328,7 @@ public class NtrfMapper {
         }
     }
 
-    private Attribute  handleDEF( UUID currentConcept, DEF def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>>parentReferences, Map<String, List<Attribute>>  termProperties,  Graph vocabularity){
+    private Attribute  handleDEF( UUID currentConcept, DEF def, String lang, Map<String, List<Attribute>>  parentProperties, Map<String, List<Identifier>>parentReferences, Map<String, List<Attribute>>  termProperties,  Graph vocabulary){
         if(logger.isDebugEnabled())
             logger.debug("handleDEF-part:"+def.getContent());
 
@@ -1354,7 +1354,7 @@ public class NtrfMapper {
                     // <DEF>suomalaista <RCON href="#tmpOKSAID564">ylioppilastutkintoa</RCON> vastaava <RCON href="#tmpOKSAID436">Eurooppa-koulujen</RCON> <BCON href="#tmpOKSAID1401" typr="generic">tutkinto</BCON>, joka suoritetaan kaksivuotisen <RCON href="#tmpOKSAID456">lukiokoulutuksen</RCON> päätteeksi<SOURF>opintoluotsi + rk + tr34</SOURF></DEF>
                     RCON rc=(RCON)de;
                     defString = defString.concat("<a href='"+
-                            vocabularity.getUri());
+                            vocabulary.getUri());
                     // Remove # from uri
                     defString = defString.concat(getCleanRef(rc.getHref(),rc.getTypr()));
                     String hrefText ="";
@@ -1391,7 +1391,7 @@ public class NtrfMapper {
 
                     BCON bc=(BCON)de;
                     defString = defString.concat("<a href='"+
-                            vocabularity.getUri());
+                            vocabulary.getUri());
                     // Remove # from uri
                     defString = defString.concat(getCleanRef(bc.getHref(),bc.getTypr()));
                     String hrefText ="";
@@ -1440,14 +1440,15 @@ public class NtrfMapper {
                                             "Warning:NCON reference removed" + nc.getHref() + " value:"+hrefText)
                                     );
                 } else if (de instanceof SOURF){
-                    handleSOURF((SOURF)de, null, termProperties, vocabularity);
+                    handleSOURF((SOURF)de, null, termProperties, vocabulary);
 //                    handleSOURF((SOURF)de, lang, termProperties, vocabularity);
                     // Add  refs as sources-part.
                     updateSources(((SOURF)de).getContent(), lang, termProperties);
                 }  else if (de instanceof REMK) {
-                    handleREMK(lang,(REMK)de,termProperties, vocabularity);
+                    handleREMK(lang,(REMK)de,termProperties, vocabulary);
                 } else if(de instanceof LINK){
                     LINK li = (LINK)de;
+                    String linkRef = parseLinkRef(li, vocabulary, currentConcept, parentReferences);
                     defString = defString.concat("<a href='"+li.getHref()+"' data-type='external'>"+li.getContent().get(0).toString().trim()+"</a>");
                 } else {
                     System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
@@ -1471,6 +1472,47 @@ public class NtrfMapper {
             return null;
     }
 
+    String parseLinkRef(LINK li,Graph vocabulary,UUID currentConcept,Map<String, List<Identifier>>references ){
+        String linkRef = li.getHref();
+        if(linkRef.startsWith("#")){
+            //internal reference, generate url for it.
+            if(vocabulary.getUri().endsWith("/")){
+                linkRef = vocabulary.getUri()+linkRef.substring(1);
+            } else {
+                linkRef = vocabulary.getUri()+"/"+linkRef.substring(1);
+            }
+            // Add related reference to concept
+            UUID refId = idMap.get(linkRef);
+            if (refId == null)
+                refId = createdIdMap.get(linkRef);
+                System.out.println("parseLinkRef id:"+li.getHref()+" -> " +linkRef);
+                List<Identifier> ref = null;
+                ref = references.get("related");
+                if (ref == null)
+                    ref = new ArrayList<>();
+                if (refId != null) {
+                    ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
+                    references.remove("related");
+                    references.put("related", ref);
+                }else {
+                    logger.warn("RCON reference match failed. for " + linkRef);
+                    statusList.put(currentRecord,
+                            new StatusMessage(currentRecord,
+                                    "RCON reference match failed. for " + linkRef));
+                    // Add placeholder and  hope for best
+                    System.out.println("Can't resolve RCON-reference ID for " + linkRef);
+                    RconRef rconRef = new RconRef();
+                    rconRef.setReferenceString(linkRef);
+                    // Null id, as a placeholder
+                    rconRef.setId(NULL_ID);
+                    rconRef.setType("generic"); 
+                    rconRef.setTargetId(currentConcept);
+                    rconList.add(rconRef);
+                }    
+        }
+        return linkRef;
+    }
+
     private String getCleanRef(String refString,String datatype){
         String ref="";
         if(refString.startsWith("#")) {
@@ -1489,7 +1531,7 @@ public class NtrfMapper {
      String lang, Map<String, List<Attribute>>  parentProperties,
       Map<String, List<Identifier>> parentReferences,
       Map<String, List<Attribute>>  termProperties,
-      Graph vocabularity){
+      Graph vocabulary){
         if(logger.isDebugEnabled())
             logger.debug("handleNOTE-part"+note.getContent());
 
@@ -1508,8 +1550,8 @@ public class NtrfMapper {
                     noteString = noteString.concat(" "+str.trim()+" ");
                 } else if(de instanceof SOURF){
                     if(((SOURF)de).getContent()!= null && ((SOURF)de).getContent().size() >0) {
-                        handleSOURF((SOURF)de, null, termProperties,vocabularity);
-//                        handleSOURF((SOURF)de, lang, termProperties,vocabularity);
+                        handleSOURF((SOURF)de, null, termProperties,vocabulary);
+//                        handleSOURF((SOURF)de, lang, termProperties,vocabulary);
                         // Don't add sourf-string into the note-field, just add them  to the sources-list
                         // noteString=noteString.concat(((SOURF)de).getContent().toString().trim());
                         // Add  refs as string and  construct lines four sources-part.
@@ -1518,7 +1560,7 @@ public class NtrfMapper {
             } else if(de instanceof RCON){
                     RCON rc=(RCON)de;
                     noteString = noteString.concat("<a href='"+
-                            vocabularity.getUri());
+                            vocabulary.getUri());
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(rc.getHref(),rc.getTypr()));
                     String hrefText ="";
@@ -1542,7 +1584,7 @@ public class NtrfMapper {
                 BCON bc = (BCON)de;
                 if(bc.getContent()!= null && bc.getContent().size() >0) {
                     noteString = noteString.concat("<a href='"+
-                            vocabularity.getUri());
+                            vocabulary.getUri());
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(bc.getHref(),bc.getTypr()));
                     String hrefText ="";
@@ -1596,9 +1638,14 @@ public class NtrfMapper {
                 LINK lc = (LINK)de;
                 if(lc.getContent()!= null && lc.getContent().size() >0) {
                     // Remove  "href:" from string "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
-                    String url=lc.getHref().substring(5);
-                    noteString = noteString.concat("<a href='"+url+"' data-type='external'>"+lc.getContent().get(0).toString().trim()+"</a> ");
-                    System.out.println("Add LINK:"+url);
+                    String linkRef = lc.getHref();
+
+                    linkRef = parseLinkRef(lc, vocabulary,currentConcept, parentReferences);
+                    if(linkRef.startsWith("href:")){
+                        linkRef=linkRef.substring(5);
+                    }
+                    noteString = noteString.concat("<a href='"+linkRef+"' data-type='external'>"+lc.getContent().get(0).toString().trim()+"</a> ");
+                    System.out.println("Add LINK:"+linkRef);
                 }
             } else if(de instanceof JAXBElement){
                 JAXBElement j = (JAXBElement)de;
