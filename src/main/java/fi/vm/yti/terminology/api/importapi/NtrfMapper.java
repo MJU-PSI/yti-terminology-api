@@ -117,6 +117,8 @@ public class NtrfMapper {
     private String currentRecord;
     private Map<String,StatusMessage> statusList = new LinkedHashMap<>();
 
+    int errorCount = 0;
+
     private static final Logger logger = LoggerFactory.getLogger(ImportService.class);
 
     // Enable for async operations
@@ -155,7 +157,9 @@ public class NtrfMapper {
         } catch(HttpServerErrorException ex) {
             logger.error(ex.getMessage());
             System.err.println("Termed status:"+ex.getStatusText()+ "-- error "+ex.getMessage()+" -- "+ex.getResponseBodyAsString()); 
-            System.err.println(ex.getRawStatusCode()+", "+ex.getMostSpecificCause()+", "+ex.getRootCause()+", "+ex.getClass()); 
+            statusList.put("Termed block-operation:"+errorCount,new StatusMessage(currentRecord,
+                    "Termed error:"+ex.getResponseBodyAsString()));
+            errorCount++;
             rv = false;
         }        
         return rv;
@@ -211,7 +215,7 @@ public class NtrfMapper {
         ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
         int flushCount = 0;
         int currentCount = 0;
-        int errorCount = 0;
+
         for(RECORD o:records){
             currentRecord=o.getNumb();
             handleRECORD(vocabulary, o, addNodeList);
@@ -325,7 +329,7 @@ public class NtrfMapper {
                             // Update it
                             nref.setId(target);
                         } else {
-                                System.out.println("Can't resolve originally unresolved id:" + nref.referenceString);
+                                logger.warn("Can't resolve originally unresolved id:" + nref.referenceString);
                         }
                     }
                 }
@@ -359,7 +363,7 @@ public class NtrfMapper {
                         addNodeList.add(gn);
                     }
                 } else {
-                    System.out.println("Cant' resolve following! NCON=" + nref.getReferenceString() + "-- vocab=" + vocabulary.getId().toString());
+                    logger.warn("Cant' resolve following! NCON=" + nref.getReferenceString() + "-- vocab=" + vocabulary.getId().toString());
                 }
             }
             System.out.println("NCON size="+nconList.size());
@@ -900,6 +904,14 @@ public class NtrfMapper {
                           Graph vocabularity){
         if(logger.isDebugEnabled())
             logger.debug("Handle Te:"+tc.toString());
+        // If GEOG used
+        if(tc.getGEOG()!= null){
+            String lng=(lang+"-"+tc.getGEOG()).toLowerCase();
+
+            System.err.println("GEOG="+lng);
+            lang=lng;
+//            lang=lang+"-"+tc.getGEOG();
+        }
         // LANG/TE/TERM
         if(tc.getTERM()!=null){
             handleTERM(tc.getTERM(),lang,properties);
@@ -1413,7 +1425,8 @@ public class NtrfMapper {
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+" ("+el.getValue().toString()+")";
+                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
+                                System.out.println(" BCON HOGR="+hrefText);
                             }
                         } else if(c instanceof String) {
                             hrefText = hrefText+c;
@@ -1439,7 +1452,7 @@ public class NtrfMapper {
                         if(c instanceof  JAXBElement){
                             JAXBElement el = (JAXBElement)c;
                             if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
+                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
                             }
                         } else if(c instanceof String) {
                             hrefText = hrefText+c;
@@ -1697,6 +1710,13 @@ public class NtrfMapper {
         String scope = "";
         // Attributes  are stored to property-list
         Map<String, List<Attribute>> properties = new HashMap<>();
+        if(synonym.getGEOG()!= null){
+            String lng=(lang+"-"+synonym.getGEOG()).toLowerCase();
+            System.out.println("SY-GEOG="+lng);
+//            lang=lang+"-"+synonym.getGEOG();
+//            lang=lang.toLowerCase();
+        }
+
         synonym.getEQUI();
         if(synonym.getEQUI() != null){
             // Attribute string value = broader | narrower | near-equivalent
