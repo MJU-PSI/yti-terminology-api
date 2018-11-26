@@ -229,7 +229,7 @@ public class NtrfMapper {
             response.setResultsError(errorCount);
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             // Flush datablock to the termed
-            if(flushCount >100){
+            if(flushCount >1000){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -367,7 +367,6 @@ public class NtrfMapper {
                     logger.warn("Cant' resolve following! NCON=" + nref.getReferenceString() + "-- vocab=" + vocabulary.getId().toString());
                 }
             }
-            System.out.println("NCON size="+nconList.size());
             if(addNodeList.size()>0) {
                 // add NCON-changes as one big block
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
@@ -395,9 +394,14 @@ public class NtrfMapper {
                             rref.setId(target);
                         } else {   
                             System.out.println("Can't resolve originally unresolved RCON id:" + rref.referenceString);
+                            statusList.put(rref.getCode(),
+                            new StatusMessage(currentRecord,
+                                    "RCON reference match failed. for " + rref.getReferenceString()));
+        
                         }
                     }
                 }
+                System.out.println("RESOLVE RCON: "+rref.getReferenceString()+" target:"+rref.getTargetId().toString()+" replacementid:"+rref.getId());
                 if (rref.getId() != null && !rref.getId().equals(NULL_ID)) {
                     GenericNode gn = null;
                     try {
@@ -417,11 +421,12 @@ public class NtrfMapper {
                         if (ref == null){
                             ref = new ArrayList<>();
                         }
+                        System.out.println("Add related-link");
                         // @TODO! Go through refList and add only if missing.
                         // Generic = broader concept, partitive = related concept
                         ref.add(new Identifier(rref.getTargetId(), typeMap.get("Concept").getDomain()));
                         if ( rref != null && rref.getType() != null && rref.getType().equalsIgnoreCase("generic")) {
-                            refMap.put("broader", ref);
+                            refMap.put("related", ref);
                         } else
                             refMap.put("isPartOf", ref);
                         addNodeList.add(gn);
@@ -430,7 +435,6 @@ public class NtrfMapper {
                     System.out.println("Cant' resolve following! RCON=" + rref.getReferenceString());
                 }
             }
-            System.out.println("RCON size="+rconList.size());
             if(addNodeList.size()>0) {
                 // add NCON-changes as one big block
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
@@ -1176,7 +1180,6 @@ public class NtrfMapper {
         if (refId == null)
             refId = createdIdMap.get(rrefId);
 
-        System.out.println("handleRCONref id:"+rrefId+" -> " +refId);
         List<Identifier> ref = null;
         ref = references.get("related");
         if (ref == null)
@@ -1188,18 +1191,18 @@ public class NtrfMapper {
             references.put("related", ref);
         }else {
             logger.warn("RCON reference match failed. for " + rrefId);
-            statusList.put(currentRecord,
-                    new StatusMessage(currentRecord,
-                            "RCON reference match failed. for " + rrefId));
             // Add placeholder and  hope for best
             System.out.println("Can't resolve RCON-reference ID for " + rrefId);
             RconRef rconRef = new RconRef();
+            // Use delayed resolving, so save record id for logging purposes
+            rconRef.setCode(currentRecord);
             rconRef.setReferenceString(rrefId);
-            // Null id, as a placeholder
+            // Null id, as a placeholder            
             rconRef.setId(NULL_ID);
             rconRef.setType(rc.getTypr());
             rconRef.setTargetId(currentConcept);
             rconList.add(rconRef);
+            System.out.println("rconList.size="+rconList.size());
         }
     }
 
@@ -1869,10 +1872,19 @@ public class NtrfMapper {
     }
 
     private class NconRef {
+        String code;
         String referenceString;
         String type;
         UUID id;
         UUID targetId;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
 
         public String getReferenceString() {
             return referenceString;
@@ -1910,8 +1922,18 @@ public class NtrfMapper {
     private class RconRef {
         String referenceString;
         String type;
+        String code;
+
         UUID id;
         UUID targetId;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
 
         public String getReferenceString() {
             return referenceString;
