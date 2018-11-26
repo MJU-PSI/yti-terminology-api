@@ -228,7 +228,7 @@ public class NtrfMapper {
             response.setResultsError(errorCount);
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             // Flush datablock to the termed
-            if(flushCount >1000){
+            if(flushCount >100){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -1182,7 +1182,6 @@ public class NtrfMapper {
         System.out.println("handleRCONref id:"+rrefId+" -> " +refId);
         List<Identifier> ref = null;
         ref = references.get("related");
-        /*
         if (ref == null)
             ref = new ArrayList<>();
             
@@ -1197,7 +1196,6 @@ public class NtrfMapper {
                             "RCON reference match failed. for " + rrefId));
             // Add placeholder and  hope for best
             System.out.println("Can't resolve RCON-reference ID for " + rrefId);
-            */
             RconRef rconRef = new RconRef();
             rconRef.setReferenceString(rrefId);
             // Null id, as a placeholder
@@ -1205,7 +1203,7 @@ public class NtrfMapper {
             rconRef.setType(rc.getTypr());
             rconRef.setTargetId(currentConcept);
             rconList.add(rconRef);
-//        }
+        }
     }
 
     /**
@@ -1382,20 +1380,7 @@ public class NtrfMapper {
                             vocabulary.getUri());
                     // Remove # from uri
                     defString = defString.concat(getCleanRef(rc.getHref(),rc.getTypr()));
-                    String hrefText ="";
-                    List<Serializable> content = rc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){                            
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
-                            } else {
-                                logger.error("Unhandled JAXB-element:"+el.getName());
-                            } 
-                        } else if(c instanceof String) {
-                            hrefText = hrefText+((String)c).trim();
-                        }
-                    }
+                    String hrefText = parseHrefText(rc.getContent());
                     // Remove newlines
                     hrefText = hrefText.replaceAll("\n", "");
 
@@ -1419,19 +1404,7 @@ public class NtrfMapper {
                             vocabulary.getUri());
                     // Remove # from uri
                     defString = defString.concat(getCleanRef(bc.getHref(),bc.getTypr()));
-                    String hrefText ="";
-                    List<Serializable> content = bc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
-                                System.out.println(" BCON HOGR="+hrefText);
-                            }
-                        } else if(c instanceof String) {
-                            hrefText = hrefText+c;
-                        }
-                    }
+                    String hrefText = parseHrefText(bc.getContent());
                     defString = defString.concat(">"+hrefText.trim()+ "</a>");
                     // Add also reference
                     handleBCONRef(bc, parentReferences);
@@ -1446,19 +1419,7 @@ public class NtrfMapper {
                     // <NCON href="#tmpOKSAID450" typr="generic">esiopetusta</NCON></DEF>
 
                     NCON nc=(NCON)de;
-                    String hrefText ="";
-                    List<Serializable> content = nc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText.trim()+" ("+el.getValue().toString()+")";
-                            }
-                        } else if(c instanceof String) {
-                            hrefText = hrefText+c;
-                        }
-                    }     
-                    //defString = defString.concat(">"+hrefText.trim()+ "</a>");                    
+                    String hrefText = parseHrefText(nc.getContent());
                     defString = defString.concat(hrefText);
                     statusList.put(currentRecord,
                                         new StatusMessage(
@@ -1498,7 +1459,22 @@ public class NtrfMapper {
             return null;
     }
 
-    String parseLinkRef(LINK li,Graph vocabulary){
+    private String parseHrefText(List<Serializable> content) {
+        String hrefText = "";
+        for (Serializable c : content) {
+            if (c instanceof JAXBElement) {
+                JAXBElement el = (JAXBElement) c;
+                if (el.getName().toString().equalsIgnoreCase("HOGR")) {
+                    hrefText = hrefText.trim() + " (" + el.getValue().toString() + ")";
+                }
+            } else if (c instanceof String) {
+                hrefText = hrefText + c;
+            }
+        }
+        return hrefText;
+    }
+
+    private String parseLinkRef(LINK li,Graph vocabulary){
         String linkRef = li.getHref();
         if(linkRef.startsWith("#")){
             //internal reference, generate url for it.
