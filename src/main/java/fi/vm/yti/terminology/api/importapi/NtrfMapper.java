@@ -37,6 +37,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.importapi.ImportStatusMessage.Level;
 import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.Status;
 import fi.vm.yti.terminology.api.model.ntrf.BCON;
 import fi.vm.yti.terminology.api.model.ntrf.CLAS;
@@ -145,7 +146,7 @@ public class NtrfMapper {
         this.jmsMessagingTemplate = jmsMessagingTemplate;
         this.namespaceRoot = namespaceRoot;
     }
-
+/*
     private boolean updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
 
         boolean rv = true;
@@ -157,13 +158,47 @@ public class NtrfMapper {
         } catch(HttpServerErrorException ex) {
             logger.error(ex.getMessage());
             System.err.println("Termed status:"+ex.getStatusText()+ "-- error "+ex.getMessage()+" -- "+ex.getResponseBodyAsString()); 
-            statusList.put("Termed block-operation:"+errorCount,new StatusMessage(currentRecord,
+            statusList.put("Termed block-operation:"+errorCount,new StatusMessage(Level.ERROR, currentRecord,
                     "Termed error:"+ex.getResponseBodyAsString()));
             errorCount++;
             rv = false;
         }        
         return rv;
     }
+*/
+    private boolean updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
+
+        boolean rv = true;
+        Parameters params = new Parameters();
+        params.add("changeset", "true");
+        params.add("sync", String.valueOf(sync));
+        try {
+            this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(),
+                    USER_PASSWORD);
+        } catch (HttpServerErrorException ex) {
+            logger.error(ex.getMessage());
+            System.err.println("Termed status:"+ex.getStatusText()+ "-- error "+ex.getMessage()+" -- "+ex.getResponseBodyAsString()); 
+            statusList.put("Termed block-operation:"+errorCount,new StatusMessage(Level.ERROR, currentRecord,
+                    "Termed error:"+ex.getResponseBodyAsString()));
+            errorCount++;
+            rv = false;
+            // GenericDeleteAndSave(emptyList(),addNodeList);
+            // Failed save, reson:duplicate, so use fallback and import items individually
+            // And only if list has more than 1 elements
+            List<GenericNode> savelist = deleteAndSave.getSave();
+            if (savelist.size() > 1) {
+                System.out.println("Retry and send block-operation again individually");
+                savelist.forEach(o -> {
+                    List<GenericNode> itemToBeAdded = new ArrayList<>();
+                    itemToBeAdded.add(o);
+                    GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), itemToBeAdded);
+                    updateAndDeleteInternalNodes(userId, operation, true);
+                });
+            }
+        }
+        return rv;
+    }
+
 
     /**
      * Executes import operation. Reads incoming xml and process it
@@ -228,7 +263,7 @@ public class NtrfMapper {
             response.setResultsError(errorCount);
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             // Flush datablock to the termed
-            if(flushCount >100){
+            if(flushCount >10){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -299,7 +334,7 @@ public class NtrfMapper {
         // Add all status lines as individual members before 
         statusList.forEach((k,v)->{ 
             StatusMessage m = (StatusMessage)v;
-            response.addStatusMessage(new ImportStatusMessage(k,m.getMessage().toString()));
+            response.addStatusMessage(new ImportStatusMessage(m.getLevel(), k, m.getMessage().toString()));
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
         });
 
@@ -1977,12 +2012,28 @@ public class NtrfMapper {
     }
 
     private class StatusMessage{
+        Level level;
         String record;
         List<String> message = new ArrayList<>();
 
         public StatusMessage(String record, String msg) {
+            this.level = Level.WARNING;
             this.record = record;
             this.message.add(msg);
+        }
+
+        public StatusMessage(Level level, String record, String msg) {
+            this.level = level;
+            this.record = record;
+            this.message.add(msg);
+        }
+
+        public ImportStatusMessage.Level getLevel(){
+            return level;
+        }
+
+        public void setLevel(Level level) {
+            this.level = level;
         }
 
         public String getRecord() {

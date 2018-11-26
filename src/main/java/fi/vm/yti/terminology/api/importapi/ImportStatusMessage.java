@@ -10,12 +10,23 @@ import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
+        "level",
         "targetIdentifier",
         "message"
 })
 public class ImportStatusMessage implements Serializable
 {
     private static ObjectMapper mapper = new ObjectMapper();
+
+    public enum Level {
+        WARNING,ERROR
+    };
+
+    /**
+     * Level of the message, "Warning/Error"
+     */
+    @JsonProperty("level")
+    private Level level;
 
     /**
      * Arbitrary identifier about the entity the message is about. Maybe null for,
@@ -44,8 +55,31 @@ public class ImportStatusMessage implements Serializable
      */
     public ImportStatusMessage(String targetIdentifier, String message) {
         super();
+        this.level = Level.WARNING; // Default level
         this.targetIdentifier = targetIdentifier;
         this.message = message;
+    }
+
+    /**
+     *
+     * @param message
+     * @param targetIdentifier
+     */
+    public ImportStatusMessage(Level level,String targetIdentifier, String message) {
+        super();
+        this.level = level;
+        this.targetIdentifier = targetIdentifier;
+        this.message = message;
+    }
+
+    @JsonProperty("level")
+    public Level getLevel() {
+        return level;
+    }
+
+    @JsonProperty("level")
+    public void setLevel(Level level) {
+        this.level = level;
     }
 
     @JsonProperty("targetIdentifier")
