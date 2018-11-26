@@ -146,7 +146,7 @@ public class NtrfMapper {
         this.jmsMessagingTemplate = jmsMessagingTemplate;
         this.namespaceRoot = namespaceRoot;
     }
-/*
+
     private boolean updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
 
         boolean rv = true;
@@ -165,40 +165,6 @@ public class NtrfMapper {
         }        
         return rv;
     }
-*/
-    private boolean updateAndDeleteInternalNodes(UUID userId, GenericDeleteAndSave deleteAndSave, boolean sync) {
-
-        boolean rv = true;
-        Parameters params = new Parameters();
-        params.add("changeset", "true");
-        params.add("sync", String.valueOf(sync));
-        try {
-            this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(),
-                    USER_PASSWORD);
-        } catch (HttpServerErrorException ex) {
-            logger.error(ex.getMessage());
-            System.err.println("Termed status:"+ex.getStatusText()+ "-- error "+ex.getMessage()+" -- "+ex.getResponseBodyAsString()); 
-            statusList.put("Termed block-operation:"+errorCount,new StatusMessage(Level.ERROR, currentRecord,
-                    "Termed error:"+ex.getResponseBodyAsString()));
-            errorCount++;
-            rv = false;
-            // GenericDeleteAndSave(emptyList(),addNodeList);
-            // Failed save, reson:duplicate, so use fallback and import items individually
-            // And only if list has more than 1 elements
-            List<GenericNode> savelist = deleteAndSave.getSave();
-            if (savelist.size() > 1) {
-                System.out.println("Retry and send block-operation again individually");
-                savelist.forEach(o -> {
-                    List<GenericNode> itemToBeAdded = new ArrayList<>();
-                    itemToBeAdded.add(o);
-                    GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), itemToBeAdded);
-                    updateAndDeleteInternalNodes(userId, operation, true);
-                });
-            }
-        }
-        return rv;
-    }
-
 
     /**
      * Executes import operation. Reads incoming xml and process it
@@ -263,7 +229,7 @@ public class NtrfMapper {
             response.setResultsError(errorCount);
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
             // Flush datablock to the termed
-            if(flushCount >10){
+            if(flushCount >100){
                 flushCount=0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(),addNodeList);
                 if(logger.isDebugEnabled())
@@ -296,6 +262,7 @@ public class NtrfMapper {
         idMap.clear();
         typeMap.clear();
         initImport(vocabularyId);
+
         handleLinks(userId, jobtoken, vocabulary);
 
         // Handle DIAG-elements and create collections from them
@@ -323,13 +290,6 @@ public class NtrfMapper {
         System.out.println("Status----------------------------------------");
 //        JsonUtils.prettyPrintJson(statusList);
 
-        if(statusList.size()>0){
-            response.setStatus(Status.SUCCESS_WITH_ERRORS);
-        }
-        else {
-            response.setStatus(Status.SUCCESS);
-        }
-
         response.clearStatusMessages();
         // Add all status lines as individual members before 
         statusList.forEach((k,v)->{ 
@@ -343,6 +303,12 @@ public class NtrfMapper {
         response.setResultsWarning(statusList.size());
         response.setResultsError(errorCount);
 
+        if(statusList.size()>0){
+            response.setStatus(Status.SUCCESS_WITH_ERRORS);
+        }
+        else {
+            response.setStatus(Status.SUCCESS);
+        }
        // ImportStatusResponse test=ImportStatusResponse.fromString(JsonUtils.prettyPrintJsonAsString(response));
        ytiMQService.setStatus(YtiMQService.STATUS_READY, jobtoken, userId.toString(), vocabulary.getUri(),response.toString());
        statusList.clear();
@@ -942,10 +908,8 @@ public class NtrfMapper {
         // If GEOG used
         if(tc.getGEOG()!= null){
             String lng=(lang+"-"+tc.getGEOG()).toLowerCase();
-
             System.err.println("GEOG="+lng);
-            lang=lng;
-//            lang=lang+"-"+tc.getGEOG();
+//            lang=lng;
         }
         // LANG/TE/TERM
         if(tc.getTERM()!=null){
@@ -955,11 +919,9 @@ public class NtrfMapper {
         // LANG/TE/SOURF
         if(tc.getSOURF() != null){
             handleSOURF(tc.getSOURF(), null, parentProperties,vocabularity);
-//            handleSOURF(tc.getSOURF(), lang, parentProperties,vocabularity);
         }
         // LANG/TE/HOGR
         if(tc.getHOGR() != null && !tc.getHOGR().isEmpty()){
- //           Attribute att = new Attribute(lang, tc.getHOGR());
             Attribute att = new Attribute(null, tc.getHOGR());
             addProperty("termHomographNumber", properties,  att);
         }
@@ -1264,6 +1226,7 @@ public class NtrfMapper {
             refId = createdIdMap.get(rrefId);
 
         System.out.println("handleBCONref id:"+rrefId+" -> " +refId);
+        
         List<Identifier> ref = null;
         ref = references.get("broader");
         if (ref == null)
@@ -1277,6 +1240,7 @@ public class NtrfMapper {
                     new StatusMessage(currentRecord,
                             "BCON reference match failed. for " + rrefId));
         }
+        
     }
 
     /**
@@ -1303,6 +1267,9 @@ public class NtrfMapper {
 
         if(logger.isDebugEnabled())
             logger.debug("handleNCONref id:"+rrefId+" -> " +refId);
+        // NCON relation is not autogenerated from DEF- or NOTE-parts
+        // Meaning UI don't show link there
+        /*
         List<Identifier> ref = null;
         ref = references.get("isPartOf");
         if (ref == null){
@@ -1326,6 +1293,7 @@ public class NtrfMapper {
              nconRef.setTargetId(currentConcept);
              nconList.add(nconRef);                            
         }
+        */
     }
     
     private void handleNCON(NCON o, UUID broaderConceptId) {
@@ -1506,6 +1474,8 @@ public class NtrfMapper {
                 hrefText = hrefText + c;
             }
         }
+        // Remove newlines just in case
+        hrefText = hrefText.replaceAll("\n", "");
         return hrefText;
     }
 
@@ -1572,18 +1542,7 @@ public class NtrfMapper {
                             vocabulary.getUri());
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(rc.getHref(),rc.getTypr()));
-                    String hrefText ="";
-                    List<Serializable> content = rc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+"("+el.getValue().toString()+")";
-                            }
-                        } else if(c instanceof String) {
-                            hrefText = hrefText+((String)c).trim();
-                        }
-                    }
+                    String hrefText = parseHrefText(rc.getContent());                    
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a>");
                     if(logger.isDebugEnabled())
                         logger.debug("handleNOTE RCON:" + noteString.trim());
@@ -1596,20 +1555,7 @@ public class NtrfMapper {
                             vocabulary.getUri());
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(bc.getHref(),bc.getTypr()));
-                    String hrefText ="";
-                    List<Serializable> content = bc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                hrefText = hrefText+" ("+el.getValue().toString()+")";
-                            }
-                        } else if(c instanceof String) {
-                            hrefText = hrefText+c;
-                        }
-                    }
-                    // Remove newlines
-                    hrefText = hrefText.replaceAll("\n", "");
+                    String hrefText = parseHrefText(bc.getContent());                    
                     noteString = noteString.concat(">"+hrefText.trim()+ "</a> ");
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF BCON:" + noteString);
@@ -1619,18 +1565,7 @@ public class NtrfMapper {
             } else if(de instanceof NCON){
                 NCON nc = (NCON)de;
                 if(nc.getContent()!= null && nc.getContent().size() >0) {
-                    String refText ="";
-                    List<Serializable> content = nc.getContent();
-                    for( Serializable c:content){
-                        if(c instanceof  JAXBElement){
-                            JAXBElement el = (JAXBElement)c;
-                            if(el.getName().toString().equalsIgnoreCase("HOGR")){
-                                refText = refText+"("+el.getValue().toString()+")";
-                            }
-                        } else if(c instanceof String) {
-                            refText = refText+c;
-                        }
-                    }
+                    String refText = parseHrefText(nc.getContent());                    
                     if(logger.isDebugEnabled())
                         logger.debug("handleDEF NCON:" + noteString.trim());
                     // Add also reference
