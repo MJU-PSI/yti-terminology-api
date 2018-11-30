@@ -19,8 +19,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.regex.Matcher;
 
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBElement;
 
 import org.slf4j.Logger;
@@ -99,6 +100,7 @@ public class NtrfMapper {
      * matching existing items and updating them instead of creating new ones
      */
     private HashMap<String, UUID> idMap = new HashMap<>();
+    private HashMap<UUID, String> reverseIdMap = new HashMap<>();
     /**
      * Map containing node.code or node.uri as a key and UUID as a value. Used for
      * reference resolving after all concepts and terms are created
@@ -115,9 +117,8 @@ public class NtrfMapper {
      * Map for NCON/RCON-reference cache. Operation targetId,
      * type(generic/partitive), broaderConceptId
      */
-    private List<ConnRef> nconList = new ArrayList<>();
+    private Map<String, List<ConnRef>> nconList = new LinkedHashMap<>();
     private Map<String, List<ConnRef>> rconList = new LinkedHashMap<>();
-    // private List<ConnRef> rconList = new ArrayList<>();
     private Map<String, List<ConnRef>> bconList = new LinkedHashMap<>();
 
     private String currentRecord;
@@ -158,9 +159,23 @@ public class NtrfMapper {
             this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(),
                     USER_PASSWORD);
         } catch (HttpServerErrorException ex) {
-            logger.error(ex.getMessage());
-            System.err.println("Termed status:" + ex.getStatusText() + "-- error " + ex.getMessage() + " -- "
-                    + ex.getResponseBodyAsString());
+            logger.error(ex.getResponseBodyAsString());
+            String error = ex.getResponseBodyAsString();
+            System.err.println("Termed status:" + error);
+            Pattern pairRegex = Pattern
+                    .compile("\\p{XDigit}{8}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{12}");
+            Matcher matcher = pairRegex.matcher(error);
+            List<UUID> reflist = new ArrayList<>();
+            while (matcher.find()) {
+                String a = matcher.group(0);
+                System.out.println(a);
+                reflist.add(UUID.fromString(a));
+            }
+            if (reflist.size() > 1) {
+                System.out.println("Failed UUID=" + reflist.get(1) + " Code:" + reverseIdMap.get(reflist.get(1)));
+                System.out.println("Failed UUID=" + reflist.get(1));
+            }
+
             statusList.put("Termed block-operation:" + errorCount,
                     new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
             errorCount++;
@@ -180,6 +195,13 @@ public class NtrfMapper {
         Graph vocabulary = null;
         logger.info("mapNtRfDocument: Vocabularity Id:" + vocabularyId);
         Long startTime = new Date().getTime();
+
+        idMap.clear();
+        reverseIdMap.clear();
+        createdIdMap.clear();
+        nconList.clear();
+        bconList.clear();
+        rconList.clear();
 
         // Get vocabulary
         try {
@@ -238,7 +260,7 @@ public class NtrfMapper {
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),
                     response.toString());
             // Flush datablock to the termed
-            if (flushCount > 1000) {
+            if (flushCount > 10000) {
                 flushCount = 0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
                 if (logger.isDebugEnabled())
@@ -253,7 +275,7 @@ public class NtrfMapper {
                 } else {
                     response.addStatusMessage(new ImportStatusMessage("Vocabulary", "Processing records"));
                     // Import successfull, add id:s to resolved one.
-                    addNodeList.forEach(node->{
+                    addNodeList.forEach(node -> {
                         // Add id for reference resolving
                         createdIdMap.put(node.getCode(), node.getId());
                     });
@@ -273,19 +295,30 @@ public class NtrfMapper {
                     new ImportStatusMessage("Vocabulary", "Processing records, import failed for " + currentRecord));
         } else {
             // Import successfull, add id:s to resolved one.
-            addNodeList.forEach(v->{
+            addNodeList.forEach(v -> {
                 // Add id for reference resolving
                 createdIdMap.put(v.getCode(), v.getId());
             });
         }
         addNodeList.clear();
-
+        // Wait 5 sec before continue
+        try {
+            Thread.sleep(10 * 1000);
+        } catch (InterruptedException ex) {
+        }
         // ReInitialize caches and after that, resolve rcon- and ncon-references
         idMap.clear();
         typeMap.clear();
         initImport(vocabularyId);
+        // Just add reverse map
+        idMap.forEach((k, v) -> {
+            reverseIdMap.put(v, k);
+        });
 
         handleLinks(userId, jobtoken, vocabulary);
+        idMap.clear();
+        typeMap.clear();
+        initImport(vocabularyId);
 
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
@@ -322,12 +355,17 @@ public class NtrfMapper {
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
         });
 
+        System.out.println("Concept list:");
+        idMap.forEach((k, v) -> System.out.println(k + " -" + v.toString()));
         response.setProcessingTotal(records.size());
         response.setProcessingProgress(records.size());
         response.setResultsWarning(statusList.size());
         response.setResultsError(errorCount);
 
-        if (errorCount > 0 || statusList.size() > 0) {
+        if (errorCount > 0) {
+            response.setStatus(Status.FAILURE);
+
+        } else if (statusList.size() > 0) {
             response.setStatus(Status.SUCCESS_WITH_ERRORS);
         } else {
             response.setStatus(Status.SUCCESS);
@@ -338,52 +376,6 @@ public class NtrfMapper {
                 response.toString());
         statusList.clear();
         return response.toString();
-    }
-
-    private void addConList(List<ConnRef> conList, String connType, UUID userId, String jobtoken, Graph vocabulary) {
-        List<GenericNode> addNodeList = new ArrayList<>();
-        for (ConnRef ref : conList) {
-            if (ref.getId().equals(NULL_ID)) {
-                UUID target = idMap.get(ref.referenceString);
-                if (target != null) {
-                    // Update it
-                    ref.setId(target);
-                } else {
-                    target = createdIdMap.get(ref.referenceString);
-                    if (target != null) {
-                        // Update it
-                        ref.setId(target);
-                    } else {
-                        logger.warn("Can't resolve originally unresolved id:" + ref.referenceString);
-                    }
-                }
-            }
-            if (ref.getId() != null && !ref.getId().equals(NULL_ID)) {
-                GenericNode gn = null;
-                try {
-                    gn = termedService.getConceptNode(vocabulary.getId(), ref.getId());
-                } catch (NullPointerException nex) {
-                    logger.warn("Can't found concept node:" + ref.getId() + " in vocabulary:"
-                            + vocabulary.getId().toString());
-                }
-                if (gn != null) {
-                    addRefItemToNode(gn, connType, ref, addNodeList);
-                } else {
-                    logger.warn("Cant' resolve following! " + connType + "=" + ref.getReferenceString() + "-- vocab="
-                            + vocabulary.getId().toString());
-                }
-            }
-        }
-        if (addNodeList.size() > 0) {
-            // add (N/B/R)CON-changes as one big block
-            GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
-            if (logger.isDebugEnabled())
-                logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
-            if (!updateAndDeleteInternalNodes(userId, operation, true)) {
-                System.err.println("CONN link adding: Termed error ");
-            }
-        }
-        addNodeList.clear();
     }
 
     private void addConMap(Map<String, List<ConnRef>> conMap, String connType, UUID userId, String jobtoken,
@@ -406,7 +398,7 @@ public class NtrfMapper {
                 if (gn != null) {
                     Map<String, List<Identifier>> refMap = gn.getReferences();
                     List<Identifier> idref = null;
-                    System.out.println("Add RCON list to " + key + " size:" + rlist.size());
+                    System.out.println("Add " + connType + " list to " + key + " size:" + rlist.size());
                     // Iterate through list and add them to node
                     for (ConnRef ref : rlist) {
                         if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic")) {
@@ -435,7 +427,7 @@ public class NtrfMapper {
 
                         // @TODO! Go through refList and add only if missing.
 
-                        if(!ref.getTargetId().equals(NULL_ID)) {
+                        if (!ref.getTargetId().equals(NULL_ID)) {
                             // Generic = depending upon broader concept, partitive = related concept
                             idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
 
@@ -451,7 +443,7 @@ public class NtrfMapper {
                                 refMap.put("isPartOf", idref);
                             }
                         } else {
-                            System.err.println("Ref-target-id not found for :"+ref.getCode());
+                            System.err.println("Ref-target-id not found for :" + ref.getCode());
                         }
                     }
                     ;
@@ -460,6 +452,8 @@ public class NtrfMapper {
                 } else {
                     logger.warn("Cant' resolve following! " + key + " type:" + connType + "=" + sourceId + "-- vocab="
                             + vocabulary.getId().toString());
+                    statusList.put(currentRecord,
+                            new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
                 }
             } else {
                 System.out.println("Can't find source id:" + key);
@@ -467,6 +461,7 @@ public class NtrfMapper {
         });
         if (addNodeList.size() > 0) {
             // add (N/B/R)CON-changes as one big block
+
             GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
             if (logger.isDebugEnabled())
                 logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
@@ -475,7 +470,7 @@ public class NtrfMapper {
             }
         }
         addNodeList.clear();
-}
+    }
 
     private void addRefItemToNode(GenericNode gn, String connType, ConnRef ref, List<GenericNode> addNodeList) {
         // get objects reference list and add
@@ -521,15 +516,17 @@ public class NtrfMapper {
     private void handleLinks(UUID userId, String jobtoken, Graph vocabulary) {
         if (nconList != null) {
             System.out.println(" Add resolved NCON-list size=" + nconList.size());
-            addConList(nconList, "NCON", userId, jobtoken, vocabulary);
+            addConMap(nconList, "NCON", userId, jobtoken, vocabulary);
         }
         if (rconList != null) {
             System.out.println(" Add resolved RCON-list size=" + rconList.size());
-            addConMap(rconList, "RCON", userId, jobtoken, vocabulary);
+            if (rconList.size() > 0) {
+                addConMap(rconList, "RCON", userId, jobtoken, vocabulary);
+            }
         }
         if (bconList != null) {
             System.out.println(" Add resolved BCON-list size=" + bconList.size());
-            if(bconList.size() > 0){
+            if (bconList.size() > 0) {
                 addConMap(bconList, "BCON", userId, jobtoken, vocabulary);
             }
         }
@@ -848,7 +845,7 @@ public class NtrfMapper {
                 // RECORD/BCON
                 // Store information of link for now on and after all items are created, update
                 // broader/isPartOf-references
-                handleNCON(o, currentId);
+                handleNCON(currentId, o, currentId);
             } else {
                 statusList.put(currentRecord,
                         new StatusMessage(currentRecord, "Record:" + code + " has null NCON reference."));
@@ -1268,44 +1265,25 @@ public class NtrfMapper {
         if (rrefId.startsWith("#"))
             rrefId = rc.getHref().substring(1);
 
-        System.out.println("handleRCONRef add item from source record:"+currentRecord+"--> target:"+rrefId);
+        System.out.println("handleRCONRef add item from source record:" + currentRecord + "--> target:" + rrefId);
+        ConnRef conRef = new ConnRef();
+        // Use delayed resolving, so save record id for logging purposes
+        conRef.setCode(currentRecord);
+        conRef.setReferenceString(rrefId);
+        // Null id, as a placeholder for target
+        conRef.setId(currentConcept);
+        conRef.setType(rc.getTypr());
+        conRef.setTargetId(NULL_ID);
 
-        // Check whether link target exist already
-        
-        UUID refId = createdIdMap.get(rrefId);
-        if(refId == null || (refId != null && refId.equals(NULL_ID))) {
-            System.out.println("RCON target is not yet created");
-            // Add placeholder and resolve after concepts and terms are available
-            ConnRef conRef = new ConnRef();
-            // Use delayed resolving, so save record id for logging purposes
-            conRef.setCode(currentRecord);
-            conRef.setReferenceString(rrefId);
-            // Null id, as a placeholder for target
-            conRef.setId(currentConcept);
-            conRef.setType(rc.getTypr());
-            conRef.setTargetId(NULL_ID);
-//        rconList.add(conRef);    
-
-            // if not yet defined, create list and populate it
-            List<ConnRef> reflist;
-            if(rconList.containsKey(currentRecord)){
-                reflist = rconList.get(currentRecord);
-           } else {
-                reflist = new ArrayList<>();
-            }
-            reflist.add(conRef);
-            rconList.put(currentRecord, reflist);        
+        // if not yet defined, create list and populate it
+        List<ConnRef> reflist;
+        if (rconList.containsKey(currentRecord)) {
+            reflist = rconList.get(currentRecord);
         } else {
-            System.out.println("-------------- RCON target exist, add it now:"+rrefId + " id:"+refId.toString());
-            List<Identifier> ref = null;
-            ref = references.get("related");
-            if (ref == null)
-                ref = new ArrayList<>();
-            if (refId != null) {
-                ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
-                references.put("related", ref);    
-            }        
+            reflist = new ArrayList<>();
         }
+        reflist.add(conRef);
+        rconList.put(currentRecord, reflist);
     }
 
     /**
@@ -1326,12 +1304,12 @@ public class NtrfMapper {
             rrefId = o.getHref().substring(1);
             logger.info("Internal BCON reference");
         }
-/*        UUID refId = idMap.get(rrefId);
-        if (refId == null)
-            refId = createdIdMap.get(rrefId);
-            */
+        /*
+         * UUID refId = idMap.get(rrefId); if (refId == null) refId =
+         * createdIdMap.get(rrefId);
+         */
         UUID refId = createdIdMap.get(rrefId);
-    
+
         System.out.println("handleBCONref id:" + rrefId + " -> " + refId);
 
         List<Identifier> ref = null;
@@ -1342,9 +1320,6 @@ public class NtrfMapper {
             ref.add(new Identifier(refId, typeMap.get("Concept").getDomain()));
             references.put("broader", ref);
         } else {
-            logger.warn("BCON reference match failed. for " + rrefId);
-            statusList.put(currentRecord,
-                    new StatusMessage(currentRecord, "BCON reference match failed. for " + rrefId));
             // Add placeholder and resolve after concepts and terms are available
             ConnRef conRef = new ConnRef();
             // Use delayed resolving, so save record id for logging purposes
@@ -1357,14 +1332,13 @@ public class NtrfMapper {
 
             // if not yet defined, create list and populate it
             List<ConnRef> reflist;
-            if(bconList.containsKey(currentRecord)){
+            if (bconList.containsKey(currentRecord)) {
                 reflist = bconList.get(currentRecord);
-           } else {
+            } else {
                 reflist = new ArrayList<>();
             }
             reflist.add(conRef);
-            rconList.put(currentRecord, reflist);        
-
+            rconList.put(currentRecord, reflist);
         }
     }
 
@@ -1415,7 +1389,7 @@ public class NtrfMapper {
      * @param o
      * @param narroverConceptId
      */
-    private void handleNCON(NCON o, UUID narrowerConceptId) {
+    private void handleNCON(UUID currentConcept, NCON o, UUID narrowerConceptId) {
         if (logger.isDebugEnabled())
             logger.debug("handleNCON:" + o.getHref());
         String nrefId = o.getHref();
@@ -1424,13 +1398,25 @@ public class NtrfMapper {
             if (nrefId.startsWith("#")) {
                 nrefId = o.getHref().substring(1);
             }
+            System.out.println("handleNCON add item from source record:" + currentRecord + "--> target:" + nrefId);
             ConnRef conRef = new ConnRef();
+            // Use delayed resolving, so save record id for logging purposes
+            conRef.setCode(currentRecord);
             conRef.setReferenceString(nrefId);
-            // Null id, as a placeholder
-            conRef.setId(NULL_ID);
+            // Null id, as a placeholder for target
+            conRef.setId(currentConcept);
             conRef.setType(o.getTypr());
-            conRef.setTargetId(narrowerConceptId);
-            nconList.add(conRef);
+            conRef.setTargetId(NULL_ID);
+    
+            // if not yet defined, create list and populate it
+            List<ConnRef> reflist;
+            if (nconList.containsKey(currentRecord)) {
+                reflist = nconList.get(currentRecord);
+            } else {
+                reflist = new ArrayList<>();
+            }
+            reflist.add(conRef);
+            nconList.put(currentRecord, reflist);            
         }
         /*
          * UUID refId = idMap.get(nrefId); if (refId == null) { refId =
