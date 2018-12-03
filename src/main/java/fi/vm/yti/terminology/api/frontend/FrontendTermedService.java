@@ -39,6 +39,8 @@ public class FrontendTermedService {
 
     private static final String USER_PASSWORD = "user";
     private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+    private static final Logger LOGGER = LoggerFactory.getLogger(FrontendTermedService.class);
+    private static final Object USER_LOCK = new Object();
 
     private final TermedRequester termedRequester;
     private final FrontendGroupManagementService groupManagementService;
@@ -46,7 +48,6 @@ public class FrontendTermedService {
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
 
-    private static final Logger logger = LoggerFactory.getLogger(FrontendTermedService.class);
 
     @Autowired
     public FrontendTermedService(TermedRequester termedRequester,
@@ -370,7 +371,11 @@ public class FrontendTermedService {
         }
 
         if (findTermedUser(user) == null) {
-            createTermedUser(user, externalUserId);
+            synchronized (USER_LOCK) {
+                if (findTermedUser(user) == null) {
+                    createTermedUser(user, externalUserId);
+                }
+            }
         }
 
         if (externalUserId != null) {
