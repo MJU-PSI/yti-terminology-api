@@ -58,6 +58,7 @@ import fi.vm.yti.terminology.api.model.ntrf.REFTEXT;
 import fi.vm.yti.terminology.api.model.ntrf.REMK;
 import fi.vm.yti.terminology.api.model.ntrf.SCOPE;
 import fi.vm.yti.terminology.api.model.ntrf.SOURF;
+import fi.vm.yti.terminology.api.model.ntrf.SUBJ;
 import fi.vm.yti.terminology.api.model.ntrf.TERM;
 import fi.vm.yti.terminology.api.model.ntrf.Termcontent;
 import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
@@ -809,6 +810,13 @@ public class NtrfMapper {
             // RECORD/LANG/TE/TERM -> prefLabel
             hadleLANG(concept, terms, o, properties, references, vocabularity);
         });
+
+        // Handle Subject
+        List<SUBJ> subjs = r.getSUBJ();
+        subjs.forEach(o->{
+            handleSUBJ(o,properties);
+        });
+
         // Filter CLAS elemets as list
         List<CLAS> clas = r.getCLAS();
         clas.forEach(o -> {
@@ -1053,7 +1061,7 @@ public class NtrfMapper {
         return value;
     }
 
-    private void handleREMK(String lang, REMK remk, Map<String, List<Attribute>> properties, Graph vocabularity) {
+    private void handleREMK(String lang, REMK remk, Map<String, List<Attribute>> properties, Graph vocabulary) {
         List<Attribute> eNotes = properties.get("editorialNote");
         if (eNotes == null)
             eNotes = new ArrayList<Attribute>();
@@ -1068,11 +1076,12 @@ public class NtrfMapper {
                 editorialNote = editorialNote + elem.getValue().toString();
             } else if (o instanceof LINK) {
                 LINK l = (LINK) o;
+                String linkRef = parseLinkRef(l, vocabulary);
                 editorialNote = editorialNote
-                        .concat("<a href='" + l.getHref() + "' data-type='external'>" + l.getContent().get(0) + "</a>");
+                        .concat("<a href='" + l.getHref() + "' data-type='external'>" + linkRef+ "</a>");
             } else if (o instanceof SOURF) {
                 // handleSOURF((SOURF)o,lang,properties,vocabularity);
-                handleSOURF((SOURF) o, null, properties, vocabularity);
+                handleSOURF((SOURF) o, null, properties, vocabulary);
             } else {
                 statusList.put(currentRecord, new StatusMessage(currentRecord,
                         " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString()));
@@ -1204,6 +1213,32 @@ public class NtrfMapper {
             Attribute att = new Attribute(null, status);
             addProperty("status", properties, att);
         }
+    }
+
+    private void handleSUBJ(SUBJ subj, Map<String, List<Attribute>> properties) {
+        List<?> contentList = subj.getContent();
+        if (subj != null) {
+            subj.getContent().forEach(o -> {
+                if (o instanceof String) {
+                    Attribute att = new Attribute(null, o.toString());
+//                    Attribute att = new Attribute(lang, o.toString());
+                    addProperty("conceptScope", properties, att);
+                } else {
+                    System.out.println("SUBJ unknown instance type:" + o.getClass().getName());
+                    statusList.put(currentRecord,
+                            new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
+                }
+            });
+        }
+
+/*
+        String status = "DRAFT";
+        if (stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut")) {
+            status = "RETIRED";
+            Attribute att = new Attribute(null, status);
+            addProperty("status", properties, att);
+        }
+        */
     }
 
     /**
@@ -1606,6 +1641,10 @@ public class NtrfMapper {
 
     private String parseLinkRef(LINK li, Graph vocabulary) {
         String linkRef = li.getHref();
+        // Remove "href:" from string 
+        if (linkRef.startsWith("href:")) {
+            linkRef = linkRef.substring(5);
+        }
         if (linkRef.startsWith("#")) {
             // internal reference, generate url for it.
             if (vocabulary.getUri().endsWith("/")) {
@@ -1649,7 +1688,7 @@ public class NtrfMapper {
                     noteString = noteString.concat(str.trim() + " ");
                 } else // Add space befor and after
                     noteString = noteString.concat(" " + str.trim() + " ");
-            } else if (de instanceof SOURF) {
+                } else if (de instanceof SOURF) {
                 if (((SOURF) de).getContent() != null && ((SOURF) de).getContent().size() > 0) {
                     handleSOURF((SOURF) de, null, termProperties, vocabulary);
                     // handleSOURF((SOURF)de, lang, termProperties,vocabulary);
@@ -1741,6 +1780,7 @@ public class NtrfMapper {
 
         // Add note if exist.
         if (!noteString.isEmpty()) {
+            System.out.println("parseNOTE str:"+noteString);
             noteString = noteString.replaceAll(" , ", ", ");
             noteString = noteString.replaceAll(" . ", ". ");
             Attribute att = new Attribute(lang, noteString.trim());
