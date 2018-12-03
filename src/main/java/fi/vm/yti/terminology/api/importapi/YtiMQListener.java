@@ -56,5 +56,4 @@ public class YtiMQListener {
         jmsMessagingTemplate.send(subSystem+"Status", mess);
         return message;
     }
-
 }

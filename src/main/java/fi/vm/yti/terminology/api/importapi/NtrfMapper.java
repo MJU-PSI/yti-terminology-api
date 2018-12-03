@@ -260,7 +260,7 @@ public class NtrfMapper {
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, jobtoken, userId.toString(), vocabulary.getUri(),
                     response.toString());
             // Flush datablock to the termed
-            if (flushCount > 10000) {
+            if (flushCount > 100) {
                 flushCount = 0;
                 GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
                 if (logger.isDebugEnabled())
@@ -832,11 +832,17 @@ public class NtrfMapper {
         }
         // Filter BCON elemets as list
         List<BCON> bcon = r.getBCON();
-        bcon.forEach(o -> {
+        for(BCON o:bcon){
             System.out.println("--BCON=" + o.getHref());
             // RECORD/BCON
-            handleBCON(o, references);
+            handleBCON(currentId, o, references);
+        };
+/*        bcon.forEach(o -> {
+            System.out.println("--BCON=" + o.getHref());
+            // RECORD/BCON
+            handleBCON(currentId, o, references);
         });
+        */
         // Filter NCON elemets as list
         List<NCON> ncon = r.getNCON();
         for (NCON o : ncon) {
@@ -845,7 +851,7 @@ public class NtrfMapper {
                 // RECORD/BCON
                 // Store information of link for now on and after all items are created, update
                 // broader/isPartOf-references
-                handleNCON(currentId, o, currentId);
+                handleNCON(currentId, o);
             } else {
                 statusList.put(currentRecord,
                         new StatusMessage(currentRecord, "Record:" + code + " has null NCON reference."));
@@ -1208,13 +1214,35 @@ public class NtrfMapper {
      * @param o
      * @param references
      */
-    private void handleBCON(BCON o, Map<String, List<Identifier>> references) {
+    private void handleBCON(UUID currentConcept, BCON o, Map<String, List<Identifier>> references) {
         if (logger.isDebugEnabled())
             logger.debug("handleBCON:" + o.getHref());
         String brefId = o.getHref();
         // Remove #
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
+
+            System.out.println("handleBCON add item from source record:" + currentRecord + "--> target:" + brefId);
+            ConnRef conRef = new ConnRef();
+            // Use delayed resolving, so save record id for logging purposes
+            conRef.setCode(currentRecord);
+            conRef.setReferenceString(brefId);
+            // Null id, as a placeholder for target
+            conRef.setId(currentConcept);
+            conRef.setType(o.getTypr());
+            conRef.setTargetId(NULL_ID);
+
+            // if not yet defined, create list and populate it
+            List<ConnRef> reflist;
+            if (bconList.containsKey(currentRecord)) {
+                reflist = bconList.get(currentRecord);
+            } else {
+                reflist = new ArrayList<>();
+            }
+            reflist.add(conRef);
+            bconList.put(currentRecord, reflist);
+     
+/*            
         if (brefId != null && brefId.isEmpty()) {
             statusList.put(currentRecord,
                     new StatusMessage(currentRecord, "BCON reference match failed for '#'. Empty href "));
@@ -1241,11 +1269,12 @@ public class NtrfMapper {
                 references.put("broader", ref);
             } else
                 references.put("isPartOf", ref);
-        } else {
+        } else {            
             logger.warn("BCON reference match failed. for " + brefId);
             statusList.put(currentRecord,
                     new StatusMessage(currentRecord, "BCON reference match failed. for " + brefId));
         }
+*/
     }
 
     /**
@@ -1389,7 +1418,7 @@ public class NtrfMapper {
      * @param o
      * @param narroverConceptId
      */
-    private void handleNCON(UUID currentConcept, NCON o, UUID narrowerConceptId) {
+    private void handleNCON(UUID currentConcept, NCON o) {
         if (logger.isDebugEnabled())
             logger.debug("handleNCON:" + o.getHref());
         String nrefId = o.getHref();
@@ -1407,7 +1436,7 @@ public class NtrfMapper {
             conRef.setId(currentConcept);
             conRef.setType(o.getTypr());
             conRef.setTargetId(NULL_ID);
-    
+
             // if not yet defined, create list and populate it
             List<ConnRef> reflist;
             if (nconList.containsKey(currentRecord)) {
@@ -1416,23 +1445,8 @@ public class NtrfMapper {
                 reflist = new ArrayList<>();
             }
             reflist.add(conRef);
-            nconList.put(currentRecord, reflist);            
+            nconList.put(currentRecord, reflist);
         }
-        /*
-         * UUID refId = idMap.get(nrefId); if (refId == null) { refId =
-         * createdIdMap.get(nrefId); // Add placeholder for and resolve it after all
-         * items are created System.out.println("Can't resolve NCON-reference ID for " +
-         * nrefId); NconRef nconRef = new NconRef(); nconRef.setReferenceString(nrefId);
-         * // Null id, as a placeholder nconRef.setId(NULL_ID);
-         * nconRef.setType(o.getTypr()); nconRef.setTargetId(narrowerConceptId);
-         * nconList.add(nconRef); } else { NconRef nconRef = new NconRef();
-         * nconRef.setReferenceString(nrefId); nconRef.setId(refId);
-         * nconRef.setType(o.getTypr()); nconRef.setTargetId(narrowerConceptId);
-         * nconList.add(nconRef); } } else {
-         * logger.warn("NCON with NULL href. Cant resolve.");
-         * statusList.put(currentRecord, new StatusMessage(currentRecord,
-         * "NCON reference match failed. for " + nrefId)); }
-         */
     }
 
     /**
@@ -2065,5 +2079,39 @@ public class NtrfMapper {
         public void putMessage(String msg) {
             this.message.add(msg);
         }
+    }
+
+    private class ImportState {
+        /**
+         * Map containing node.code or node.uri as a key and UUID as a value. Used for
+         * matching existing items and updating them instead of creating new ones
+         */
+        public HashMap<String, UUID> idMap = new HashMap<>();
+        public HashMap<UUID, String> reverseIdMap = new HashMap<>();
+        /**
+         * Map containing node.code or node.uri as a key and UUID as a value. Used for
+         * reference resolving after all concepts and terms are created
+         */
+        public HashMap<String, UUID> createdIdMap = new HashMap<>();
+
+        /**
+         * Map binding together reference string and external URL fromn ntrf
+         * SOURF-element
+         */
+        public HashMap<String, HashMap<String, String>> referenceMap = new HashMap<>();
+
+        /**
+         * Map for NCON/RCON-reference cache. Operation targetId,
+         * type(generic/partitive), broaderConceptId
+         */
+        public Map<String, List<ConnRef>> nconList = new LinkedHashMap<>();
+        public Map<String, List<ConnRef>> rconList = new LinkedHashMap<>();
+        public Map<String, List<ConnRef>> bconList = new LinkedHashMap<>();
+
+        public String currentRecord;
+        public Map<String, StatusMessage> statusList = new LinkedHashMap<>();
+
+        public int errorCount = 0;
+
     }
 }

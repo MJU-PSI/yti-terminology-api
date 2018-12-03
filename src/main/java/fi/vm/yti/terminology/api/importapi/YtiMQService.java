@@ -12,9 +12,11 @@ import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Service;
+
 
 import javax.jms.*;
 
@@ -36,6 +38,8 @@ public class YtiMQService {
     // JMS-client
     private JmsMessagingTemplate jmsMessagingTemplate;
 
+    private YtiMQListener listener;
+
     private JmsMessagingTemplate jmsTopicClient;
     // Define public status values
     public final static int STATUS_PREPROCESSING = 1;
@@ -47,10 +51,12 @@ public class YtiMQService {
     @Autowired
     public YtiMQService(AuthenticatedUserProvider userProvider,
                         JmsMessagingTemplate jmsMessagingTemplate,
+                        YtiMQListener listener,
                         @Value("${mq.active.subsystem}") String subSystem) {
         this.userProvider = userProvider;
         this.jmsMessagingTemplate = jmsMessagingTemplate;
         this.subSystem = subSystem;
+        this.listener=listener;
         // Initialize topic connection
 //        jmsTopicClient = new JmsMessagingTemplate(jmsMessagingTemplate.getConnectionFactory());
 //        jmsTopicClient.getJmsTemplate().setPubSubDomain(true);
@@ -69,7 +75,6 @@ public class YtiMQService {
         // Status not_found/running/errors
         Message mess = currentStatus.get(jobtoken.toString());
         if(mess!=null) {
-            System.out.println("CurrentStatus for given jobtoken:" + mess.getPayload().toString());
             int status=(int)mess.getHeaders().get("status");
             switch(status){
                 case YtiMQService.STATUS_READY:{
@@ -81,9 +86,7 @@ public class YtiMQService {
                 case YtiMQService.STATUS_PROCESSING:{
                     if(logger.isDebugEnabled())
                         logger.debug("Processing "+jobtoken);
-                    System.out.println("Timestamp="+(long)mess.getHeaders().get("timestamp"));
                     long expirationtime=System.currentTimeMillis() - (long)mess.getHeaders().get("timestamp");
-                    System.out.println("current_time-stamp="+expirationtime);
                     if( expirationtime > 60 * 1000) {
                         return HttpStatus.OK;
                     } else
@@ -119,14 +122,11 @@ public class YtiMQService {
 
     public HttpStatus getStatus(UUID jobtoken, StringBuffer payload){
         // Status not_found/running/errors
-        System.out.println("Current Status for given jobtoken:"+currentStatus.get(jobtoken.toString()));
         // Query status information from ActiveMQ
-        System.out.println("getStatus with payload:");
         Message mess = currentStatus.get(jobtoken.toString());
         if(mess!=null) {
             // return also payload
             payload.append(mess.getPayload());
-            System.out.println("Current Status for given jobtoken:" + mess.getPayload().toString());
             int status=(int)mess.getHeaders().get("status");
             switch(status){
                 case YtiMQService.STATUS_READY:{
@@ -470,7 +470,9 @@ public class YtiMQService {
         }
     }
 
-    public void setStatus(int status, String jobtoken, String userId, String uri,  String payload) {
+
+    @SendTo("${mq.active.subsystem}StatusTest")
+    public Message setStatus(int status, String jobtoken, String userId, String uri,  String payload) {
         System.out.println("Set status("+jobtoken+") to Processed item from:"+subSystem+"Status"+ " Value="+payload);
 
         // Consume previous
@@ -504,8 +506,11 @@ public class YtiMQService {
             currentStatus.put(jobtoken, mess);
             currentStatus.put(uri, mess);
 
+System.out.println("SEND STATUS:"+mess);
+
 //            jmsTopicClient.send(subSystem + "StatusTopic", mess);
         }
+        return mess;
     }
 
     /**
