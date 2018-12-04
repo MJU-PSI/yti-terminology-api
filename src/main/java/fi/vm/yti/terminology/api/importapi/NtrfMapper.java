@@ -411,6 +411,8 @@ public class NtrfMapper {
                         } else if (connType != null && connType.equalsIgnoreCase("RCON")) {
                             // Falback for RCON is
                             idref = refMap.get("related");
+                        } else if(connType != null && connType.equalsIgnoreCase("BCON")){
+
                         } else { // Fallback when refType is missing
                             idref = refMap.get("isPartOf");
                         }
@@ -434,12 +436,12 @@ public class NtrfMapper {
 
                             if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic") && connType != null
                                     && connType.equalsIgnoreCase("NCON")) {
-                                refMap.put("broader", idref);
+                                refMap.put("narrower", idref);
                             } else if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic")
                                     && connType != null && connType.equalsIgnoreCase("RCON")) {
                                 refMap.put("related", idref);
-                            } else if (connType != null && connType.equalsIgnoreCase("RCON")) {
-                                refMap.put("related", idref);
+                            } else if (connType != null && connType.equalsIgnoreCase("BCON")) {
+                                refMap.put("broader", idref);
                             } else {
                                 refMap.put("isPartOf", idref);
                             }
@@ -1252,7 +1254,7 @@ public class NtrfMapper {
     private void handleBCON(UUID currentConcept, BCON o, Map<String, List<Identifier>> references) {
         if (logger.isDebugEnabled())
             logger.debug("handleBCON:" + o.getHref());
-        String brefId = o.getHref();
+        String brefId = o.getHref();        
         // Remove #
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
@@ -1359,7 +1361,34 @@ public class NtrfMapper {
      * @param o
      * @param references
      */
-    private void handleBCONRef(UUID currentConcept, BCON o, Map<String, List<Identifier>> references) {
+    private void handleBCONRef(UUID currentConcept, BCON bc, Map<String, List<Identifier>> references) {
+        if (logger.isDebugEnabled())
+            logger.debug("handleBCON ref:" + bc.getHref());
+        String rrefId = bc.getHref();
+        // Remove #
+        if (rrefId.startsWith("#"))
+            rrefId = bc.getHref().substring(1);
+
+        System.out.println("handleBCONRef add item from source record:" + currentRecord + "--> target:" + rrefId);
+        ConnRef conRef = new ConnRef();
+        // Use delayed resolving, so save record id for logging purposes
+        conRef.setCode(currentRecord);
+        conRef.setReferenceString(rrefId);
+        // Null id, as a placeholder for target
+        conRef.setId(currentConcept);
+        conRef.setType(bc.getTypr());
+        conRef.setTargetId(NULL_ID);
+
+        // if not yet defined, create list and populate it
+        List<ConnRef> reflist;
+        if (bconList.containsKey(currentRecord)) {
+            reflist = bconList.get(currentRecord);
+        } else {
+            reflist = new ArrayList<>();
+        }
+        reflist.add(conRef);
+        bconList.put(currentRecord, reflist);
+/*
         if (logger.isDebugEnabled())
             logger.debug("handleBCON ref:" + o.getHref());
         String rrefId = o.getHref();
@@ -1368,10 +1397,6 @@ public class NtrfMapper {
             rrefId = o.getHref().substring(1);
             logger.info("Internal BCON reference");
         }
-        /*
-         * UUID refId = idMap.get(rrefId); if (refId == null) refId =
-         * createdIdMap.get(rrefId);
-         */
         UUID refId = createdIdMap.get(rrefId);
 
         System.out.println("handleBCONref id:" + rrefId + " -> " + refId);
@@ -1404,6 +1429,7 @@ public class NtrfMapper {
             reflist.add(conRef);
             rconList.put(currentRecord, reflist);
         }
+        */
     }
 
     /**
