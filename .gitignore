@@ -1,6 +1,9 @@
 build
 classes
 .idea
+.vscode
+.classpath
+.settings
 .gradle
 *.iml
 out
