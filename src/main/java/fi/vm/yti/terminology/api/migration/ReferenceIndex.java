@@ -107,6 +107,22 @@ public final class ReferenceIndex {
     }
 
     @NotNull
+    public static ReferenceMeta hasPartConcept(TypeId domain, long index) {
+        return new ReferenceMeta(
+                domain,
+                "hasPart",
+                "http://purl.org/dc/terms/hasPart",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Koostumussuhteinen alakäsite",
+                        "Has part concept"
+                )
+        );
+    }
+
+    @NotNull
     public static ReferenceMeta relatedMatch(TypeId domain, TypeId externalLinkDomain, long index) {
         return new ReferenceMeta(
                 externalLinkDomain,
