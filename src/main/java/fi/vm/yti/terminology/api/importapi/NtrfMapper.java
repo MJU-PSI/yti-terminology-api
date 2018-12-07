@@ -317,10 +317,10 @@ public class NtrfMapper {
         });
 
         handleLinks(userId, jobtoken, vocabulary);
-        idMap.clear();
+/*        idMap.clear();
         typeMap.clear();
         initImport(vocabularyId);
-
+*/
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
         System.out.println("DIAG-count=" + DIAGList.size());
@@ -475,40 +475,6 @@ public class NtrfMapper {
         addNodeList.clear();
     }
 
-    private void addRefItemToNode(GenericNode gn, String connType, ConnRef ref, List<GenericNode> addNodeList) {
-        // get objects reference list and add
-        Map<String, List<Identifier>> refMap = gn.getReferences();
-        List<Identifier> idref = null;
-        if (ref != null) {
-            if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic")) {
-                if (connType != null && connType.equalsIgnoreCase("NCON")) {
-                    idref = refMap.get("broader");
-                } else if (connType != null && connType.equalsIgnoreCase("RCON")) {
-                    idref = refMap.get("related");
-                }
-            } else { // Fallback when refType is missing
-                idref = refMap.get("isPartOf");
-            }
-            if (idref == null) {
-                idref = new ArrayList<>();
-            }
-            // @TODO! Go through refList and add only if missing.
-            // Generic = depending upon broader concept, partitive = related concept
-            idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
-            if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic") && connType != null
-                    && connType.equalsIgnoreCase("NCON")) {
-                refMap.put("broader", idref);
-            } else if (ref.getType() != null && ref.getType().equalsIgnoreCase("generic") && connType != null
-                    && connType.equalsIgnoreCase("RCON")) {
-                refMap.put("related", idref);
-            } else {
-                refMap.put("isPartOf", idref);
-            }
-            System.out.println("Adding REF-list=" + refMap);
-            addNodeList.add(gn);
-        }
-    }
-
     /**
      * After Concept and Term creation, add missing references
      * 
@@ -596,20 +562,13 @@ public class NtrfMapper {
             if (targetUUID == null) {
                 // try original
                 targetUUID = idMap.get(li.getHref());
-                // If still not found, try createdMap
-                if (targetUUID == null) {
-                    // try original
-                    targetUUID = createdIdMap.get(linkTarget);
-                    if (targetUUID == null) {
-                        // try original
-                        targetUUID = createdIdMap.get(li.getHref());
-                    }
-                }
             }
             if (targetUUID != null && !targetUUID.equals(NULL_ID)) {
                 memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
                 references.put("member", memberRef);
             } else {
+                System.err.println("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + li.getContent()
+                        + "> not added into the collection");
                 logger.warn("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + li.getContent()
                         + "> not added into the collection");
                 statusList.put(currentRecord, new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
@@ -1536,6 +1495,14 @@ public class NtrfMapper {
                     String linkRef = parseLinkRef(li, vocabulary);
                     defString = defString.concat("<a href='" + li.getHref() + "' data-type='external'>"
                             + li.getContent().get(0).toString().trim() + "</a>");
+                } else if(de instanceof JAXBElement){
+                    // HOGR
+                    JAXBElement el = (JAXBElement) de;
+                    if (el.getName().toString().equalsIgnoreCase("HOGR")) {
+                        defString = defString.trim() + " (" + el.getValue().toString() + ")";
+                    } else if (de instanceof String) {
+                        defString = defString + (String)de;
+                    }                            
                 } else {
                     System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
                     statusList.put(currentRecord,
