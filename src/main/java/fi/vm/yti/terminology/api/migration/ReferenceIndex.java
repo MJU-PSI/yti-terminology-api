@@ -95,7 +95,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 domain,
                 "isPartOf",
-                "http://purl.org/dc/terms/isPartOf",
+                "http://purl.org/dc/terms/partOf",
                 index,
                 domain,
                 emptyMap(),

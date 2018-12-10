@@ -966,9 +966,9 @@ public class NtrfMapper {
             logger.debug("Handle Te:" + tc.toString());
         // If GEOG used
         if (tc.getGEOG() != null) {
-            String lng = (lang + "-" + tc.getGEOG()).toLowerCase();
+            String lng = (lang.toLowerCase() + "-" + tc.getGEOG().toUpperCase());
             System.err.println("GEOG=" + lng);
-            // lang=lng;
+            lang=lng;
         }
         // LANG/TE/TERM
         if (tc.getTERM() != null) {
@@ -1429,7 +1429,7 @@ public class NtrfMapper {
                     RCON rc = (RCON) de;
                     defString = defString.concat("<a href='" + vocabulary.getUri());
                     // Remove # from uri
-                    defString = defString.concat(getCleanRef(rc.getHref(), rc.getTypr()));
+                    defString = defString.concat(getCleanRef(rc.getHref(), "related"));
                     String hrefText = parseHrefText(rc.getContent());
                     // Remove newlines
                     hrefText = hrefText.replaceAll("\n", "");
@@ -1455,8 +1455,17 @@ public class NtrfMapper {
 
                     BCON bc = (BCON) de;
                     defString = defString.concat("<a href='" + vocabulary.getUri());
+                    String typr=bc.getTypr();
+                    if(typr == null ){ // default when  not set up
+                        typr = "broader";
+                    } else if( typr.equalsIgnoreCase("partitive")){
+                            typr = "isPartOf";
+                    } else { // default
+                        typr = "broader";
+                    }
+                    
                     // Remove # from uri
-                    defString = defString.concat(getCleanRef(bc.getHref(), bc.getTypr()));
+                    defString = defString.concat(getCleanRef(bc.getHref(), typr));
                     String hrefText = parseHrefText(bc.getContent());
                     defString = defString.concat(">" + hrefText.trim() + "</a>");
                     // Add also reference
@@ -1477,8 +1486,17 @@ public class NtrfMapper {
 
                     NCON nc = (NCON) de;
                     defString = defString.concat("<a href='" + vocabulary.getUri());
+                    String typr=nc.getTypr();
+                    if(typr == null ){ // default when  not set up
+                        typr = "narrower";
+                    } else if( typr.equalsIgnoreCase("partitive")){
+                            typr = "hasPart";
+                    } else { // default
+                        typr = "narrower";
+                    }
+
                     // Remove # from uri
-                    defString = defString.concat(getCleanRef(nc.getHref(), nc.getTypr()));
+                    defString = defString.concat(getCleanRef(nc.getHref(), typr));
                     String hrefText = parseHrefText(nc.getContent());
                     defString = defString.concat(">" + hrefText.trim() + "</a>");
                     // Add also reference
@@ -1566,7 +1584,7 @@ public class NtrfMapper {
         } else
             ref = ref.concat(refString + "'");
         if (datatype != null && !datatype.isEmpty()) {
-            ref = ref.concat(" data-typr ='" + datatype + "'");
+            ref = ref.concat(" property ='" + datatype + "'");
         }
         return ref;
     }
@@ -1603,7 +1621,7 @@ public class NtrfMapper {
                 RCON rc = (RCON) de;
                 noteString = noteString.concat("<a href='" + vocabulary.getUri());
                 // Remove # from uri
-                noteString = noteString.concat(getCleanRef(rc.getHref(), rc.getTypr()));
+                noteString = noteString.concat(getCleanRef(rc.getHref(), "related"));
                 String hrefText = parseHrefText(rc.getContent());
                 noteString = noteString.concat(">" + hrefText.trim() + "</a>");
                 if (logger.isDebugEnabled())
@@ -1615,8 +1633,16 @@ public class NtrfMapper {
                 BCON bc = (BCON) de;
                 if (bc.getContent() != null && bc.getContent().size() > 0) {
                     noteString = noteString.concat("<a href='" + vocabulary.getUri());
+                    String typr=bc.getTypr();
+                    if(typr == null ){ // default when  not set up
+                        typr = "broader";
+                    } else if( typr.equalsIgnoreCase("partitive")){
+                            typr = "isPartOf";
+                    } else { // default
+                        typr = "broader";
+                    }
                     // Remove # from uri
-                    noteString = noteString.concat(getCleanRef(bc.getHref(), bc.getTypr()));
+                    noteString = noteString.concat(getCleanRef(bc.getHref(), typr));
                     String hrefText = parseHrefText(bc.getContent());
                     noteString = noteString.concat(">" + hrefText.trim() + "</a> ");
                     if (logger.isDebugEnabled())
@@ -1628,8 +1654,17 @@ public class NtrfMapper {
                 NCON nc = (NCON) de;
                 if (nc.getContent() != null && nc.getContent().size() > 0) {
                     noteString = noteString.concat("<a href='" + vocabulary.getUri());
+                    String typr=nc.getTypr();
+                    if(typr == null ){ // default when  not set up
+                        typr = "narrower";
+                    } else if( typr.equalsIgnoreCase("partitive")){
+                            typr = "hasPart";
+                    } else { // default
+                        typr = "narrower";
+                    }
+
                     // Remove # from uri
-                    noteString = noteString.concat(getCleanRef(nc.getHref(), nc.getTypr()));
+                    noteString = noteString.concat(getCleanRef(nc.getHref(), typr));
                     String hrefText = parseHrefText(nc.getContent());
                     noteString = noteString.concat(">" + hrefText.trim() + "</a> ");
                     if (logger.isDebugEnabled())
@@ -1715,10 +1750,10 @@ public class NtrfMapper {
         // Attributes are stored to property-list
         Map<String, List<Attribute>> properties = new HashMap<>();
         if (synonym.getGEOG() != null) {
-            String lng = (lang + "-" + synonym.getGEOG()).toLowerCase();
+            String lng = (lang.toLowerCase() + "-" + synonym.getGEOG().toUpperCase());
             System.out.println("SY-GEOG=" + lng);
             // lang=lang+"-"+synonym.getGEOG();
-            // lang=lang.toLowerCase();
+            lang=lng;
         }
 
         synonym.getEQUI();
@@ -1809,6 +1844,13 @@ public class NtrfMapper {
                 sourceString = sourceString.concat(">" + rc.getContent().toString() + "</a>");
             } else if (se instanceof BCON) {
                 System.out.println("SOURF-BCON");
+                BCON bc = (BCON) se;
+                sourceString = sourceString.concat("<a href='" + vocabularity.getUri());
+                if (bc.getTypr() != null && !bc.getTypr().isEmpty()) {
+                    sourceString = sourceString.concat(" data-typr ='" + bc.getTypr() + "'");
+                }
+                sourceString = sourceString.concat(">" + bc.getContent().toString() + "</a>");
+
             } else if (se instanceof RCON) {
                 System.out.println("SOURF-RCON");
                 RCON rc = (RCON) se;

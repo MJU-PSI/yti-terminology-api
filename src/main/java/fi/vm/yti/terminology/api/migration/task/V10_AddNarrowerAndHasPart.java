@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
  * Migration for YTI-1106, classification->information domain and HomographNumber fix."
  */
 @Component
-public class V9_AddNarrowerAndHasPart implements MigrationTask {
+public class V10_AddNarrowerAndHasPart implements MigrationTask {
 
     private final MigrationService migrationService;
 
-    V9_AddNarrowerAndHasPart(MigrationService migrationService) {
+    V10_AddNarrowerAndHasPart(MigrationService migrationService) {
         this.migrationService = migrationService;
     }
 
@@ -52,7 +52,8 @@ public class V9_AddNarrowerAndHasPart implements MigrationTask {
         }
         return rv;
     }
-    
+
+
     /**
      * Update Group reference-attribute labels
      * @param meta

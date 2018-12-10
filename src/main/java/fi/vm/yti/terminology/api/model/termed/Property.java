@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.model.termed;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
+
 public final class Property {
 
     private final String lang;

@@ -48,13 +48,17 @@ public class YtiMQService {
 
     private Map<String,Message> currentStatus = new HashMap<>();
 
+    private JmsTemplate jmsTemplate;
+
     @Autowired
     public YtiMQService(AuthenticatedUserProvider userProvider,
                         JmsMessagingTemplate jmsMessagingTemplate,
+                        JmsTemplate jmsTemplate,
                         YtiMQListener listener,
                         @Value("${mq.active.subsystem}") String subSystem) {
         this.userProvider = userProvider;
         this.jmsMessagingTemplate = jmsMessagingTemplate;
+        this.jmsTemplate = jmsTemplate;
         this.subSystem = subSystem;
         this.listener=listener;
         // Initialize topic connection
@@ -123,6 +127,7 @@ public class YtiMQService {
     public HttpStatus getStatus(UUID jobtoken, StringBuffer payload){
         // Status not_found/running/errors
         // Query status information from ActiveMQ
+        browseQueue("VocabularyStatus");
         Message mess = currentStatus.get(jobtoken.toString());
         if(mess!=null) {
             // return also payload
@@ -180,8 +185,9 @@ public class YtiMQService {
 
     private boolean getJobState(UUID jobtoken,String queueName) {
         return
-         jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<Boolean>() {
-            @Override
+//         jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<Boolean>() {
+            jmsTemplate.browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<Boolean>() {
+                @Override
             public Boolean doInJms(Session session, QueueBrowser browser) throws JMSException {
                 Enumeration messages = browser.getEnumeration();
                 return  messages.hasMoreElements();
@@ -228,8 +234,9 @@ public class YtiMQService {
 
     public boolean checkUriStatus(String uri, String queueName) {
         // selector uri='url' AND
-        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "uri='"+uri+"'",new BrowserCallback<Boolean>() {
-            @Override
+//        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "uri='"+uri+"'",new BrowserCallback<Boolean>() {
+        return jmsTemplate.browseSelected(queueName, "uri='"+uri+"'",new BrowserCallback<Boolean>() {
+                @Override
             public Boolean doInJms(Session session, QueueBrowser browser) throws JMSException {
                 Enumeration messages = browser.getEnumeration();
                 System.out.println("checkUriStatus "+uri+" Queue:"+queueName+" status="+messages.hasMoreElements());
@@ -241,8 +248,9 @@ public class YtiMQService {
     private List<String> getJobJMSId(UUID jobtoken,String queueName) {
         String messageSelector = "jobtoken='"+jobtoken.toString()+"'";
         System.out.println(" MessageSelector for browse:"+messageSelector);
-        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, messageSelector,new BrowserCallback<List<String>>() {
-            @Override
+        return jmsTemplate.browseSelected(queueName, messageSelector,new BrowserCallback<List<String>>() {
+//            return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, messageSelector,new BrowserCallback<List<String>>() {
+                @Override
             public List<String> doInJms(Session session, QueueBrowser browser) throws JMSException {
                 List<String> rv = new ArrayList<>();
                 Enumeration messages = browser.getEnumeration();
@@ -275,8 +283,9 @@ public class YtiMQService {
     private String getJobPayload(UUID jobtoken,String queueName) {
         String messageSelector = "jobtoken='"+jobtoken.toString()+"'";
         System.out.println(" getJobPayload MessageSelector for browse:"+messageSelector + " queue="+queueName);
-        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, messageSelector,new BrowserCallback<String>() {
-            @Override
+        return jmsTemplate.browseSelected(queueName, messageSelector,new BrowserCallback<String>() {
+//            return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, messageSelector,new BrowserCallback<String>() {
+                @Override
             public String doInJms(Session session, QueueBrowser browser) throws JMSException {
                 String rv= null;
                 Enumeration messages = browser.getEnumeration();
@@ -295,8 +304,9 @@ public class YtiMQService {
 
     public boolean deleteJmsStatusMessage(String jobtoken){
         boolean rv = false;
-        JmsTemplate client=jmsMessagingTemplate.getJmsTemplate();
-        ConnectionFactory cf = client.getConnectionFactory();
+//        JmsTemplate client=jmsMessagingTemplate.getJmsTemplate();
+//        ConnectionFactory cf = client.getConnectionFactory();
+        ConnectionFactory cf = jmsTemplate.getConnectionFactory();
 
         if(getStatus(UUID.fromString(jobtoken)) != HttpStatus.NO_CONTENT) {
             Connection connection = null;
@@ -306,13 +316,13 @@ public class YtiMQService {
                 session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
                 Destination destination = session.createQueue(subSystem + "Status");
                 String selector = "jobtoken = '" + jobtoken + "'";
-                javax.jms.Message message = client.receiveSelected(destination, selector);
+                javax.jms.Message message = jmsTemplate.receiveSelected(destination, selector);
+//                javax.jms.Message message = client.receiveSelected(destination, selector);
                 if (message != null) {
                     System.out.println(" delete message with selector:" + selector + " message=" + message);
 //                    System.out.println("Message:"+ jobtoken + " consumed.");
                     rv = true;
                 }
-                client = null;
 
             } catch (JMSException e) {
                 logger.error("Failed to read message from MessageConsumer. " + e);
@@ -323,7 +333,6 @@ public class YtiMQService {
                 try {
                     connection.close();
                 } catch (Exception e) { /* NOP */ }
-                client = null;
             }
         } else {
             System.out.println("Can't find status  message to delete");
@@ -371,9 +380,14 @@ public class YtiMQService {
             // send item for processing
         System.out.println("Send job:"+jobtoken+" to the processing queue:"+subsystem+"Incoming");
         jmsMessagingTemplate.send(subsystem+"Incoming", mess);
+        StatusTest(mess);        
         return  HttpStatus.OK.value();
     }
 
+    @SendTo("${mq.active.subsystem}StatusTest")
+    public Message StatusTest(Message mess){
+        return mess;
+    }
     public void setReady(String jobtoken) {
         int deletecount=countMessageByJobtoken(UUID.fromString(jobtoken), subSystem+"Status");
         System.out.println("SetReady - Consume Processed item from:"+subSystem+"Status" + " count="+deletecount);
@@ -386,8 +400,9 @@ public class YtiMQService {
     }
 
     private javax.jms.Message getMessageByJobtoken(UUID jobtoken, String queueName) {
-        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<javax.jms.Message>() {
-            @Override
+        return jmsTemplate.browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<javax.jms.Message>() {
+//            return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "jobtoken='"+jobtoken.toString()+"'",new BrowserCallback<javax.jms.Message>() {
+                @Override
             public javax.jms.Message doInJms(Session session, QueueBrowser browser) throws JMSException {
                 javax.jms.Message mess = null;
                 Enumeration messages = browser.getEnumeration();
@@ -401,8 +416,9 @@ public class YtiMQService {
     }
 
     private int countMessageByJobtoken(UUID jobtoken, String queueName) {
-        return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "JMSCorrelationID='"+jobtoken.toString()+"'",new BrowserCallback<Integer>() {
-            @Override
+        return jmsTemplate.browseSelected(queueName, "JMSCorrelationID='"+jobtoken.toString()+"'",new BrowserCallback<Integer>() {
+//            return jmsMessagingTemplate.getJmsTemplate().browseSelected(queueName, "JMSCorrelationID='"+jobtoken.toString()+"'",new BrowserCallback<Integer>() {
+                @Override
             public Integer doInJms(Session session, QueueBrowser browser) throws JMSException {
                 int count =0;
                 Enumeration messages = browser.getEnumeration();
@@ -502,11 +518,12 @@ public class YtiMQService {
         if(mess != null) {
             System.out.println("Send status message to queue:");
             jmsMessagingTemplate.send(subSystem + "Status", mess);
+            jmsTemplate.convertAndSend(subSystem + "Status", mess);
             // Update internal cache
             currentStatus.put(jobtoken, mess);
             currentStatus.put(uri, mess);
 
-System.out.println("SEND STATUS:"+mess);
+            System.out.println("SEND STATUS:"+mess);
 
 //            jmsTopicClient.send(subSystem + "StatusTopic", mess);
         }
@@ -530,4 +547,3 @@ System.out.println("SEND STATUS:"+mess);
         currentStatus.put(uri, message);
     }
 }
-

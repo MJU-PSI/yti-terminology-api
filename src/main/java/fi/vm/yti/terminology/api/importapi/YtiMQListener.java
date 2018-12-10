@@ -53,7 +53,7 @@ public class YtiMQListener {
                 .withPayload("Processing " + uri)
                 .setHeaders(accessor)
                 .build();
-        jmsMessagingTemplate.send(subSystem+"Status", mess);
+//        jmsMessagingTemplate.send(subSystem+"Status", mess);
         return message;
     }
 }
