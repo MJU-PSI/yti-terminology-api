@@ -926,6 +926,24 @@ public class NtrfMapper {
             }
         });
 
+        // DTEA = notRecommendedSynonym term
+        List<Termcontent> dtea = o.getDTEA();
+        dtea.forEach(obj -> {
+            // Handle like synonym
+            GenericNode n = handleSY(obj, o.getValue().value(), parentProperties, parentReferences, vocabularity);
+            // and then add as not Recommended Synonym
+            if (n != null) {
+                termsList.add(n);
+                List<Identifier> ref;
+                if (parentReferences.get("notRecommendedSynonym") != null)
+                    ref = parentReferences.get("notRecommendedSynonym");
+                else
+                    ref = new ArrayList<>();
+                ref.add(new Identifier(n.getId(), typeMap.get("Term").getDomain()));
+                parentReferences.put("notRecommendedSynonym", ref);
+            }
+        });
+
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is parent-uri/term-'code'
         GenericNode node = null;
