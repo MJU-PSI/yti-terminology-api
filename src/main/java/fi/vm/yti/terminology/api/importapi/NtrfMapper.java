@@ -1527,11 +1527,21 @@ public class NtrfMapper {
                 } else if (de instanceof REMK) {
                     handleREMK(lang, (REMK) de, termProperties, vocabulary);
                 } else if (de instanceof LINK) {
-                    LINK li = (LINK) de;
-                    String linkRef = parseLinkRef(li, vocabulary);
-                    defString = defString.concat("<a href='" + li.getHref() + "' data-type='external'>"
-                            + li.getContent().get(0).toString().trim() + "</a>");
-                } else if(de instanceof JAXBElement){
+                    LINK lc = (LINK) de;
+                    if (lc.getContent() != null && lc.getContent().size() > 0) {
+                        // Remove "href:" from string
+                        // "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
+                        String linkRef = lc.getHref();
+    
+                        linkRef = parseLinkRef(lc, vocabulary);
+                        if (linkRef.startsWith("href:")) {
+                            linkRef = linkRef.substring(5);
+                        }
+                        defString = defString.concat("<a href='" + linkRef + "' data-type='external'>"
+                                + lc.getContent().get(0).toString().trim() + "</a> ");
+                        System.out.println("Add DEF LINK:" + linkRef);
+                    }
+                    } else if(de instanceof JAXBElement){
                     // HOGR
                     JAXBElement el = (JAXBElement) de;
                     if (el.getName().toString().equalsIgnoreCase("HOGR")) {
@@ -1591,6 +1601,7 @@ public class NtrfMapper {
                 linkRef = vocabulary.getUri() + "/" + linkRef.substring(1);
             }
         }
+        System.out.println("LINKREF="+linkRef);
         return linkRef;
     }
 
