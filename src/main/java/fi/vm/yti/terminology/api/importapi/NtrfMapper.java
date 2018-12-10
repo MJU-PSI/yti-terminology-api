@@ -908,6 +908,24 @@ public class NtrfMapper {
             }
         });
 
+        // STE Search-terms
+        List<Termcontent> ste = o.getSTE();
+        ste.forEach(obj -> {
+            // Handle like synonym
+            GenericNode n = handleSY(obj, o.getValue().value(), parentProperties, parentReferences, vocabularity);
+            // and then add as hiddenTerm
+            if (n != null) {
+                termsList.add(n);
+                List<Identifier> ref;
+                if (parentReferences.get("hiddenTerm") != null)
+                    ref = parentReferences.get("hiddenTerm");
+                else
+                    ref = new ArrayList<>();
+                ref.add(new Identifier(n.getId(), typeMap.get("Term").getDomain()));
+                parentReferences.put("hiddenTerm", ref);
+            }
+        });
+
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is parent-uri/term-'code'
         GenericNode node = null;

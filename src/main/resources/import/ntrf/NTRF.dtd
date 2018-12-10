@@ -297,6 +297,3 @@ part of the NTRF standard
                heightcm    CDATA   #IMPLIED
                scale       CDATA   #IMPLIED
                lock         (true|false) "false">
-
-
-
