@@ -917,12 +917,12 @@ public class NtrfMapper {
             if (n != null) {
                 termsList.add(n);
                 List<Identifier> ref;
-                if (parentReferences.get("hiddenTerm") != null)
-                    ref = parentReferences.get("hiddenTerm");
+                if (parentReferences.get("searchTerm") != null)
+                    ref = parentReferences.get("searchTerm");
                 else
                     ref = new ArrayList<>();
                 ref.add(new Identifier(n.getId(), typeMap.get("Term").getDomain()));
-                parentReferences.put("hiddenTerm", ref);
+                parentReferences.put("searchTerm", ref);
             }
         });
 
@@ -1882,7 +1882,6 @@ public class NtrfMapper {
             if (se instanceof String) {
                 sourceString = sourceString.concat(se.toString());
             } else if (se instanceof NCON) {
-                System.out.println("SOURF-NCON");
                 NCON rc = (NCON) se;
                 sourceString = sourceString.concat("<a href='" + vocabularity.getUri());
                 if (rc.getTypr() != null && !rc.getTypr().isEmpty()) {
@@ -1890,7 +1889,6 @@ public class NtrfMapper {
                 }
                 sourceString = sourceString.concat(">" + rc.getContent().toString() + "</a>");
             } else if (se instanceof BCON) {
-                System.out.println("SOURF-BCON");
                 BCON bc = (BCON) se;
                 sourceString = sourceString.concat("<a href='" + vocabularity.getUri());
                 if (bc.getTypr() != null && !bc.getTypr().isEmpty()) {
@@ -1899,7 +1897,6 @@ public class NtrfMapper {
                 sourceString = sourceString.concat(">" + bc.getContent().toString() + "</a>");
 
             } else if (se instanceof RCON) {
-                System.out.println("SOURF-RCON");
                 RCON rc = (RCON) se;
                 sourceString = sourceString.concat("<a href='" + vocabularity.getUri());
                 if (rc.getTypr() != null && !rc.getTypr().isEmpty()) {

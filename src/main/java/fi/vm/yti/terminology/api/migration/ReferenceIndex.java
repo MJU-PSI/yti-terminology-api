@@ -259,6 +259,22 @@ public final class ReferenceIndex {
         );
     }
 
+    @NotNull
+    public static ReferenceMeta searchTerm(TypeId domain, long index) {
+        return new ReferenceMeta(
+                termDomainFromConceptDomain(domain),
+                "searchTerm",
+                "http://uri.suomi.fi/datamodel/ns/st#searchTerm",
+                index,
+                domain,
+                emptyMap(),
+                prefLabel(
+                        "Hakutermi",
+                        "Search term"
+                )
+        );
+    }
+
     // prevent construction
     private ReferenceIndex() {
     }
