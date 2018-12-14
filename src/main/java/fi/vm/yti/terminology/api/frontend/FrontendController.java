@@ -109,9 +109,9 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabularyList() {
-        logger.info("GET /vocabularies requested");
-        return termedService.getVocabularyList();
+    JsonNode getVocabularyList( @RequestParam(required = false, defaultValue = "true") boolean incomplete) {
+        logger.info("GET /vocabularies requested incomplete="+incomplete);
+        return termedService.getVocabularyList(incomplete);
     }
 
     @RequestMapping(value = "/vocabulary", method = POST, produces = APPLICATION_JSON_VALUE)

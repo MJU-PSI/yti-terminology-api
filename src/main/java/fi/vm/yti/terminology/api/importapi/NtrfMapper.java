@@ -302,11 +302,6 @@ public class NtrfMapper {
             });
         }
         addNodeList.clear();
-        // Wait 5 sec before continue
-        try {
-            Thread.sleep(10 * 1000);
-        } catch (InterruptedException ex) {
-        }
         // ReInitialize caches and after that, resolve rcon- and ncon-references
         idMap.clear();
         typeMap.clear();
@@ -356,8 +351,6 @@ public class NtrfMapper {
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
         });
 
-        System.out.println("Concept list:");
-        idMap.forEach((k, v) -> System.out.println(k + " -" + v.toString()));
         response.setProcessingTotal(records.size());
         response.setProcessingProgress(records.size());
         response.setResultsWarning(statusList.size());
