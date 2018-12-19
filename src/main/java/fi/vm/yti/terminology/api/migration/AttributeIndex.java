@@ -508,6 +508,25 @@ public final class AttributeIndex {
         );
     }
 
+    // Termin lisätieto / Term info.  Additional information about the term / Lisätietoa termin käytöstä
+    @NotNull
+    public static AttributeMeta termInfo(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termInfo",
+                "http://uri.suomi.fi/datamodel/ns/st#termInfo",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termin lisätieto",
+                                "Term info"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
     // homonyymin järjestysnumero / homograph number.  Numero joka kuvaa homonyymin järjestyksen. A number indicating the position of the term within a sequence
     //of homographs
     @NotNull
@@ -527,6 +546,7 @@ public final class AttributeIndex {
                 )
         );
     }
+
 
     // prevent construction
     private AttributeIndex() {

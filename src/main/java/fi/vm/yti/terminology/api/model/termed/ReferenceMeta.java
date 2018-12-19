@@ -61,16 +61,16 @@ public final class ReferenceMeta {
         return index;
     }
 
-    void setIndex(Long newIndex) {
-        index = newIndex;
-    }
-
     void decrementIndex() {
         index--;
     }
 
     void incrementIndex() {
         index++;
+    }
+
+    void setIndex(long index) {
+        this.index=index;
     }
 
     public TypeId getDomain() {
