@@ -424,7 +424,6 @@ public class NtrfMapper {
                         if (idref == null) {
                             idref = new ArrayList<>();
                         }
-
                         // Use name and resolve target id using it.
                         UUID refId = idMap.get(ref.getReferenceString());
                         if (refId != null) {
@@ -441,6 +440,8 @@ public class NtrfMapper {
                             refMap.put(refListName, idref);
                         } else {
                             System.err.println("Ref-target-id not found for :" + ref.getCode());
+                            statusList.put(currentRecord,
+                                new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
                         }
                     }      
                     // Add it back to termed
@@ -799,13 +800,18 @@ public class NtrfMapper {
             // RECORD/BCON
             handleBCON(currentId, o);
         };
+        List<RCON> rcon = r.getRCON();
+        for(RCON o:rcon){
+            System.out.println("--RCON=" + o.getHref());
+            // RECORD/RCON
+            handleRCON(currentId, o);
+        };
        // Filter NCON elemets as list
         List<NCON> ncon = r.getNCON();
         for (NCON o : ncon) {
             System.out.println("--NCON=" + o.getHref());
             handleNCON(currentId, o);
         }
-
         TypeId typeId = null;
         typeId = typeMap.get("Concept").getDomain();
         GenericNode node = null;
@@ -906,7 +912,7 @@ public class NtrfMapper {
         ste.forEach(obj -> {
             // Handle like synonym
             GenericNode n = handleSY(obj, o.getValue().value(), parentProperties, parentReferences, vocabularity);
-            // and then add as hiddenTerm
+            // and then add as searchTerm
             if (n != null) {
                 termsList.add(n);
                 List<Identifier> ref;
@@ -1026,6 +1032,9 @@ public class NtrfMapper {
         if (tc.getREMK() != null) {
             handleREMK(lang, tc.getREMK(), properties, vocabularity);
         }
+        if(tc.getADD() != null){            
+            handleADD(lang, tc.getADD(), properties);
+        }
     }
 
     private String getAttributeContent(List<Serializable> li) {
@@ -1086,6 +1095,11 @@ public class NtrfMapper {
         Attribute att = new Attribute(null, equi.getValue());
         // Attribute att = new Attribute(lang, equi.getValue());
         addProperty("termEquivalency", properties, att);
+    }
+
+    private void handleADD(String lang, String add, Map<String, List<Attribute>> properties) {
+        Attribute att = new Attribute(null, add);
+        addProperty("termInfo", properties, att);
     }
 
     private void handleSCOPE(String lang, SCOPE scope, Map<String, List<Attribute>> properties) {
@@ -1232,7 +1246,7 @@ public class NtrfMapper {
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
 
-            System.out.println("handleBCON add item from source record:" + currentRecord + "--> target:" + brefId);
+            System.out.println("handleBCON add item from source record:" + currentRecord + "--> target:" + brefId+ " Type"+o.getTypr());
             ConnRef conRef = new ConnRef();
             // Use delayed resolving, so save record id for logging purposes
             conRef.setCode(currentRecord);
@@ -1251,6 +1265,41 @@ public class NtrfMapper {
             }
             reflist.add(conRef);
             bconList.put(currentRecord, reflist);     
+    }
+
+    /**
+     * NTRF Related-concept parsing Can be direct hierarchical or partitive
+     * reference <RCON href="#tmpOKSAID122">koulutus (2)</RCON>
+     * 
+     * @param o
+     * @param references
+     */
+    private void handleRCON(UUID currentConcept, RCON o) {
+        if (logger.isDebugEnabled())
+            logger.debug("handleRCON:" + o.getHref());
+        String brefId = o.getHref();        
+        // Remove #
+        if (brefId.startsWith("#"))
+            brefId = o.getHref().substring(1);
+
+            System.out.println("handleRCON add item from source record:" + currentRecord + "--> target:" + brefId);
+            ConnRef conRef = new ConnRef();
+            // Use delayed resolving, so save record id for logging purposes
+            conRef.setCode(currentRecord);
+            conRef.setReferenceString(brefId);
+            // Null id, as a placeholder for target
+            conRef.setId(currentConcept);
+            conRef.setTargetId(NULL_ID);
+
+            // if not yet defined, create list and populate it
+            List<ConnRef> reflist;
+            if (rconList.containsKey(currentRecord)) {
+                reflist = rconList.get(currentRecord);
+            } else {
+                reflist = new ArrayList<>();
+            }
+            reflist.add(conRef);
+            rconList.put(currentRecord, reflist);     
     }
 
     /**
@@ -1840,6 +1889,10 @@ public class NtrfMapper {
         if (synonym.getTERM() != null) {
             handleTERM(synonym.getTERM(), lang, properties);
         }
+        if(synonym.getADD() != null){            
+            handleADD(lang, synonym.getADD(), properties);
+        }
+
         // create new synonym node (Term)
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is parent-uri/term-'code'
