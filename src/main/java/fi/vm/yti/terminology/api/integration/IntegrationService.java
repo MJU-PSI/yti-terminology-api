@@ -37,6 +37,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
 import fi.vm.yti.terminology.api.integration.containers.*;
+
 @Service
 public class IntegrationService {
 
@@ -68,16 +69,18 @@ public class IntegrationService {
             boolean includeMeta) {
         if (logger.isDebugEnabled())
             logger.debug("GET /containers requested. status=" + statusEnum);
+
         // Concept reference-map
         Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
-        // Response item  list
+        // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
         System.out.println(" lan=" + language + " pageSize=" + pageSize + " From=" + from + " Status=" + statusEnum
                 + " After=" + after + " includeMeta=" + includeMeta);
         vocs.forEach(o -> {
+            boolean addItem = true;
             List<Attribute> description = null;
             fi.vm.yti.terminology.api.integration.containers.Description desc = null;
             List<Attribute> status = null;
@@ -86,20 +89,20 @@ public class IntegrationService {
             System.out.println(" vocabulary=" + o.getId().toString() + " URI=" + o.getUri());
             String uri = o.getUri();
             List<Property> preflabels = o.getProperties().get("prefLabel");
-            if(preflabels != null) {
+            if (preflabels != null) {
                 prefLabel = new PrefLabel();
-                for( Property p:preflabels){
-                    System.out.println(" pref=" + p.getValue() + " lang=" + p.getLang());
-                    if("fi".equalsIgnoreCase(p.getLang())){
+                for (Property p : preflabels) {
+                    if ("fi".equalsIgnoreCase(p.getLang())) {
                         prefLabel.setFi(p.getValue());
                     }
-                    if("sv".equalsIgnoreCase(p.getLang())){
+                    if ("sv".equalsIgnoreCase(p.getLang())) {
                         prefLabel.setSv(p.getValue());
                     }
-                    if("en".equalsIgnoreCase(p.getLang())){
+                    if ("en".equalsIgnoreCase(p.getLang())) {
                         prefLabel.setEn(p.getValue());
                     }
-                };                
+                }
+                ;
             }
             /*
              * { "uri": "http://uri.suomi.fi/codelist/test/010", "prefLabel": { "fi": "010"
@@ -111,24 +114,22 @@ public class IntegrationService {
                 if (gn != null) {
                     description = gn.getProperties().get("description");
                     status = gn.getProperties().get("status");
-                    if (status != null) {
-                        status.forEach(p -> {
-                            System.out.println(" status=" + p.getValue() + " lang=" + p.getLang());
-                        });
-                    }
-        
+
                     if (description != null) {
                         desc = new Description();
-                        for(Attribute at:description){
+                        for (Attribute at : description) {
                             System.out.println(" desc=" + at.getValue() + " lang=" + at.getLang());
-                            if("fi".equalsIgnoreCase(at.getLang())){
+                            if ("fi".equalsIgnoreCase(at.getLang())) {
                                 desc.setFi(at.getValue());
                             }
-                            if("sv".equalsIgnoreCase(at.getLang())){
+                            if ("sv".equalsIgnoreCase(at.getLang())) {
                                 desc.setSv(at.getValue());
-                            }if("en".equalsIgnoreCase(at.getLang())){
+                            }
+                            if ("en".equalsIgnoreCase(at.getLang())) {
                                 desc.setEn(at.getValue());
-                            }                       };
+                            }
+                        }
+                        ;
                     } else {
                         System.out.println(" description not found:" + gn.getProperties());
                     }
@@ -137,13 +138,13 @@ public class IntegrationService {
                     System.out.println("modifiedDate=" + gn.getLastModifiedDate());
                 }
             } catch (NodeNotFoundException ex) {
-                System.out.println(ex);
+                // System.out.println(ex);
             }
 
             System.out.println("-------------\nCombined data!");
-            System.out.println("URI="+uri+ " \n modifDate="+modifiedDate );
-            List<String> stat=new ArrayList<>();
-            if(status != null){
+            System.out.println("URI=" + uri + " \n modifDate=" + modifiedDate);
+            List<String> stat = new ArrayList<>();
+            if (status != null) {
                 status.forEach(p -> {
                     System.out.println(" status=" + p.getValue() + " lang=" + p.getLang());
                     stat.add(p.getValue());
@@ -156,25 +157,39 @@ public class IntegrationService {
             }
             ContainersResponse respItem = new ContainersResponse();
             respItem.setUri(uri);
-            if(modifiedDate != null){            
-               respItem.setModified(modifiedDate.toString());
+            if (modifiedDate != null) {
+                respItem.setModified(modifiedDate.toString());
             }
-            if(prefLabel != null){
+            if (prefLabel != null) {
                 respItem.setPrefLabel(prefLabel);
             }
-            if(desc != null){
+            if (desc != null) {
                 respItem.setDescription(desc);
             }
-            if(uri!= null && !uri.isEmpty()){
-                resp.add(respItem);
-            }
-            // if status missing, default value is  always DRAFT
-            respItem.setStatus("DRAFT");
-            if(stat!= null && !stat.isEmpty()){
-                System.out.println("Status size="+stat.size());
+            if (stat != null && !stat.isEmpty()) {
+                System.out.println("Status size=" + stat.size());
                 respItem.setStatus(stat.get(0));
             }
-            System.out.println("-------------" );
+            // Filter using status
+            if (statusEnum != null) {
+                if(respItem.getStatus() == null){
+                    addItem = false;
+                } else {
+                    if (!statusEnum.toUpperCase().contains(respItem.getStatus().toUpperCase())) {
+                        addItem = false;
+                        System.out.println("Filter out status:" + respItem.getStatus());
+                    }
+                }
+            }
+            // filter out vocabularies without uri
+            if (uri == null || (uri != null && uri.isEmpty())) {
+                addItem = false;
+            }
+
+            if (addItem) {
+                resp.add(respItem);
+            }
+            System.out.println("-------------");
         });
         /*
          * // Filter given code as result List<IdCode> vocabularies =
