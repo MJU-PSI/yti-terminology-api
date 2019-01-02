@@ -72,15 +72,8 @@ public class V13_UpdateRefTermOrder implements MigrationTask {
         if(domainName.equals("Concept")){
             // ReferenceAttributes
             List<ReferenceMeta>  ra=meta.getReferenceAttributes();            
-            ra.forEach(o->{
-                System.out.println("Name="+o.getId()+ " index="+o.getIndex()); 
-            }); 
             // Change item order
             changeRefOrder(meta);
-            System.out.println("-------- After orderChange");
-            meta.getReferenceAttributes().forEach(o->{
-                System.out.println("Name="+o.getId()+ " index="+o.getIndex()); 
-            });
         }
         return rv;
     }

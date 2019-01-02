@@ -438,6 +438,7 @@ public class NtrfMapper {
                             idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
                             // Put back int the correct list
                             refMap.put(refListName, idref);
+                            System.out.println(refListName +"->"+ref.getReferenceString()+"  "+ref.getTargetId().toString());
                         } else {
                             System.err.println("Ref-target-id not found for :" + ref.getCode());
                             statusList.put(currentRecord,
@@ -501,14 +502,14 @@ public class NtrfMapper {
      * 
      * @param vocabularityId UUID of the vocabularity
      */
-    private boolean initImport(UUID vocabularityId) {
+    private boolean initImport(UUID vocabularyId) {
         // Get metamodel types for given vocabularity
-        List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
+        List<MetaNode> metaTypes = termedService.getTypes(vocabularyId);
         metaTypes.forEach(t -> typeMap.put(t.getId(), t));
 
         // Create hashmap to store information between code/URI and UUID so that we can
         // update values upon same vocabularity
-        List<GenericNode> nodeList = termedService.getNodes(vocabularityId);
+        List<GenericNode> nodeList = termedService.getNodes(vocabularyId);
         if (nodeList != null) {
             nodeList.forEach(o -> {
                 if (logger.isDebugEnabled())

@@ -59,10 +59,4 @@ public class ImportController {
                              @RequestParam(value="full", required = false, defaultValue = "false") boolean full) {
         return importService.getStatus(id, full);
     }
-
-    @RequestMapping(value = "/test/checkRunning/{uri}", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity getStatus(@RequestParam(value="uri") String uri) {
-        System.out.println("ImportController.checkRunning using "+uri);
-        return importService.checkIfImportIsRunning(uri);
-    }
 }
