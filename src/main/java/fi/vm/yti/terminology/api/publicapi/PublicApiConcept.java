@@ -12,6 +12,7 @@ public class PublicApiConcept {
     private UUID vocabularyId;
     private String uri;
     private String url;
+    private String status;
 
     public String getUri() {
         return uri;
@@ -27,6 +28,14 @@ public class PublicApiConcept {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String s) {
+        this.status = s;
     }
 
     public UUID getId() {

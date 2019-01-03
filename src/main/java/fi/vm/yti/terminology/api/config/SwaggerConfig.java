@@ -62,4 +62,13 @@ public class SwaggerConfig {
                 .build();
     }
 
+    @Bean
+    public Docket publicApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .groupName("publicapi")
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.ant("/terminology/publicapi/**"))
+                .build();
+    }
 }

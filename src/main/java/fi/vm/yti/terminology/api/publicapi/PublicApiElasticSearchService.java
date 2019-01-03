@@ -43,7 +43,7 @@ public class PublicApiElasticSearchService {
     }
 
 
-    List<PublicApiConcept> searchConcept(String searchTerm, String vocabularyId) {
+    List<PublicApiConcept> searchConcept(String searchTerm, String vocabularyId, String status) {
 
         String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
         NStringEntity body = null;
@@ -59,16 +59,17 @@ public class PublicApiElasticSearchService {
         try {
             Response response = esRestClient.performRequest("GET", endpoint, Collections.emptyMap(), body);
             ObjectMapper om = new ObjectMapper();
-            return getAsPublicApiConcepts(responseContentAsJson(om, response));
+            return getAsPublicApiConcepts(status, responseContentAsJson(om, response));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private List<PublicApiConcept> getAsPublicApiConcepts(JsonNode concepts) {
+    private List<PublicApiConcept> getAsPublicApiConcepts(String status, JsonNode concepts) {
         List<PublicApiConcept> result = new ArrayList<>();
         JsonNode hitsNode = concepts.path("hits").path("hits");
         for(JsonNode jsonNode : hitsNode) {
+            boolean addItem = true;
             PublicApiConcept concept = new PublicApiConcept();
             concept.setId(UUID.fromString(jsonNode.path("_source").path("id").asText()));
             concept.setVocabularyId(UUID.fromString(jsonNode.path("_source").path("vocabulary").path("id").asText()));
@@ -76,7 +77,16 @@ public class PublicApiElasticSearchService {
             concept.setDefinition(extractLocalizableFromGivenField(jsonNode.path("_source"), "definition"));
             concept.setVocabularyPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source").path("vocabulary"),"label"));
             concept.setUri(jsonNode.path("_source").path("uri").asText());
-            result.add(concept);
+            concept.setStatus(jsonNode.path("_source").path("status").asText());
+            // Filtering out items which status  does not match to given one.
+            if(status!= null && !status.isEmpty() ){
+                if(!concept.getStatus().equalsIgnoreCase(status)){
+                    addItem=false;
+                }
+            }
+            if(addItem){
+                result.add(concept);
+            }
         }
         return result;
     }
