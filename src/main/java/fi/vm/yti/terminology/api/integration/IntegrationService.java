@@ -36,6 +36,8 @@ import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
+import java.text.SimpleDateFormat;
+
 import fi.vm.yti.terminology.api.integration.containers.*;
 
 @Service
@@ -158,7 +160,8 @@ public class IntegrationService {
             ContainersResponse respItem = new ContainersResponse();
             respItem.setUri(uri);
             if (modifiedDate != null) {
-                respItem.setModified(modifiedDate.toString());
+                SimpleDateFormat sm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                respItem.setModified(sm.format(modifiedDate));
             }
             if (prefLabel != null) {
                 respItem.setPrefLabel(prefLabel);

@@ -60,7 +60,7 @@ public class IntegrationController {
     }
 
     @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    ResponseEntity  conceptSuggestion(@PathVariable("vocabularyId") String vocabularyId,
+    ResponseEntity  conceptSuggestion( @ApiParam(value = "Vocabulary where new concept is suggested.") @PathVariable("vocabularyId") String vocabularyId,
                                       @RequestBody ConceptSuggestion incomingConcept) {
         return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
     }
