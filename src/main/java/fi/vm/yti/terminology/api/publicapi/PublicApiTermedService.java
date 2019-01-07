@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.publicapi;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ public class PublicApiTermedService {
         params.add("select", "id");
         params.add("select", "code");
         params.add("select", "properties.prefLabel");
+        params.add("select", "properties.status");
         params.add("select", "type");
 
 
@@ -55,6 +57,7 @@ public class PublicApiTermedService {
                     PublicApiVocabulary vocabulary = new PublicApiVocabulary();
                     vocabulary.setId(genericNode.getType().getGraphId());
                     vocabulary.setPrefLabel(prefLabelAsLocalizable(genericNode));
+                    vocabulary.setStatus(getStatus(genericNode));
                     if (!codesAlreadyAdded.contains(genericNode.getType().getGraphId().toString())) {
                         result.add(vocabulary);
                         codesAlreadyAdded.add(genericNode.getType().getGraphId().toString());
@@ -75,4 +78,14 @@ public class PublicApiTermedService {
 
         return result;
     }
-}
+
+    public  String getStatus(GenericNode node) {
+        String result = null;
+        Map<String, List<Attribute>> attributes = node.getProperties();
+        if (attributes.keySet().contains("status")) {
+            for (Attribute stat: node.getProperties().get("status")) {
+                result=stat.getValue(); 
+            }
+        }
+        return result;
+    }}

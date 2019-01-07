@@ -6,6 +6,7 @@ import java.util.UUID;
 public class PublicApiVocabulary {
 
     private UUID id;
+    private String status;
     private HashMap<String, String> prefLabel;
 
     public UUID getId() {
@@ -14,6 +15,13 @@ public class PublicApiVocabulary {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getStatus(){
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public HashMap<String, String> getPrefLabel() {

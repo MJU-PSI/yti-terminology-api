@@ -26,6 +26,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiParam;
+
 @RestController
 @RequestMapping("/integration")
 public class IntegrationController {
@@ -41,14 +42,11 @@ public class IntegrationController {
 
     private static final Logger logger = LoggerFactory.getLogger(IntegrationController.class);
 
-    public IntegrationController(FrontendTermedService termedService,
-                              IntegrationService integrationService,
-                              FrontendElasticSearchService elasticSearchService,
-                              FrontendGroupManagementService groupManagementService,
-                              AuthenticatedUserProvider userProvider,
-                              @Value("${namespace.root}") String namespaceRoot,
-                              @Value("${groupmanagement.public.url}") String groupManagementUrl,
-                              @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
+    public IntegrationController(FrontendTermedService termedService, IntegrationService integrationService,
+            FrontendElasticSearchService elasticSearchService, FrontendGroupManagementService groupManagementService,
+            AuthenticatedUserProvider userProvider, @Value("${namespace.root}") String namespaceRoot,
+            @Value("${groupmanagement.public.url}") String groupManagementUrl,
+            @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
         this.termedService = termedService;
         this.integrationService = integrationService;
         this.elasticSearchService = elasticSearchService;
@@ -59,18 +57,15 @@ public class IntegrationController {
         this.fakeLoginAllowed = fakeLoginAllowed;
     }
 
+    @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
     @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    ResponseEntity  conceptSuggestion( @ApiParam(value = "Vocabulary where new concept is suggested.") @PathVariable("vocabularyId") String vocabularyId,
-                                      @RequestBody ConceptSuggestion incomingConcept) {
-        return integrationService.handleConceptSuggestion(vocabularyId,incomingConcept);
+    ResponseEntity conceptSuggestion(
+            @ApiParam(value = "Vocabulary where new concept is suggested.") @PathVariable("vocabularyId") String vocabularyId,
+            @RequestBody ConceptSuggestion incomingConcept) {
+        return integrationService.handleConceptSuggestion(vocabularyId, incomingConcept);
     }
 
-    /**
-     * Query  vocabulary list with  given parameters
-     * @param statusEnum
-     * @return
-     */
-    @ApiResponse(code = 200, message = "Returns JSOn with Vocabulary-list.")
+    @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
      @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
     ResponseEntity  containers(
                                @ApiParam(value = "Language code for sorting results.") @RequestParam(value="language", required = false, defaultValue = "fi") String language,
@@ -82,5 +77,12 @@ public class IntegrationController {
     ) {
         System.out.println("status="+statusEnum);
         return integrationService.handleContainers(language, pageSize, from, statusEnum, after, includeMeta);
+    }
+
+    @ApiResponse(code = 200, message = "Returns JSON with Concept-list.")
+    @RequestMapping(value = "/resources", method = GET, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity  resources(@ApiParam(value = "URL of vocabulary.") @RequestParam(value="URL", required = false) String url){
+        System.out.println("URL="+url);
+        return integrationService.handleResources(url);
     }
 }

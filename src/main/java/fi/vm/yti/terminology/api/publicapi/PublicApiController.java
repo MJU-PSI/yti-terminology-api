@@ -33,16 +33,6 @@ public class PublicApiController {
         return termedService.getVocabularyList();
     }
 
-    /*
-        @RequestMapping(value = "/searchconcept/searchterm/{searchTerm}/vocabulary/{vocabularyId}", method = GET, produces = APPLICATION_JSON_VALUE)
-        List<PublicApiConcept> searchConcept(@ApiParam(value = "Serch term for elastic search.") @PathVariable String searchTerm,
-                                             @ApiParam(value = "Vocabulary ID.") @PathVariable String vocabularyId) {
-
-            logger.info("GET /searchconcept/searchterm/{searchTerm}/vocabulary/{vocabularyId} requested");
-            String status = null;
-            return publicApiElasticSearchService.searchConcept(searchTerm, vocabularyId, status);
-        }
-    */
     @RequestMapping(value = "/searchconcept/searchterm/{searchTerm}/vocabulary/{vocabularyId}", method = GET, produces = APPLICATION_JSON_VALUE)
     List<PublicApiConcept> searchConceptWithStatus(@ApiParam(value = "Serch term for elastic search.") @PathVariable String searchTerm,
                                                    @ApiParam(value = "Vocabulary ID.") @PathVariable String vocabularyId,
