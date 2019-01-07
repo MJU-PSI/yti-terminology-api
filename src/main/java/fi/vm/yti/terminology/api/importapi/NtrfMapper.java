@@ -549,6 +549,7 @@ public class NtrfMapper {
         List<LINK> l = diag.getLINK();
         l.forEach(li -> {
             String linkTarget = li.getHref();
+            currentRecord = diag.getNumb();
             // Remove #
             if (linkTarget.startsWith("#"))
                 linkTarget = linkTarget.substring(1);

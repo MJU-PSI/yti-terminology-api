@@ -36,10 +36,11 @@ import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-
 import java.text.SimpleDateFormat;
 
 import fi.vm.yti.terminology.api.integration.containers.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
 public class IntegrationService {
@@ -201,7 +202,23 @@ public class IntegrationService {
         if( id == null){
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
-        // Fetch all concepts from vocabulary.
+        // Id resolved, fetch vocabulary
+        /** Elastic  query, returns 10k results from index
+         * {"query": {
+         "bool":{
+                "must":{
+                       "match": {
+                                 "vocabulary.id":"d8fe18f2-0a76-4eb4-a2fe-4bf88476a245"
+                                }
+                       } 
+               }
+         },"size":"10000"
+        }
+         */
+
+        JsonNode query;
+
+//        elasticSearchService.searchConcept(query);
 /*
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
