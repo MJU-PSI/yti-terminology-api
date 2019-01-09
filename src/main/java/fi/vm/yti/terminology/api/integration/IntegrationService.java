@@ -42,6 +42,8 @@ import fi.vm.yti.terminology.api.integration.containers.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 
 @Service
 public class IntegrationService {
@@ -243,17 +245,17 @@ public class IntegrationService {
                         // fi
                         JsonNode lan=label.get("fi");
                         if(lan!=null){
-                            plab.setFi(lan.get(0).asText());
+                            plab.setFi(Jsoup.clean(lan.get(0).asText(),Whitelist.none())); 
                         }
                         // en
                         lan=label.get("en");
                         if(lan!=null){
-                            plab.setEn(lan.get(0).asText());
+                            plab.setEn(Jsoup.clean(lan.get(0).asText(),Whitelist.none()));
                         }
                         // sv
                         lan=label.get("sv");
                         if(lan!=null){
-                            plab.setSv(lan.get(0).asText());
+                            plab.setSv(Jsoup.clean(lan.get(0).asText(),Whitelist.none()));
                         }
                         respItem.setPrefLabel(plab);
                     }
@@ -264,17 +266,17 @@ public class IntegrationService {
                         // fi
                         JsonNode d=description.get("fi");
                         if(d!=null){
-                            desc.setFi(d.get(0).asText());
+                            desc.setFi(Jsoup.clean(d.get(0).asText(),Whitelist.none()));                            
                         }
                         // en
                         d=label.get("en");
                         if(d!=null){
-                            desc.setEn(d.get(0).asText());
+                            desc.setEn(Jsoup.clean(d.get(0).asText(),Whitelist.none()));
                         }
                         // sv
                         d=label.get("sv");
                         if(d!=null){
-                            desc.setSv(d.get(0).asText());
+                            desc.setSv(Jsoup.clean(d.get(0).asText(),Whitelist.none()));
                         }
                         respItem.setDescription(desc);
                     }
