@@ -81,8 +81,8 @@ public class IntegrationController {
 
     @ApiResponse(code = 200, message = "Returns JSON with Concept-list.")
     @RequestMapping(value = "/resources", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity  resources(@ApiParam(value = "URL of vocabulary.") @RequestParam(value="URL", required = false) String url){
-        System.out.println("URL="+url);
-        return integrationService.handleResources(url);
+    ResponseEntity  resources(@ApiParam(value = "Container URL.") @RequestParam(value="container", required = false) String container){
+        System.out.println("Container URL="+container);
+        return integrationService.handleResources(container);
     }
 }
