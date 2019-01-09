@@ -41,6 +41,7 @@ import java.text.SimpleDateFormat;
 import fi.vm.yti.terminology.api.integration.containers.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class IntegrationService {
@@ -60,8 +61,9 @@ public class IntegrationService {
 
     @Autowired
     public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
-            FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,  AuthenticatedUserProvider userProvider,
-            AuthorizationManager authorizationManager, @Value("${namespace.root}") String namespaceRoot) {
+            FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
+            AuthenticatedUserProvider userProvider, AuthorizationManager authorizationManager,
+            @Value("${namespace.root}") String namespaceRoot) {
         this.termedRequester = termedRequester;
         this.groupManagementService = groupManagementService;
         this.termedService = frontendTermedService;
@@ -80,8 +82,7 @@ public class IntegrationService {
         List<ContainersResponse> resp = new ArrayList<>();
         // Get vocabularies
         List<Graph> vocs = termedService.getGraphs();
-     
-       
+
         System.out.println(" lan=" + language + " pageSize=" + pageSize + " From=" + from + " Status=" + statusEnum
                 + " After=" + after + " includeMeta=" + includeMeta);
         vocs.forEach(o -> {
@@ -132,7 +133,7 @@ public class IntegrationService {
                             if ("en".equalsIgnoreCase(at.getLang())) {
                                 desc.setEn(at.getValue());
                             }
-                        }                        
+                        }
                     }
                     modifiedDate = gn.getLastModifiedDate();
                 }
@@ -163,7 +164,7 @@ public class IntegrationService {
             }
             // Filter using status
             if (statusEnum != null) {
-                if(respItem.getStatus() == null){
+                if (respItem.getStatus() == null) {
                     addItem = false;
                 } else {
                     if (!statusEnum.toUpperCase().contains(respItem.getStatus().toUpperCase())) {
@@ -176,7 +177,8 @@ public class IntegrationService {
             if (uri == null || (uri != null && uri.isEmpty())) {
                 addItem = false;
             }
-            // filter out vocabularies without modified date. Internal groups have no date so
+            // filter out vocabularies without modified date. Internal groups have no date
+            // so
             if (modifiedDate == null) {
                 addItem = false;
             }
@@ -194,149 +196,104 @@ public class IntegrationService {
 
         UUID id = null;
         List<Graph> vocs = termedService.getGraphs();
-        for(Graph g:vocs){
-            if(g.getUri()!= null && !g.getUri().isEmpty() && g.getUri().equals(url)){
+        for (Graph g : vocs) {
+            if (g.getUri() != null && !g.getUri().isEmpty() && g.getUri().equals(url)) {
                 id = g.getId();
             }
         }
-        if( id == null){
+        if (id == null) {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
         // Id resolved, fetch vocabulary
-        /** Elastic  query, returns 10k results from index
-         * {"query": {
-         "bool":{
-                "must":{
-                       "match": {
-                                 "vocabulary.id":"d8fe18f2-0a76-4eb4-a2fe-4bf88476a245"
-                                }
-                       } 
-               }
-         },"size":"10000"
-        }
+        /**
+         * Elastic query, returns 10k results from index
+         * 
+         * {"query": { "bool":{ "must":{ "match": {
+         * "vocabulary.id":"d8fe18f2-0a76-4eb4-a2fe-4bf88476a245" } } } },
+         * "size":"10000", "_source":["id","label","definition","modified", "status"] }
          */
 
-        JsonNode query;
+        String query = "{\"query\": { \"bool\":{ \"must\":{ \"match\": { \"vocabulary.id\":\"" + id
+                + "\" } } } },\"size\":\"10000\", \"_source\":[\"id\",\"label\",\"definition\",\"modified\", \"status\",\"uri\"]}";
 
-//        elasticSearchService.searchConcept(query);
-/*
+        JsonNode result = elasticSearchService.freeSearchFromIndex(query);
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
-        // Get vocabularies and match code with name
-        List<Graph> vocs = termedService.getGraphs();
-     
-        elasticSearchService.
-        System.out.println(" lan=" + language + " pageSize=" + pageSize + " From=" + from + " Status=" + statusEnum
-                + " After=" + after + " includeMeta=" + includeMeta);
-        vocs.forEach(o -> {
-            boolean addItem = true;
-            List<Attribute> description = null;
-            fi.vm.yti.terminology.api.integration.containers.Description desc = null;
-            List<Attribute> status = null;
-            Date modifiedDate = null;
-            PrefLabel prefLabel = null;
-            System.out.println(" vocabulary=" + o.getId().toString() + " URI=" + o.getUri());
-            String uri = o.getUri();
-            List<Property> preflabels = o.getProperties().get("prefLabel");
-            if (preflabels != null) {
-                prefLabel = new PrefLabel();
-                for (Property p : preflabels) {
-                    if ("fi".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setFi(p.getValue());
-                    }
-                    if ("sv".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setSv(p.getValue());
-                    }
-                    if ("en".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setEn(p.getValue());
-                    }
-                }
-                ;
-            }
-            try {
-                GenericNodeInlined gn = termedService.getVocabulary(o.getId());
-                if (gn != null) {
-                    description = gn.getProperties().get("description");
-                    status = gn.getProperties().get("status");
+        JsonNode nodes = result.get("hits");
+        if (nodes != null) {
+            nodes=nodes.get("hits");
+            nodes.forEach(hit -> {
+                JsonNode source = hit.get("_source");
+                if (source != null) {
+                    String stat = source.get("status").asText();
+                    String modifiedDate = source.get("modified").asText();
+                    String uri = source.get("uri").asText();
 
-                    if (description != null) {
-                        desc = new Description();
-                        for (Attribute at : description) {
-                            System.out.println(" desc=" + at.getValue() + " lang=" + at.getLang());
-                            if ("fi".equalsIgnoreCase(at.getLang())) {
-                                desc.setFi(at.getValue());
-                            }
-                            if ("sv".equalsIgnoreCase(at.getLang())) {
-                                desc.setSv(at.getValue());
-                            }
-                            if ("en".equalsIgnoreCase(at.getLang())) {
-                                desc.setEn(at.getValue());
-                            }
-                        }                        
+                    ContainersResponse respItem = new ContainersResponse();
+                    respItem.setUri(uri);
+                    respItem.setStatus(stat);
+                    if (modifiedDate != null) {
+                        // Curently returns 2019-01-07T09:16:32.432+02:00
+                        // use only first 19 chars
+                        respItem.setModified(modifiedDate.substring(0,19));
                     }
-                    modifiedDate = gn.getLastModifiedDate();
-                }
-            } catch (NodeNotFoundException ex) {
-                // System.out.println(ex);
-            }
+                    JsonNode label = source.get("label");
+                    if(label!= null){
+                        PrefLabel plab = new PrefLabel();
+                        // fi
+                        JsonNode lan=label.get("fi");
+                        if(lan!=null){
+                            plab.setFi(lan.get(0).asText());
+                        }
+                        // en
+                        lan=label.get("en");
+                        if(lan!=null){
+                            plab.setEn(lan.get(0).asText());
+                        }
+                        // sv
+                        lan=label.get("sv");
+                        if(lan!=null){
+                            plab.setSv(lan.get(0).asText());
+                        }
+                        respItem.setPrefLabel(plab);
+                    }
 
-            List<String> stat = new ArrayList<>();
-            if (status != null) {
-                status.forEach(p -> {
-                    stat.add(p.getValue());
-                });
-            }
-            ContainersResponse respItem = new ContainersResponse();
-            respItem.setUri(uri);
-            if (modifiedDate != null) {
-                SimpleDateFormat sm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-                respItem.setModified(sm.format(modifiedDate));
-            }
-            if (prefLabel != null) {
-                respItem.setPrefLabel(prefLabel);
-            }
-            if (desc != null) {
-                respItem.setDescription(desc);
-            }
-            if (stat != null && !stat.isEmpty()) {
-                respItem.setStatus(stat.get(0));
-            }
-            // Filter using status
-            if (statusEnum != null) {
-                if(respItem.getStatus() == null){
-                    addItem = false;
+                    JsonNode description = source.get("definition");
+                    if(description!= null){
+                        Description desc = new Description();
+                        // fi
+                        JsonNode d=description.get("fi");
+                        if(d!=null){
+                            desc.setFi(d.get(0).asText());
+                        }
+                        // en
+                        d=label.get("en");
+                        if(d!=null){
+                            desc.setEn(d.get(0).asText());
+                        }
+                        // sv
+                        d=label.get("sv");
+                        if(d!=null){
+                            desc.setSv(d.get(0).asText());
+                        }
+                        respItem.setDescription(desc);
+                    }
+                    resp.add(respItem);
                 } else {
-                    if (!statusEnum.toUpperCase().contains(respItem.getStatus().toUpperCase())) {
-                        addItem = false;
-                        System.out.println("Filter out status:" + respItem.getStatus());
-                    }
+                    System.out.println("hit=" + hit);
                 }
-            }
-            // filter out vocabularies without uri
-            if (uri == null || (uri != null && uri.isEmpty())) {
-                addItem = false;
-            }
-            // filter out vocabularies without modified date. Internal groups have no date so
-            if (modifiedDate == null) {
-                addItem = false;
-            }
-
-            if (addItem) {
-                resp.add(respItem);
-            }
-        });
+            });
+        }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(resp), HttpStatus.OK);
-        */
-        return new ResponseEntity<>("{"+id+"}", HttpStatus.OK);
     }
 
     /**
      * Initialize cached META-model. - Read given vocabularity for meta-types, cache
-     * them - Read all existing nodes and cache their URI/UUID-values
+     * them 
      *
      * @param vocabularityId UUID of the vocabularity
      */
-    private void initImport(UUID vocabularityId) {
+    private void initMetaModel(UUID vocabularityId) {
         // Get metamodel types for given vocabularity
         List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
         metaTypes.forEach(t -> {
@@ -393,7 +350,7 @@ public class IntegrationService {
         }
 
         // get metamodel for vocabulary
-        initImport(activeVocabulary);
+        initMetaModel(activeVocabulary);
         // Create new Term
         GenericNode term = CreateTerm(vocabularyNode, incomingConcept, conceptReferences);
         // Create new Concept

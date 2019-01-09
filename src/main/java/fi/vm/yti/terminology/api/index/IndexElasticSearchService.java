@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fi.vm.yti.terminology.api.util.Parameters;
 import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsJson;
 import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsString;
 import static java.util.Arrays.asList;
@@ -50,15 +51,13 @@ public class IndexElasticSearchService {
 
     @Autowired
     public IndexElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
-                                     @Value("${search.host.port}") int searchHostPort,
-                                     @Value("${search.host.scheme}") String searchHostScheme,
-                                     @Value("${search.index.file}") String createIndexFilename,
-                                     @Value("${search.index.mapping.file}") String createMappingsFilename,
-                                     @Value("${search.index.name}") String indexName,
-                                     @Value("${search.index.mapping.type}") String indexMappingType,
-                                     @Value("${search.index.deleteIndexOnAppRestart}") boolean deleteIndexOnAppRestart,
-                                     IndexTermedService termedApiService,
-                                     ObjectMapper objectMapper) {
+            @Value("${search.host.port}") int searchHostPort, @Value("${search.host.scheme}") String searchHostScheme,
+            @Value("${search.index.file}") String createIndexFilename,
+            @Value("${search.index.mapping.file}") String createMappingsFilename,
+            @Value("${search.index.name}") String indexName,
+            @Value("${search.index.mapping.type}") String indexMappingType,
+            @Value("${search.index.deleteIndexOnAppRestart}") boolean deleteIndexOnAppRestart,
+            IndexTermedService termedApiService, ObjectMapper objectMapper) {
         this.createIndexFilename = createIndexFilename;
         this.createMappingsFilename = createMappingsFilename;
         this.indexName = indexName;
@@ -101,8 +100,10 @@ public class IndexElasticSearchService {
 
             List<Concept> updatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), nodes.getConceptsIds());
             List<Concept> conceptsBeforeUpdate = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
-            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(asList(updatedConcepts, conceptsBeforeUpdate)));
-            List<Concept> updateToIndex = Stream.concat(updatedConcepts.stream(), possiblyUpdatedConcepts.stream()).collect(toList());
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(),
+                    broaderAndNarrowerIds(asList(updatedConcepts, conceptsBeforeUpdate)));
+            List<Concept> updateToIndex = Stream.concat(updatedConcepts.stream(), possiblyUpdatedConcepts.stream())
+                    .collect(toList());
 
             bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), updateToIndex, emptyList(), true);
         }
@@ -115,16 +116,17 @@ public class IndexElasticSearchService {
         } else {
 
             List<Concept> conceptsBeforeDelete = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
-            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(), broaderAndNarrowerIds(singletonList(conceptsBeforeDelete)));
+            List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(),
+                    broaderAndNarrowerIds(singletonList(conceptsBeforeDelete)));
 
-            bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(), true);
+            bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(),
+                    true);
         }
     }
 
     private static @NotNull Set<UUID> broaderAndNarrowerIds(@NotNull List<List<Concept>> concepts) {
 
-        return concepts.stream()
-                .flatMap(Collection::stream)
+        return concepts.stream().flatMap(Collection::stream)
                 .flatMap(concept -> Stream.concat(concept.getBroaderIds().stream(), concept.getNarrowerIds().stream()))
                 .collect(Collectors.toSet());
     }
@@ -167,7 +169,8 @@ public class IndexElasticSearchService {
 
         HttpEntity entity = createHttpEntity(createIndexFilename);
         log.info("Trying to create elasticsearch index: " + indexName);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + indexName, singletonMap("pretty", "true"), entity));
+        Response response = alsoUnsuccessful(
+                () -> esRestClient.performRequest("PUT", "/" + indexName, singletonMap("pretty", "true"), entity));
 
         if (isSuccess(response)) {
             log.info("elasticsearch index successfully created: " + indexName);
@@ -183,7 +186,8 @@ public class IndexElasticSearchService {
         HttpEntity entity = createHttpEntity(createMappingsFilename);
         log.info("Trying to create elasticsearch index mapping type: " + indexMappingType);
 
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT", "/" + indexName + "/_mapping/" + indexMappingType, singletonMap("pretty", "true"), entity));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT",
+                "/" + indexName + "/_mapping/" + indexMappingType, singletonMap("pretty", "true"), entity));
 
         if (isSuccess(response)) {
             log.info("elasticsearch index mapping type successfully created: " + indexMappingType);
@@ -195,17 +199,17 @@ public class IndexElasticSearchService {
     }
 
     private @NotNull String createBulkIndexMetaAndSource(@NotNull Concept concept) {
-        return "{\"index\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\"" + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
+        return "{\"index\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\""
+                + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
     }
 
     private @NotNull String createBulkDeleteMeta(@NotNull UUID graphId, @NotNull UUID conceptId) {
-        return "{\"delete\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\"" + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
+        return "{\"delete\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\""
+                + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
     }
 
-    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull UUID graphId,
-                                                     @NotNull List<Concept> updateConcepts,
-                                                     @NotNull List<UUID> deleteConceptsIds,
-                                                     boolean waitForRefresh) {
+    private void bulkUpdateAndDeleteDocumentsToIndex(@NotNull UUID graphId, @NotNull List<Concept> updateConcepts,
+            @NotNull List<UUID> deleteConceptsIds, boolean waitForRefresh) {
 
         if (updateConcepts.size() == 0 && deleteConceptsIds.size() == 0) {
             return; // nothing to do
@@ -213,9 +217,12 @@ public class IndexElasticSearchService {
 
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html
 
-        String index = updateConcepts.stream().map(this::createBulkIndexMetaAndSource).collect(Collectors.joining("\n"));
-        String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id)).collect(Collectors.joining("\n"));
-        HttpEntity entity = new NStringEntity(index + delete, ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+        String index = updateConcepts.stream().map(this::createBulkIndexMetaAndSource)
+                .collect(Collectors.joining("\n"));
+        String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id))
+                .collect(Collectors.joining("\n"));
+        HttpEntity entity = new NStringEntity(index + delete,
+                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
 
         params.put("pretty", "true");
@@ -224,7 +231,7 @@ public class IndexElasticSearchService {
             params.put("refresh", "wait_for");
         }
 
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",  "/_bulk", params, entity));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
 
         if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
@@ -237,8 +244,10 @@ public class IndexElasticSearchService {
 
     private void deleteDocumentsFromIndexByGraphId(@NotNull UUID graphId) {
 
-        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}", ContentType.APPLICATION_JSON);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}",
+                ContentType.APPLICATION_JSON);
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
+                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -251,7 +260,8 @@ public class IndexElasticSearchService {
     private void deleteAllDocumentsFromIndex() {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
+                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -261,10 +271,37 @@ public class IndexElasticSearchService {
         }
     }
 
+    public @Nullable JsonNode freeSearchFromIndex(String query) {
+        Parameters params = new Parameters();
+        params.add("source", query.toString());
+        params.add("source_content_type", "application/json");
+        String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+
+        HttpEntity body = new NStringEntity(query, ContentType.APPLICATION_JSON);
+        try {
+            Response response = esRestClient.performRequest("GET", endpoint, Collections.emptyMap(), body);
+            String resp = responseContentAsString(response);
+            if (isSuccess(response)) {
+                if (log.isDebugEnabled()) {
+                    log.debug(resp);
+                    log.debug("Index query successfull");
+                }
+            } else {
+                log.warn("Unable to query documents from elasticsearch index");
+            }
+            // String -> JSON
+            JsonNode obj = objectMapper.readTree(resp);
+            return obj;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private @Nullable Concept getConceptFromIndex(@NotNull UUID graphId, @NotNull UUID conceptId) {
 
         String documentId = Concept.formDocumentId(graphId, conceptId);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET", "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source"));
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET",
+                "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source"));
 
         if (isSuccess(response)) {
             return Concept.createFromIndex(objectMapper, responseContentAsJson(objectMapper, response));
@@ -276,10 +313,8 @@ public class IndexElasticSearchService {
     private @NotNull List<Concept> getConceptsFromIndex(@NotNull UUID graphId, @NotNull Collection<UUID> conceptIds) {
 
         // TODO inefficient implementation
-        return conceptIds.stream()
-                .map(conceptId -> this.getConceptFromIndex(graphId, conceptId))
-                .filter(Objects::nonNull)
-                .collect(toList());
+        return conceptIds.stream().map(conceptId -> this.getConceptFromIndex(graphId, conceptId))
+                .filter(Objects::nonNull).collect(toList());
     }
 
     private @NotNull Response alsoUnsuccessful(@NotNull ResponseSupplier supplier) {
@@ -301,7 +336,8 @@ public class IndexElasticSearchService {
     }
 
     private interface ResponseSupplier {
-        @NotNull Response get() throws IOException;
+        @NotNull
+        Response get() throws IOException;
     }
 
     private boolean isSuccess(@NotNull Response response) {
