@@ -123,7 +123,8 @@ public class NtrfMapper {
     private Map<String, List<ConnRef>> bconList = new LinkedHashMap<>();
 
     private String currentRecord;
-    private Map<String, StatusMessage> statusList = new LinkedHashMap<>();
+//    private Map<String, StatusMessage> statusList = new LinkedHashMap<>();
+    private List<StatusMessage> statusList = new ArrayList<>();
 
     int errorCount = 0;
 
@@ -177,8 +178,9 @@ public class NtrfMapper {
                 System.out.println("Failed UUID=" + reflist.get(1));
             }
 
-            statusList.put("Termed block-operation:" + errorCount,
-                    new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
+//            statusList.put("Termed block-operation:" + errorCount,
+//                    new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
+                    statusList.add(new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
             errorCount++;
             rv = false;
         }
@@ -345,10 +347,17 @@ public class NtrfMapper {
 
         response.clearStatusMessages();
         // Add all status lines as individual members before
+        /*
         statusList.forEach((k, v) -> {
             StatusMessage m = (StatusMessage) v;
             response.addStatusMessage(new ImportStatusMessage(m.getLevel(), k, m.getMessage().toString()));
             System.out.println("Item : " + k + " value : " + m.getMessage().toString());
+        });
+        */
+        statusList.forEach(v -> {
+            StatusMessage m = (StatusMessage) v;
+            response.addStatusMessage(new ImportStatusMessage(m.getLevel(), m.getRecord(), m.getMessage().toString()));
+            System.out.println("Item : " + m.getRecord() + " value : " + m.getMessage().toString());
         });
 
         response.setProcessingTotal(records.size());
@@ -441,8 +450,9 @@ public class NtrfMapper {
                             System.out.println(refListName +"->"+ref.getReferenceString()+"  "+ref.getTargetId().toString());
                         } else {
                             System.err.println("Ref-target-id not found for :" + ref.getCode());
-                            statusList.put(currentRecord,
-                                new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
+//                            statusList.put(currentRecord,
+//                                new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
+                                statusList.add( new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
                         }
                     }      
                     // Add it back to termed
@@ -450,9 +460,10 @@ public class NtrfMapper {
                 } else {
                     logger.warn("Cant' resolve following! " + key + " type:" + connType + "=" + sourceId + "-- vocab="
                             + vocabulary.getId().toString());
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
-                }
+//                    statusList.put(currentRecord,
+//                            new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
+                    statusList.add(new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
+}
             } else {
                 System.out.println("Can't find source id:" + key);
             }
@@ -563,12 +574,14 @@ public class NtrfMapper {
                 memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
                 references.put("member", memberRef);
             } else {
-                System.err.println("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + li.getContent()
+                System.out.println("<<<<DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent())
+                        + "> not added into the collection>>>");
+                logger.warn("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent())
                         + "> not added into the collection");
-                logger.warn("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + li.getContent()
-                        + "> not added into the collection");
-                statusList.put(currentRecord, new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
-                        + " LINK-target " + li.getHref() + " <" + li.getContent() + "> not added into the collection"));
+ //               statusList.put(currentRecord, new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
+ //                       + " LINK-target " + li.getHref() + " <" + li.getContent() + "> not added into the collection"));
+                  statusList.add( new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
+                        + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent()) + "> not added into the collection"));
             }
 
         });
@@ -729,7 +742,8 @@ public class NtrfMapper {
             // Drop ulottuvuus and continue
             if (r.getStat().equalsIgnoreCase("Ulottuvuus")) {
                 System.out.println("Dropping 'ulottuvuus' type node");
-                statusList.put(currentRecord, new StatusMessage(currentRecord, "Dropping 'ulottuvuus' type record"));
+//                statusList.put(currentRecord, new StatusMessage(currentRecord, "Dropping 'ulottuvuus' type record"));
+                statusList.add(new StatusMessage(currentRecord, "Dropping 'ulottuvuus' type record"));
                 return;
             }
         }
@@ -746,8 +760,9 @@ public class NtrfMapper {
                     // editorialNote = editorialNote+" -"+lastModifiedBy+", "+lastModifiedDate;
                     editorialNote = editorialNote + " - Viimeksi muokattu, " + lastModifiedDate;
                 } catch (DateTimeParseException dex) {
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
+ //                   statusList.put(currentRecord,
+ //                           new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
+                      statusList.add(new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
                     System.out.println("Parse error for date" + dex.getMessage());
                 }
             }
@@ -1105,7 +1120,9 @@ public class NtrfMapper {
                 // handleSOURF((SOURF)o,lang,properties,vocabularity);
                 handleSOURF((SOURF) o, null, properties, vocabulary);
             } else {
-                statusList.put(currentRecord, new StatusMessage(currentRecord,
+//                statusList.put(currentRecord, new StatusMessage(currentRecord,
+//                        " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString()));
+                        statusList.add(new StatusMessage(currentRecord,
                         " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString()));
                 System.out
                         .println(" REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString());
@@ -1252,8 +1269,9 @@ public class NtrfMapper {
                     addProperty("conceptScope", properties, att);
                 } else {
                     System.out.println("SUBJ unknown instance type:" + o.getClass().getName());
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
+//                    statusList.put(currentRecord,
+//                            new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
+                      statusList.add(new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
                 }
             });
         }
@@ -1649,8 +1667,9 @@ public class NtrfMapper {
                     }                            
                 } else {
                     System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
+//                    statusList.put(currentRecord,
+//                            new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
+                      statusList.add(new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
                 }
             }
         }
@@ -1831,8 +1850,9 @@ public class NtrfMapper {
                     noteString = noteString + "\n";
                 } else {
                     System.out.println("  Unhandled note-class " + j.getName().toString());
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
+//                    statusList.put(currentRecord,
+//                            new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
+                    statusList.add(new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
                 }
             } else {
                 System.out.println("Unhandled note-class " + de.getClass().getTypeName());
@@ -1915,8 +1935,9 @@ public class NtrfMapper {
                     addProperty("scope", properties, att);
                 } else {
                     System.out.println("SCOPE unknown instance type:" + o.getClass().getName());
-                    statusList.put(currentRecord,
-                            new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
+//                    statusList.put(currentRecord,
+//                            new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
+                    statusList.add(new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
                 }
             });
         }
@@ -2007,7 +2028,9 @@ public class NtrfMapper {
                         }
                     } else {
                         System.out.println("  UNKNOWN  SOURF-class" + se.getClass().getName());
-                        statusList.put(currentRecord, new StatusMessage(currentRecord,
+//                        statusList.put(currentRecord, new StatusMessage(currentRecord,
+//                                "SOURF unknown instance type:" + se.getClass().getName()));
+                        statusList.add(new StatusMessage(currentRecord,
                                 "SOURF unknown instance type:" + se.getClass().getName()));
                     }
                 }
@@ -2061,8 +2084,9 @@ public class NtrfMapper {
                 }
             } else {
                 logger.warn("Not matching reference found for:" + s);
-                statusList.put(currentRecord,
-                        new StatusMessage(currentRecord, "Not matching reference found for :" + s));
+//                statusList.put(currentRecord,
+//                        new StatusMessage(currentRecord, "Not matching reference found for :" + s));
+                statusList.add(new StatusMessage(currentRecord, "Not matching reference found for :" + s));
             }
             if (!sourcesString.isEmpty()) {
                 if (logger.isDebugEnabled())
