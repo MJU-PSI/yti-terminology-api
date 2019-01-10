@@ -123,7 +123,7 @@ public class NtrfMapper {
     private Map<String, List<ConnRef>> bconList = new LinkedHashMap<>();
 
     private String currentRecord;
-//    private Map<String, StatusMessage> statusList = new LinkedHashMap<>();
+    // private Map<String, StatusMessage> statusList = new LinkedHashMap<>();
     private List<StatusMessage> statusList = new ArrayList<>();
 
     int errorCount = 0;
@@ -178,9 +178,11 @@ public class NtrfMapper {
                 System.out.println("Failed UUID=" + reflist.get(1));
             }
 
-//            statusList.put("Termed block-operation:" + errorCount,
-//                    new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
-                    statusList.add(new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
+            // statusList.put("Termed block-operation:" + errorCount,
+            // new StatusMessage(Level.ERROR, currentRecord, "Termed error:" +
+            // ex.getResponseBodyAsString()));
+            statusList
+                    .add(new StatusMessage(Level.ERROR, currentRecord, "Termed error:" + ex.getResponseBodyAsString()));
             errorCount++;
             rv = false;
         }
@@ -314,10 +316,9 @@ public class NtrfMapper {
         });
 
         handleLinks(userId, jobtoken, vocabulary);
-/*        idMap.clear();
-        typeMap.clear();
-        initImport(vocabularyId);
-*/
+        /*
+         * idMap.clear(); typeMap.clear(); initImport(vocabularyId);
+         */
         // Handle DIAG-elements and create collections from them
         List<DIAG> DIAGList = l.stream().filter(o -> o instanceof DIAG).map(o -> (DIAG) o).collect(Collectors.toList());
         System.out.println("DIAG-count=" + DIAGList.size());
@@ -348,12 +349,11 @@ public class NtrfMapper {
         response.clearStatusMessages();
         // Add all status lines as individual members before
         /*
-        statusList.forEach((k, v) -> {
-            StatusMessage m = (StatusMessage) v;
-            response.addStatusMessage(new ImportStatusMessage(m.getLevel(), k, m.getMessage().toString()));
-            System.out.println("Item : " + k + " value : " + m.getMessage().toString());
-        });
-        */
+         * statusList.forEach((k, v) -> { StatusMessage m = (StatusMessage) v;
+         * response.addStatusMessage(new ImportStatusMessage(m.getLevel(), k,
+         * m.getMessage().toString())); System.out.println("Item : " + k + " value : " +
+         * m.getMessage().toString()); });
+         */
         statusList.forEach(v -> {
             StatusMessage m = (StatusMessage) v;
             response.addStatusMessage(new ImportStatusMessage(m.getLevel(), m.getRecord(), m.getMessage().toString()));
@@ -403,28 +403,28 @@ public class NtrfMapper {
                     List<Identifier> idref = null;
                     System.out.println("Add " + connType + " list to " + key + " size:" + rlist.size());
                     // Iterate through list and add them to node
-                    // BCON broader / isPartOf  (generic/partitive) default is broader
+                    // BCON broader / isPartOf (generic/partitive) default is broader
                     // RCON no reftype-definition so always related
-                    // NCON  narrower/hasPart (generic/partitive) default is narrover
-                    String refListName ="";
+                    // NCON narrower/hasPart (generic/partitive) default is narrover
+                    String refListName = "";
                     for (ConnRef ref : rlist) {
-                        if(connType.equalsIgnoreCase("BCON")){
+                        if (connType.equalsIgnoreCase("BCON")) {
                             // Default is generic -> broader
                             idref = refMap.get("broader");
                             refListName = "broader";
-                            if(ref.getType() != null && ref.getType().equalsIgnoreCase("partitive")){
+                            if (ref.getType() != null && ref.getType().equalsIgnoreCase("partitive")) {
                                 idref = refMap.get("isPartOf");
                                 refListName = "isPartOf";
                             }
-                        } else if( connType.equalsIgnoreCase("NCON")){
+                        } else if (connType.equalsIgnoreCase("NCON")) {
                             // default is generic->narrower
                             idref = refMap.get("narrower");
                             refListName = "narrower";
-                            if(ref.getType() != null && ref.getType().equalsIgnoreCase("partitive")){
+                            if (ref.getType() != null && ref.getType().equalsIgnoreCase("partitive")) {
                                 idref = refMap.get("hasPart");
                                 refListName = "hasPart";
                             }
-                        } else { 
+                        } else {
                             // RCON
                             idref = refMap.get("related");
                             refListName = "related";
@@ -444,26 +444,36 @@ public class NtrfMapper {
                         // @TODO! Go through refList and add only if missing.
 
                         if (!ref.getTargetId().equals(NULL_ID)) {
-                            idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
-                            // Put back int the correct list
-                            refMap.put(refListName, idref);
-                            System.out.println(refListName +"->"+ref.getReferenceString()+"  "+ref.getTargetId().toString());
+                            if (sourceId.equals(ref.getTargetId())) {
+                                System.err.println("Self-reference removed from "+key+" id:"+sourceId);
+                                statusList.add(new StatusMessage(key,
+                                "Self-reference removed from "+key+" id:"+sourceId));
+                        } else {
+                                idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
+                                // Put back int the correct list
+                                refMap.put(refListName, idref);
+                                System.out.println(refListName + "->" + ref.getReferenceString() + "  "
+                                        + ref.getTargetId().toString());
+                            }
                         } else {
                             System.err.println("Ref-target-id not found for :" + ref.getCode());
-//                            statusList.put(currentRecord,
-//                                new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
-                                statusList.add( new StatusMessage(currentRecord, connType + " Ref-target-id not found for : " + ref.getCode()));
+                            // statusList.put(currentRecord,
+                            // new StatusMessage(currentRecord, connType + " Ref-target-id not found for : "
+                            // + ref.getCode()));
+                            statusList.add(new StatusMessage(currentRecord,
+                                    connType + " Ref-target-id not found for : " + ref.getCode()));
                         }
-                    }      
+                    }
                     // Add it back to termed
                     addNodeList.add(gn);
                 } else {
                     logger.warn("Cant' resolve following! " + key + " type:" + connType + "=" + sourceId + "-- vocab="
                             + vocabulary.getId().toString());
-//                    statusList.put(currentRecord,
-//                            new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, connType + " reference match failed. for " +
+                    // key));
                     statusList.add(new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
-}
+                }
             } else {
                 System.out.println("Can't find source id:" + key);
             }
@@ -574,14 +584,16 @@ public class NtrfMapper {
                 memberRef.add(new Identifier(targetUUID, typeMap.get("Concept").getDomain()));
                 references.put("member", memberRef);
             } else {
-                System.out.println("<<<<DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent())
-                        + "> not added into the collection>>>");
-                logger.warn("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent())
-                        + "> not added into the collection");
- //               statusList.put(currentRecord, new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
- //                       + " LINK-target " + li.getHref() + " <" + li.getContent() + "> not added into the collection"));
-                  statusList.add( new StatusMessage(currentRecord, "DIAG:" + diag.getNumb()
-                        + " LINK-target " + li.getHref() + " <" + parseHrefText(li.getContent()) + "> not added into the collection"));
+                System.out.println("<<<<DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <"
+                        + parseHrefText(li.getContent()) + "> not added into the collection>>>");
+                logger.warn("DIAG:" + diag.getNumb() + " LINK-target " + li.getHref() + " <"
+                        + parseHrefText(li.getContent()) + "> not added into the collection");
+                // statusList.put(currentRecord, new StatusMessage(currentRecord, "DIAG:" +
+                // diag.getNumb()
+                // + " LINK-target " + li.getHref() + " <" + li.getContent() + "> not added into
+                // the collection"));
+                statusList.add(new StatusMessage(currentRecord, "DIAG:" + diag.getNumb() + " LINK-target "
+                        + li.getHref() + " <" + parseHrefText(li.getContent()) + "> not added into the collection"));
             }
 
         });
@@ -742,7 +754,8 @@ public class NtrfMapper {
             // Drop ulottuvuus and continue
             if (r.getStat().equalsIgnoreCase("Ulottuvuus")) {
                 System.out.println("Dropping 'ulottuvuus' type node");
-//                statusList.put(currentRecord, new StatusMessage(currentRecord, "Dropping 'ulottuvuus' type record"));
+                // statusList.put(currentRecord, new StatusMessage(currentRecord, "Dropping
+                // 'ulottuvuus' type record"));
                 statusList.add(new StatusMessage(currentRecord, "Dropping 'ulottuvuus' type record"));
                 return;
             }
@@ -760,9 +773,9 @@ public class NtrfMapper {
                     // editorialNote = editorialNote+" -"+lastModifiedBy+", "+lastModifiedDate;
                     editorialNote = editorialNote + " - Viimeksi muokattu, " + lastModifiedDate;
                 } catch (DateTimeParseException dex) {
- //                   statusList.put(currentRecord,
- //                           new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
-                      statusList.add(new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
+                    statusList.add(new StatusMessage(currentRecord, "Parse error for date" + dex.getMessage()));
                     System.out.println("Parse error for date" + dex.getMessage());
                 }
             }
@@ -785,8 +798,8 @@ public class NtrfMapper {
 
         // Handle Subject
         List<SUBJ> subjs = r.getSUBJ();
-        subjs.forEach(o->{
-            handleSUBJ(o,properties);
+        subjs.forEach(o -> {
+            handleSUBJ(o, properties);
         });
 
         // Filter CLAS elemets as list
@@ -812,18 +825,20 @@ public class NtrfMapper {
         }
         // Filter BCON elemets as list
         List<BCON> bcon = r.getBCON();
-        for(BCON o:bcon){
+        for (BCON o : bcon) {
             System.out.println("--BCON=" + o.getHref());
             // RECORD/BCON
             handleBCON(currentId, o);
-        };
+        }
+        ;
         List<RCON> rcon = r.getRCON();
-        for(RCON o:rcon){
+        for (RCON o : rcon) {
             System.out.println("--RCON=" + o.getHref());
             // RECORD/RCON
             handleRCON(currentId, o);
-        };
-       // Filter NCON elemets as list
+        }
+        ;
+        // Filter NCON elemets as list
         List<NCON> ncon = r.getNCON();
         for (NCON o : ncon) {
             System.out.println("--NCON=" + o.getHref());
@@ -995,7 +1010,7 @@ public class NtrfMapper {
                 parentReferences.put("notRecommendedSynonym", ref);
             }
         });
-        
+
         TypeId typeId = typeMap.get("Term").getDomain();
         // Uri is parent-uri/term-'code'
         GenericNode node = null;
@@ -1056,7 +1071,7 @@ public class NtrfMapper {
         if (tc.getGEOG() != null) {
             String lng = (lang.toLowerCase() + "-" + tc.getGEOG().toUpperCase());
             System.err.println("GEOG=" + lng);
-            lang=lng;
+            lang = lng;
         }
         // LANG/TE/TERM
         if (tc.getTERM() != null) {
@@ -1085,7 +1100,7 @@ public class NtrfMapper {
         if (tc.getREMK() != null) {
             handleREMK(lang, tc.getREMK(), properties, vocabularity);
         }
-        if(tc.getADD() != null){            
+        if (tc.getADD() != null) {
             handleADD(lang, tc.getADD(), properties);
         }
     }
@@ -1115,14 +1130,15 @@ public class NtrfMapper {
                 LINK l = (LINK) o;
                 String linkRef = parseLinkRef(l, vocabulary);
                 editorialNote = editorialNote
-                        .concat("<a href='" + l.getHref() + "' data-type='external'>" + linkRef+ "</a>");
+                        .concat("<a href='" + l.getHref() + "' data-type='external'>" + linkRef + "</a>");
             } else if (o instanceof SOURF) {
                 // handleSOURF((SOURF)o,lang,properties,vocabularity);
                 handleSOURF((SOURF) o, null, properties, vocabulary);
             } else {
-//                statusList.put(currentRecord, new StatusMessage(currentRecord,
-//                        " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString()));
-                        statusList.add(new StatusMessage(currentRecord,
+                // statusList.put(currentRecord, new StatusMessage(currentRecord,
+                // " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" +
+                // o.toString()));
+                statusList.add(new StatusMessage(currentRecord,
                         " REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString()));
                 System.out
                         .println(" REMK: unhandled contentclass=" + o.getClass().getName() + " value=" + o.toString());
@@ -1265,25 +1281,24 @@ public class NtrfMapper {
             subj.getContent().forEach(o -> {
                 if (o instanceof String) {
                     Attribute att = new Attribute(null, o.toString());
-//                    Attribute att = new Attribute(lang, o.toString());
+                    // Attribute att = new Attribute(lang, o.toString());
                     addProperty("conceptScope", properties, att);
                 } else {
                     System.out.println("SUBJ unknown instance type:" + o.getClass().getName());
-//                    statusList.put(currentRecord,
-//                            new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
-                      statusList.add(new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, "SUBJS unknown instance type:" +
+                    // o.getClass().getName()));
+                    statusList.add(
+                            new StatusMessage(currentRecord, "SUBJS unknown instance type:" + o.getClass().getName()));
                 }
             });
         }
 
-/*
-        String status = "DRAFT";
-        if (stat != null && !stat.isEmpty() && stat.equalsIgnoreCase("vanhentunut")) {
-            status = "RETIRED";
-            Attribute att = new Attribute(null, status);
-            addProperty("status", properties, att);
-        }
-        */
+        /*
+         * String status = "DRAFT"; if (stat != null && !stat.isEmpty() &&
+         * stat.equalsIgnoreCase("vanhentunut")) { status = "RETIRED"; Attribute att =
+         * new Attribute(null, status); addProperty("status", properties, att); }
+         */
     }
 
     /**
@@ -1297,30 +1312,31 @@ public class NtrfMapper {
     private void handleBCON(UUID currentConcept, BCON o) {
         if (logger.isDebugEnabled())
             logger.debug("handleBCON:" + o.getHref());
-        String brefId = o.getHref();        
+        String brefId = o.getHref();
         // Remove #
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
 
-            System.out.println("handleBCON add item from source record:" + currentRecord + "--> target:" + brefId+ " Type"+o.getTypr());
-            ConnRef conRef = new ConnRef();
-            // Use delayed resolving, so save record id for logging purposes
-            conRef.setCode(currentRecord);
-            conRef.setReferenceString(brefId);
-            // Null id, as a placeholder for target
-            conRef.setId(currentConcept);
-            conRef.setType(o.getTypr());
-            conRef.setTargetId(NULL_ID);
+        System.out.println("handleBCON add item from source record:" + currentRecord + "--> target:" + brefId + " Type"
+                + o.getTypr());
+        ConnRef conRef = new ConnRef();
+        // Use delayed resolving, so save record id for logging purposes
+        conRef.setCode(currentRecord);
+        conRef.setReferenceString(brefId);
+        // Null id, as a placeholder for target
+        conRef.setId(currentConcept);
+        conRef.setType(o.getTypr());
+        conRef.setTargetId(NULL_ID);
 
-            // if not yet defined, create list and populate it
-            List<ConnRef> reflist;
-            if (bconList.containsKey(currentRecord)) {
-                reflist = bconList.get(currentRecord);
-            } else {
-                reflist = new ArrayList<>();
-            }
-            reflist.add(conRef);
-            bconList.put(currentRecord, reflist);     
+        // if not yet defined, create list and populate it
+        List<ConnRef> reflist;
+        if (bconList.containsKey(currentRecord)) {
+            reflist = bconList.get(currentRecord);
+        } else {
+            reflist = new ArrayList<>();
+        }
+        reflist.add(conRef);
+        bconList.put(currentRecord, reflist);
     }
 
     /**
@@ -1333,29 +1349,29 @@ public class NtrfMapper {
     private void handleRCON(UUID currentConcept, RCON o) {
         if (logger.isDebugEnabled())
             logger.debug("handleRCON:" + o.getHref());
-        String brefId = o.getHref();        
+        String brefId = o.getHref();
         // Remove #
         if (brefId.startsWith("#"))
             brefId = o.getHref().substring(1);
 
-            System.out.println("handleRCON add item from source record:" + currentRecord + "--> target:" + brefId);
-            ConnRef conRef = new ConnRef();
-            // Use delayed resolving, so save record id for logging purposes
-            conRef.setCode(currentRecord);
-            conRef.setReferenceString(brefId);
-            // Null id, as a placeholder for target
-            conRef.setId(currentConcept);
-            conRef.setTargetId(NULL_ID);
+        System.out.println("handleRCON add item from source record:" + currentRecord + "--> target:" + brefId);
+        ConnRef conRef = new ConnRef();
+        // Use delayed resolving, so save record id for logging purposes
+        conRef.setCode(currentRecord);
+        conRef.setReferenceString(brefId);
+        // Null id, as a placeholder for target
+        conRef.setId(currentConcept);
+        conRef.setTargetId(NULL_ID);
 
-            // if not yet defined, create list and populate it
-            List<ConnRef> reflist;
-            if (rconList.containsKey(currentRecord)) {
-                reflist = rconList.get(currentRecord);
-            } else {
-                reflist = new ArrayList<>();
-            }
-            reflist.add(conRef);
-            rconList.put(currentRecord, reflist);     
+        // if not yet defined, create list and populate it
+        List<ConnRef> reflist;
+        if (rconList.containsKey(currentRecord)) {
+            reflist = rconList.get(currentRecord);
+        } else {
+            reflist = new ArrayList<>();
+        }
+        reflist.add(conRef);
+        rconList.put(currentRecord, reflist);
     }
 
     /**
@@ -1478,7 +1494,7 @@ public class NtrfMapper {
      * @param o
      * @param narroverConceptId
      */
-    private void handleNCON(UUID currentConcept, NCON o ) {
+    private void handleNCON(UUID currentConcept, NCON o) {
         if (logger.isDebugEnabled())
             logger.debug("handleNCON:" + o.getHref());
         String nrefId = o.getHref();
@@ -1589,15 +1605,15 @@ public class NtrfMapper {
 
                     BCON bc = (BCON) de;
                     defString = defString.concat("<a href='" + vocabulary.getUri());
-                    String typr=bc.getTypr();
-                    if(typr == null ){ // default when  not set up
+                    String typr = bc.getTypr();
+                    if (typr == null) { // default when not set up
                         typr = "broader";
-                    } else if( typr.equalsIgnoreCase("partitive")){
-                            typr = "isPartOf";
+                    } else if (typr.equalsIgnoreCase("partitive")) {
+                        typr = "isPartOf";
                     } else { // default
                         typr = "broader";
                     }
-                    
+
                     // Remove # from uri
                     defString = defString.concat(getCleanRef(bc.getHref(), typr));
                     String hrefText = parseHrefText(bc.getContent());
@@ -1620,11 +1636,11 @@ public class NtrfMapper {
 
                     NCON nc = (NCON) de;
                     defString = defString.concat("<a href='" + vocabulary.getUri());
-                    String typr=nc.getTypr();
-                    if(typr == null ){ // default when  not set up
+                    String typr = nc.getTypr();
+                    if (typr == null) { // default when not set up
                         typr = "narrower";
-                    } else if( typr.equalsIgnoreCase("partitive")){
-                            typr = "hasPart";
+                    } else if (typr.equalsIgnoreCase("partitive")) {
+                        typr = "hasPart";
                     } else { // default
                         typr = "narrower";
                     }
@@ -1634,7 +1650,7 @@ public class NtrfMapper {
                     String hrefText = parseHrefText(nc.getContent());
                     defString = defString.concat(">" + hrefText.trim() + "</a>");
                     // Add also reference
-                    handleNCONRef(currentConcept, nc, parentReferences);                    
+                    handleNCONRef(currentConcept, nc, parentReferences);
                 } else if (de instanceof SOURF) {
                     handleSOURF((SOURF) de, null, termProperties, vocabulary);
                     // handleSOURF((SOURF)de, lang, termProperties, vocabularity);
@@ -1648,7 +1664,7 @@ public class NtrfMapper {
                         // Remove "href:" from string
                         // "href:https://www.finlex.fi/fi/laki/ajantasa/1973/19730036"
                         String linkRef = lc.getHref();
-    
+
                         linkRef = parseLinkRef(lc, vocabulary);
                         if (linkRef.startsWith("href:")) {
                             linkRef = linkRef.substring(5);
@@ -1657,19 +1673,20 @@ public class NtrfMapper {
                                 + lc.getContent().get(0).toString().trim() + "</a> ");
                         System.out.println("Add DEF LINK:" + linkRef);
                     }
-                    } else if(de instanceof JAXBElement){
+                } else if (de instanceof JAXBElement) {
                     // HOGR
                     JAXBElement el = (JAXBElement) de;
                     if (el.getName().toString().equalsIgnoreCase("HOGR")) {
                         defString = defString.trim() + " (" + el.getValue().toString() + ")";
                     } else if (de instanceof String) {
-                        defString = defString + (String)de;
-                    }                            
+                        defString = defString + (String) de;
+                    }
                 } else {
                     System.out.println("DEF, unhandled CLASS=" + de.getClass().getName());
-//                    statusList.put(currentRecord,
-//                            new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
-                      statusList.add(new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, "DEF, unhandled CLASS=" +
+                    // de.getClass().getName()));
+                    statusList.add(new StatusMessage(currentRecord, "DEF, unhandled CLASS=" + de.getClass().getName()));
                 }
             }
         }
@@ -1706,7 +1723,7 @@ public class NtrfMapper {
 
     private String parseLinkRef(LINK li, Graph vocabulary) {
         String linkRef = li.getHref();
-        // Remove "href:" from string 
+        // Remove "href:" from string
         if (linkRef.startsWith("href:")) {
             linkRef = linkRef.substring(5);
         }
@@ -1718,7 +1735,7 @@ public class NtrfMapper {
                 linkRef = vocabulary.getUri() + "/" + linkRef.substring(1);
             }
         }
-        System.out.println("LINKREF="+linkRef);
+        System.out.println("LINKREF=" + linkRef);
         return linkRef;
     }
 
@@ -1754,7 +1771,7 @@ public class NtrfMapper {
                     noteString = noteString.concat(str.trim() + " ");
                 } else // Add space befor and after
                     noteString = noteString.concat(" " + str.trim() + " ");
-                } else if (de instanceof SOURF) {
+            } else if (de instanceof SOURF) {
                 if (((SOURF) de).getContent() != null && ((SOURF) de).getContent().size() > 0) {
                     handleSOURF((SOURF) de, null, termProperties, vocabulary);
                     // handleSOURF((SOURF)de, lang, termProperties,vocabulary);
@@ -1779,11 +1796,11 @@ public class NtrfMapper {
                 BCON bc = (BCON) de;
                 if (bc.getContent() != null && bc.getContent().size() > 0) {
                     noteString = noteString.concat("<a href='" + vocabulary.getUri());
-                    String typr=bc.getTypr();
-                    if(typr == null ){ // default when  not set up
+                    String typr = bc.getTypr();
+                    if (typr == null) { // default when not set up
                         typr = "broader";
-                    } else if( typr.equalsIgnoreCase("partitive")){
-                            typr = "isPartOf";
+                    } else if (typr.equalsIgnoreCase("partitive")) {
+                        typr = "isPartOf";
                     } else { // default
                         typr = "broader";
                     }
@@ -1800,11 +1817,11 @@ public class NtrfMapper {
                 NCON nc = (NCON) de;
                 if (nc.getContent() != null && nc.getContent().size() > 0) {
                     noteString = noteString.concat("<a href='" + vocabulary.getUri());
-                    String typr=nc.getTypr();
-                    if(typr == null ){ // default when  not set up
+                    String typr = nc.getTypr();
+                    if (typr == null) { // default when not set up
                         typr = "narrower";
-                    } else if( typr.equalsIgnoreCase("partitive")){
-                            typr = "hasPart";
+                    } else if (typr.equalsIgnoreCase("partitive")) {
+                        typr = "hasPart";
                     } else { // default
                         typr = "narrower";
                     }
@@ -1850,8 +1867,9 @@ public class NtrfMapper {
                     noteString = noteString + "\n";
                 } else {
                     System.out.println("  Unhandled note-class " + j.getName().toString());
-//                    statusList.put(currentRecord,
-//                            new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, "Unhandled note-class " +
+                    // j.getName().toString()));
                     statusList.add(new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
                 }
             } else {
@@ -1865,7 +1883,7 @@ public class NtrfMapper {
 
         // Add note if exist.
         if (!noteString.isEmpty()) {
-            System.out.println("parseNOTE str:"+noteString);
+            System.out.println("parseNOTE str:" + noteString);
             noteString = noteString.replaceAll(" , ", ", ");
             noteString = noteString.replaceAll(" . ", ". ");
             Attribute att = new Attribute(lang, noteString.trim());
@@ -1900,7 +1918,7 @@ public class NtrfMapper {
             String lng = (lang.toLowerCase() + "-" + synonym.getGEOG().toUpperCase());
             System.out.println("SY-GEOG=" + lng);
             // lang=lang+"-"+synonym.getGEOG();
-            lang=lng;
+            lang = lng;
         }
 
         synonym.getEQUI();
@@ -1935,9 +1953,11 @@ public class NtrfMapper {
                     addProperty("scope", properties, att);
                 } else {
                     System.out.println("SCOPE unknown instance type:" + o.getClass().getName());
-//                    statusList.put(currentRecord,
-//                            new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
-                    statusList.add(new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
+                    // statusList.put(currentRecord,
+                    // new StatusMessage(currentRecord, "SCOPE unknown instance type:" +
+                    // o.getClass().getName()));
+                    statusList.add(
+                            new StatusMessage(currentRecord, "SCOPE unknown instance type:" + o.getClass().getName()));
                 }
             });
         }
@@ -1948,7 +1968,7 @@ public class NtrfMapper {
         if (synonym.getTERM() != null) {
             handleTERM(synonym.getTERM(), lang, properties);
         }
-        if(synonym.getADD() != null){            
+        if (synonym.getADD() != null) {
             handleADD(lang, synonym.getADD(), properties);
         }
 
@@ -2028,8 +2048,8 @@ public class NtrfMapper {
                         }
                     } else {
                         System.out.println("  UNKNOWN  SOURF-class" + se.getClass().getName());
-//                        statusList.put(currentRecord, new StatusMessage(currentRecord,
-//                                "SOURF unknown instance type:" + se.getClass().getName()));
+                        // statusList.put(currentRecord, new StatusMessage(currentRecord,
+                        // "SOURF unknown instance type:" + se.getClass().getName()));
                         statusList.add(new StatusMessage(currentRecord,
                                 "SOURF unknown instance type:" + se.getClass().getName()));
                     }
@@ -2084,8 +2104,8 @@ public class NtrfMapper {
                 }
             } else {
                 logger.warn("Not matching reference found for:" + s);
-//                statusList.put(currentRecord,
-//                        new StatusMessage(currentRecord, "Not matching reference found for :" + s));
+                // statusList.put(currentRecord,
+                // new StatusMessage(currentRecord, "Not matching reference found for :" + s));
                 statusList.add(new StatusMessage(currentRecord, "Not matching reference found for :" + s));
             }
             if (!sourcesString.isEmpty()) {
