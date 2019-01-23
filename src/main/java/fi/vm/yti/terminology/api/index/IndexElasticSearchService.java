@@ -226,6 +226,18 @@ public class IndexElasticSearchService {
 
     void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
+        int fullReindexNodeCountThreshold = 20;
+        System.out.println("updateIndexAfterDelete()" + nodes.toString() + " hasVoc:" + nodes.hasVocabulary());
+        UUID voc = nodes.getGraphId();
+
+        // In case of treshold overcome, make full reindex
+        if (nodes.hasVocabulary() || nodes.getVocabularyIds().size() > fullReindexNodeCountThreshold) {
+            reindexVocabularies();
+            System.out.println("Vocabulary=" + voc + " vocs=" + nodes.getVocabularyIds().size());
+        } else {
+            System.out.println("Vocabulary delete single=" + voc + " vocs=" + nodes.getVocabularyIds().size());
+        }        
+
         if (nodes.hasVocabulary()) {
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
         } else {

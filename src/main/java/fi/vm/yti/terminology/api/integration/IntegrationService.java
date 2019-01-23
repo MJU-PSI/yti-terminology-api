@@ -95,9 +95,14 @@ public class IntegrationService {
                         stat = source.findPath("status").findPath("value").asText();
                     }
 
-                    String modifiedDate = source.get("lastModifiedDate").asText();
-                    String uri = source.get("uri").asText();
-
+                    String modifiedDate =null;
+                    if(source.get("lastModifiedDate") != null) {
+                        modifiedDate = source.get("lastModifiedDate").asText();
+                    }
+                    String uri = null;
+                    if(source.get("uri")!= null ){
+                        uri = source.get("uri").asText();
+                    }
                     ContainersResponse respItem = new ContainersResponse();
                     respItem.setUri(uri);
                     if(stat!=null && !stat.isEmpty()){
