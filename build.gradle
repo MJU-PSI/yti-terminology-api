@@ -10,6 +10,7 @@ buildscript {
 
 plugins {
     id "org.sonarqube" version "2.6.2"
+    id "org.owasp.dependencycheck" version "4.0.2"
 }
 
 apply plugin: 'java'
@@ -21,16 +22,11 @@ artifactoryPublish.skip = true
 
 jar.baseName = 'yti-terminology-api'
 
-
-
-
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:Dalston.SR5"
     }
 }
-
-
 
 configurations.all {
     resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
@@ -104,5 +100,18 @@ sonarqube {
     properties {
         property "sonar.projectKey", "yti-terminology-api"
         property "sonar.projectName", "yti-terminology-api"
+        property("sonar.dependencyCheck.reportPath", "$buildDir/reports/dependency-check-report.xml")
+        property("sonar.dependencyCheck.htmlReportPath", "$buildDir/reports/dependency-check-report.html")
+    }
+}
+
+dependencyCheck {
+    format = 'ALL'
+    autoUpdate = false
+    analyzers {
+        centralEnabled = false
+    }
+    data {
+        directory = System.getenv('OWASP_DATA_DIR')
     }
 }
