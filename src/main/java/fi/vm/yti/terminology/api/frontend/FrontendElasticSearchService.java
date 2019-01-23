@@ -37,12 +37,21 @@ public class FrontendElasticSearchService {
 
     @SuppressWarnings("Duplicates")
     String searchConcept(JsonNode query) {
+        return searchFromIndex(query, "concepts");
+    }
+
+    @SuppressWarnings("Duplicates")
+    String searchVocabulary(JsonNode query) {
+        return searchFromIndex(query, "vocabularies");
+    }
+
+    String searchFromIndex(JsonNode query, String index) {
         Parameters params = new Parameters();
         params.add("source", query.toString());
         params.add("source_content_type", "application/json");
-        String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+        String endpoint = "/" + index + "/" + indexMappingType + "/_search";
         NStringEntity body = new NStringEntity(query.toString(), ContentType.APPLICATION_JSON);
-
+System.out.println("FEElasticSearchService.searchConcepts() EndPoint="+endpoint);
         try {
             Response response = esRestClient.performRequest("GET", endpoint, Collections.emptyMap(), body);
             return responseContentAsString(response);

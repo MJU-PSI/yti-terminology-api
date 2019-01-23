@@ -53,7 +53,18 @@ public class YtiMQListener {
                 .withPayload("Processing " + uri)
                 .setHeaders(accessor)
                 .build();
-//        jmsMessagingTemplate.send(subSystem+"Status", mess);
         return message;
     }
+/*
+    @JmsListener(destination =  "${mq.active.subsystem}Status")
+//    @SendTo("${mq.active.subsystem}StatusTest")
+    public void receiveStatusMessage(final Message message,
+                                  Session session,
+                                  @Header String jobtoken,
+                                  @Header String userId,
+                                  @Header String uri) throws JMSException {
+        System.out.println("Consume status Message headers=" + message.getHeaders());
+        System.out.println(message.getPayload().toString());
+    }
+*/
 }

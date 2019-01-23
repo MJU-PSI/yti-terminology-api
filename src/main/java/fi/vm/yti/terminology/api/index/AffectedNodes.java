@@ -27,6 +27,10 @@ final class AffectedNodes {
         return unmodifiableList(conceptsIds);
     }
 
+    @NotNull List<UUID> getVocabularyIds() {
+        return unmodifiableList(vocabularyIds);
+    }
+
     boolean hasVocabulary() {
         return !this.vocabularyIds.isEmpty();
     }

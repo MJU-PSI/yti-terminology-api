@@ -2,7 +2,9 @@ package fi.vm.yti.terminology.api.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
+import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -10,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.core.ParameterizedTypeReference;
 
 import java.util.Collection;
 import java.util.List;
@@ -58,6 +61,32 @@ public class IndexTermedService {
         return asStream(termedRequester.exchange("/graphs", GET, Parameters.empty(), JsonNode.class))
                 .map(x -> UUID.fromString(x.get("id").textValue()))
                 .collect(toList());
+    }
+
+    @NotNull List<UUID> fetchAllAvailableVocabularyGraphIds() {
+
+        log.info("Fetching all vocabulary graph IDs..");
+        return asStream(termedRequester.exchange("/graphs", GET, Parameters.empty(), JsonNode.class))
+                .filter(node -> {
+                    // Proper vocabularies have existing URI
+                    // And don't  start with http://urn.fi/URN:NBN
+                    if(node.get("uri") != null ){
+                        if ( !node.get("uri").textValue().isEmpty() && !node.get("uri").textValue().startsWith("http://urn.fi/URN:NBN")) {
+                            return true;
+                        }
+                    } 
+                    return false;
+                })
+                .map(x -> UUID.fromString(x.get("id").textValue()))
+                .collect(toList());
+    }
+
+    @NotNull List<Graph> fetchAllAvailableGraphs() {
+
+        log.info("Fetching all graph");
+        return requireNonNull(
+                termedRequester.exchange("/graphs", GET, Parameters.empty(), new ParameterizedTypeReference<List<Graph>>() {
+                }));               
     }
 
 	@NotNull List<Concept> getAllConceptsForGraph(@NotNull UUID graphId) {
@@ -138,10 +167,9 @@ public class IndexTermedService {
         }
     }
 
-    private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId) {
+    public @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId) {
 
         JsonNode json = getVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
-
         if (json != null) {
             return json;
         } else {
@@ -150,6 +178,36 @@ public class IndexTermedService {
         }
     }
 
+    public @Nullable JsonNode getTerminologyVocabularyNode(@NotNull UUID graphId) {
+
+        long start = System.currentTimeMillis();
+        JsonNode json = getFullVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
+        long end = System.currentTimeMillis();
+        System.out.println("Vocabulary Search took "+(end-start));
+        if (json != null) {
+            return json;
+        } else {
+            log.info("Vocabulary for graph " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
+            return getVocabularyNode(graphId, VocabularyType.Vocabulary);
+        }
+    }
+
+    private @Nullable JsonNode getFullVocabularyNode(@NotNull UUID graphId, @NotNull VocabularyType vocabularyType) {
+
+        Parameters params = new Parameters();
+        params.add("select", "*");
+/*
+        params.add("select", "id");
+        params.add("select", "type");
+        params.add("select", "properties.*");
+        params.add("select", "lastModifiedDate");
+        */
+        params.add("where", "graph.id:" + graphId);
+        params.add("where", "type.id:" + vocabularyType.name());
+        params.add("max", "-1");
+
+        return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
+    }
     private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId, @NotNull VocabularyType vocabularyType) {
 
         Parameters params = new Parameters();

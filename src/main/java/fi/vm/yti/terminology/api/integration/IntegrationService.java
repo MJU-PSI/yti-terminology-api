@@ -1,13 +1,21 @@
 package fi.vm.yti.terminology.api.integration;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
+import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
+import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
+import fi.vm.yti.terminology.api.integration.containers.ContainersResponse;
+import fi.vm.yti.terminology.api.integration.containers.Description;
+import fi.vm.yti.terminology.api.integration.containers.PrefLabel;
+import fi.vm.yti.terminology.api.model.integration.ConceptSuggestion;
+import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.security.AuthorizationManager;
+import fi.vm.yti.terminology.api.util.JsonUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,34 +24,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.terminology.api.TermedRequester;
-import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
-import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
-import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
-import fi.vm.yti.terminology.api.model.integration.ConceptSuggestion;
-import fi.vm.yti.terminology.api.model.termed.Attribute;
-import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
-import fi.vm.yti.terminology.api.model.termed.GenericNode;
-import fi.vm.yti.terminology.api.model.termed.GenericNodeInlined;
-import fi.vm.yti.terminology.api.model.termed.Graph;
-import fi.vm.yti.terminology.api.model.termed.Identifier;
-import fi.vm.yti.terminology.api.model.termed.MetaNode;
-import fi.vm.yti.terminology.api.model.termed.Property;
-import fi.vm.yti.terminology.api.model.termed.TypeId;
-import fi.vm.yti.terminology.api.security.AuthorizationManager;
-import fi.vm.yti.terminology.api.util.JsonUtils;
-import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import java.text.SimpleDateFormat;
-
-import fi.vm.yti.terminology.api.integration.containers.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
 
 @Service
 public class IntegrationService {
@@ -82,113 +68,102 @@ public class IntegrationService {
 
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
-        // Get vocabularies
-        List<Graph> vocs = termedService.getGraphs();
+        /**
+         * Elastic query, returns 10k results from index
+         * { "query" : { "match_all" : {} },
+         * "_source":["id","properties.prefLabel","properties.description","modified",
+         * "status","uri"]
+         * 
+         * }
+         */
+        String query = "{\"query\": { \"match_all\":{} },\"size\":\"10000\", \"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\", \"properties.status\",\"uri\"]}";
 
-        System.out.println(" lan=" + language + " pageSize=" + pageSize + " From=" + from + " Status=" + statusEnum
-                + " After=" + after + " includeMeta=" + includeMeta);
-        vocs.forEach(o -> {
-            boolean addItem = true;
-            List<Attribute> description = null;
-            fi.vm.yti.terminology.api.integration.containers.Description desc = null;
-            List<Attribute> status = null;
-            Date modifiedDate = null;
-            PrefLabel prefLabel = null;
-            String uri = o.getUri();
-            List<Property> preflabels = o.getProperties().get("prefLabel");
-            if (preflabels != null) {
-                prefLabel = new PrefLabel();
-                for (Property p : preflabels) {
-                    if ("fi".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setFi(p.getValue());
+        if(logger.isDebugEnabled()){
+            logger.debug("HandleVocabularies() query=" + query);
+        }
+        JsonNode result = elasticSearchService.freeSearchFromIndex(query, "vocabularies");
+//        JsonUtils.prettyPrintJson(result);
+        JsonNode nodes = result.get("hits");
+        if (nodes != null) {
+            nodes = nodes.get("hits");
+            nodes.forEach(hit -> {
+                JsonNode source = hit.get("_source");
+                if (source != null) {
+                    // Some   vocabularies  has no status at all
+                    String stat = null;
+                    if (source.findPath("status") != null) {
+                        stat = source.findPath("status").findPath("value").asText();
                     }
-                    if ("sv".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setSv(p.getValue());
-                    }
-                    if ("en".equalsIgnoreCase(p.getLang())) {
-                        prefLabel.setEn(p.getValue());
-                    }
-                }
-                ;
-            }
-            /*
-             * { "uri": "http://uri.suomi.fi/codelist/test/010", "prefLabel": { "fi": "010"
-             * }, "description": {}, "status": "DRAFT", "modified":
-             * "2018-11-28T10:48:09.485Z" }
-             */
-            try {
-                GenericNodeInlined gn = termedService.getVocabulary(o.getId());
-                if (gn != null) {
-                    description = gn.getProperties().get("description");
-                    status = gn.getProperties().get("status");
 
+                    String modifiedDate = source.get("lastModifiedDate").asText();
+                    String uri = source.get("uri").asText();
+
+                    ContainersResponse respItem = new ContainersResponse();
+                    respItem.setUri(uri);
+                    if(stat!=null && !stat.isEmpty()){
+                        respItem.setStatus(stat);
+                    }
+                    if (modifiedDate != null) {
+                        // Curently returns 2019-01-07T09:16:32.432+02:00
+                        // use only first 19 chars
+                        respItem.setModified(modifiedDate.substring(0, 19));
+                    }
+                    JsonNode label = source.findPath("prefLabel");
+                    if (label != null) {
+                        PrefLabel plab = new PrefLabel();
+                        label.forEach(lb->{
+                            String lan=null;
+                            String val=null;
+                            if(lb.findPath("lang") != null){
+                                lan=lb.findPath("lang").asText();
+                            }
+                            if(lb.findPath("value") != null){
+                                val=lb.findPath("value").asText();
+                            }
+                            if(lan != null){
+                                if(lan.equalsIgnoreCase("fi")){
+                                    plab.setFi(val);
+                                } else if(lan.equalsIgnoreCase("en")){
+                                    plab.setEn(val);
+                                } else if(lan.equalsIgnoreCase("sv")){
+                                    plab.setSv(val);
+                                }
+                            }
+                        });
+                        respItem.setPrefLabel(plab);
+                    }
+
+                    JsonNode description = source.findPath("description");
                     if (description != null) {
-                        desc = new Description();
-                        for (Attribute at : description) {
-                            System.out.println(" desc=" + at.getValue() + " lang=" + at.getLang());
-                            if ("fi".equalsIgnoreCase(at.getLang())) {
-                                desc.setFi(at.getValue());
+                        Description desc = new Description();
+                        description.forEach(de->{
+                            String lan=null;
+                            String val=null;
+                            if(de.findPath("lang") != null){
+                                lan=de.findPath("lang").asText();
                             }
-                            if ("sv".equalsIgnoreCase(at.getLang())) {
-                                desc.setSv(at.getValue());
+                            if(de.findPath("value") != null){
+                                val=de.findPath("value").asText();
+                                val=Jsoup.clean(val, Whitelist.none());
                             }
-                            if ("en".equalsIgnoreCase(at.getLang())) {
-                                desc.setEn(at.getValue());
+                            if(lan != null){
+                                if(lan.equalsIgnoreCase("fi")){
+                                    desc.setFi(val);
+                                } else if(lan.equalsIgnoreCase("en")){
+                                    desc.setEn(val);
+                                } else if(lan.equalsIgnoreCase("sv")){
+                                    desc.setSv(val);
+                                }
                             }
-                        }
+                        }); 
+                        respItem.setDescription(desc);
                     }
-                    modifiedDate = gn.getLastModifiedDate();
-                }
-            } catch (NodeNotFoundException ex) {
-                // System.out.println(ex);
-            }
-
-            List<String> stat = new ArrayList<>();
-            if (status != null) {
-                status.forEach(p -> {
-                    stat.add(p.getValue());
-                });
-            }
-            ContainersResponse respItem = new ContainersResponse();
-            respItem.setUri(uri);
-            if (modifiedDate != null) {
-                SimpleDateFormat sm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-                respItem.setModified(sm.format(modifiedDate));
-            }
-            if (prefLabel != null) {
-                respItem.setPrefLabel(prefLabel);
-            }
-            if (desc != null) {
-                respItem.setDescription(desc);
-            }
-            if (stat != null && !stat.isEmpty()) {
-                respItem.setStatus(stat.get(0));
-            }
-            // Filter using status
-            if (statusEnum != null) {
-                if (respItem.getStatus() == null) {
-                    addItem = false;
+                    resp.add(respItem);
                 } else {
-                    if (!statusEnum.toUpperCase().contains(respItem.getStatus().toUpperCase())) {
-                        addItem = false;
-                        System.out.println("Filter out status:" + respItem.getStatus());
-                    }
+                    logger.error("hit=" + hit);
                 }
-            }
-            // filter out vocabularies without uri
-            if (uri == null || (uri != null && uri.isEmpty())) {
-                addItem = false;
-            }
-            // filter out vocabularies without modified date. Internal groups have no date
-            // so
-            if (modifiedDate == null) {
-                addItem = false;
-            }
-
-            if (addItem) {
-                resp.add(respItem);
-            }
-        });
+            });
+        }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(resp), HttpStatus.OK);
     }
 
@@ -223,7 +198,7 @@ public class IntegrationService {
         List<ContainersResponse> resp = new ArrayList<>();
         JsonNode nodes = result.get("hits");
         if (nodes != null) {
-            nodes=nodes.get("hits");
+            nodes = nodes.get("hits");
             nodes.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
@@ -237,46 +212,46 @@ public class IntegrationService {
                     if (modifiedDate != null) {
                         // Curently returns 2019-01-07T09:16:32.432+02:00
                         // use only first 19 chars
-                        respItem.setModified(modifiedDate.substring(0,19));
+                        respItem.setModified(modifiedDate.substring(0, 19));
                     }
                     JsonNode label = source.get("label");
-                    if(label!= null){
+                    if (label != null) {
                         PrefLabel plab = new PrefLabel();
                         // fi
-                        JsonNode lan=label.get("fi");
-                        if(lan!=null){
-                            plab.setFi(Jsoup.clean(lan.get(0).asText(),Whitelist.none())); 
+                        JsonNode lan = label.get("fi");
+                        if (lan != null) {
+                            plab.setFi(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
                         }
                         // en
-                        lan=label.get("en");
-                        if(lan!=null){
-                            plab.setEn(Jsoup.clean(lan.get(0).asText(),Whitelist.none()));
+                        lan = label.get("en");
+                        if (lan != null) {
+                            plab.setEn(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
                         }
                         // sv
-                        lan=label.get("sv");
-                        if(lan!=null){
-                            plab.setSv(Jsoup.clean(lan.get(0).asText(),Whitelist.none()));
+                        lan = label.get("sv");
+                        if (lan != null) {
+                            plab.setSv(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
                         }
                         respItem.setPrefLabel(plab);
                     }
 
                     JsonNode description = source.get("definition");
-                    if(description!= null){
+                    if (description != null) {
                         Description desc = new Description();
                         // fi
-                        JsonNode d=description.get("fi");
-                        if(d!=null){
-                            desc.setFi(Jsoup.clean(d.get(0).asText(),Whitelist.none()));                            
+                        JsonNode d = description.get("fi");
+                        if (d != null) {
+                            desc.setFi(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
                         }
                         // en
-                        d=label.get("en");
-                        if(d!=null){
-                            desc.setEn(Jsoup.clean(d.get(0).asText(),Whitelist.none()));
+                        d = label.get("en");
+                        if (d != null) {
+                            desc.setEn(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
                         }
                         // sv
-                        d=label.get("sv");
-                        if(d!=null){
-                            desc.setSv(Jsoup.clean(d.get(0).asText(),Whitelist.none()));
+                        d = label.get("sv");
+                        if (d != null) {
+                            desc.setSv(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
                         }
                         respItem.setDescription(desc);
                     }
@@ -291,7 +266,7 @@ public class IntegrationService {
 
     /**
      * Initialize cached META-model. - Read given vocabularity for meta-types, cache
-     * them 
+     * them
      *
      * @param vocabularityId UUID of the vocabularity
      */

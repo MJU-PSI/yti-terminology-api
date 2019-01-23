@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.EnableJms;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.BrowserCallback;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
@@ -40,7 +41,6 @@ public class YtiMQService {
 
     private YtiMQListener listener;
 
-    private JmsMessagingTemplate jmsTopicClient;
     // Define public status values
     public final static int STATUS_PREPROCESSING = 1;
     public final static int STATUS_PROCESSING = 2;
@@ -61,9 +61,6 @@ public class YtiMQService {
         this.jmsTemplate = jmsTemplate;
         this.subSystem = subSystem;
         this.listener=listener;
-        // Initialize topic connection
-//        jmsTopicClient = new JmsMessagingTemplate(jmsMessagingTemplate.getConnectionFactory());
-//        jmsTopicClient.getJmsTemplate().setPubSubDomain(true);
     }
 
     public HttpStatus getStatus(UUID jobtoken){
@@ -380,6 +377,7 @@ public class YtiMQService {
             // send item for processing
         System.out.println("Send job:"+jobtoken+" to the processing queue:"+subsystem+"Incoming");
         jmsMessagingTemplate.send(subsystem+"Incoming", mess);
+
         StatusTest(mess);        
         return  HttpStatus.OK.value();
     }
@@ -487,9 +485,8 @@ public class YtiMQService {
     }
 
 
-    @SendTo("${mq.active.subsystem}StatusTest")
+    @SendTo("${mq.active.subsystem}Status")
     public Message setStatus(int status, String jobtoken, String userId, String uri,  String payload) {
-        System.out.println("Set status("+jobtoken+") to Processed item from:"+subSystem+"Status"+ " Value="+payload);
 
         // Consume previous
 //        if(deleteJmsStatusMessage(jobtoken)){
@@ -524,26 +521,9 @@ public class YtiMQService {
             currentStatus.put(uri, mess);
 
             System.out.println("SEND STATUS:"+mess);
-
-//            jmsTopicClient.send(subSystem + "StatusTopic", mess);
         }
+        System.out.println("Send Status to QUEUE "+ mess);
+
         return mess;
-    }
-
-    /**
-     * Update status information state machine
-     */
-//    @JmsListener(destination = "${mq.active.subsystem}StatusTopic")
-    public void receiveTopicMessage(final Message message,
-                                    Session session,
-                                    @Header String jobtoken,
-                                    @Header String userId,
-                                    @Header String uri)  throws JMSException {
-        System.out.println("Received Status-Message: headers=" + message.getHeaders());
-
-        System.out.println("received <" + message.getPayload().toString() + ">");
-        // Use jobid or uri as a key
-        currentStatus.put(jobtoken, message);
-        currentStatus.put(uri, message);
     }
 }
