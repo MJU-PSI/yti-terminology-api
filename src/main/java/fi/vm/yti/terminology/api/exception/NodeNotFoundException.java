@@ -12,6 +12,8 @@ import static java.util.stream.Collectors.joining;
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class NodeNotFoundException extends RuntimeException {
 
+    private static final long serialVersionUID = 3233111921804399527L;
+
     public NodeNotFoundException(UUID graphId, UUID nodeId) {
         super("Node " + nodeId + " not found in graph " + graphId);
     }

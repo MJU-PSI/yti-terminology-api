@@ -3,7 +3,6 @@ package fi.vm.yti.terminology.api.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
-import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
 import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
@@ -24,7 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -99,9 +97,13 @@ public class IntegrationService {
                     if(source.get("lastModifiedDate") != null) {
                         modifiedDate = source.get("lastModifiedDate").asText();
                     }
+                    // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
+                    // Get uri and remove last part after /
                     String uri = null;
                     if(source.get("uri")!= null ){
                         uri = source.get("uri").asText();
+                        // Remove code from uri so
+                        uri = uri.substring(0,uri.lastIndexOf("/"))+"/";
                     }
                     ContainersResponse respItem = new ContainersResponse();
                     respItem.setUri(uri);
@@ -364,8 +366,6 @@ public class IntegrationService {
             Map<String, List<Identifier>> parentReferences) {
         GenericNode node = null;
         UUID termId = UUID.randomUUID();
-        String code = termId.toString();
-
         // Populate term
         Map<String, List<Attribute>> properties = new HashMap<>();
         addProperty("prefLabel", properties, incoming.getPrefLabel());
@@ -405,8 +405,6 @@ public class IntegrationService {
     private GenericNode CreateConcept(GenericNodeInlined vocabulary, ConceptSuggestion incoming,
             Map<String, List<Identifier>> conceptReferences) {
         GenericNode node = null;
-        UUID conceptId = UUID.randomUUID();
-        String code = conceptId.toString();
         Map<String, List<Attribute>> properties = new HashMap<>();
         addProperty("definition", properties, incoming.getDefinition());
         Attribute att = new Attribute("", "SUGGESTED");

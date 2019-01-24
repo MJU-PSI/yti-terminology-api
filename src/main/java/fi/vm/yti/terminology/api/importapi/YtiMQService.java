@@ -206,7 +206,7 @@ public class YtiMQService {
                 System.out.println("current_time-stamp="+expirationtime);
                 rv =true;
                 if( expirationtime > 60 * 1000) {
-                    System.out.println("Expired!!!!");
+                    logger.info("Status Expired for job:"+(String)mess.getHeaders().get("jobtoken"));
                     // Hardcoded expiration time 60 sec
 //                    rv = true;
                     // cached item expired, clean it

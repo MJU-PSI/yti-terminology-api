@@ -227,16 +227,17 @@ public class IndexElasticSearchService {
     void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
-        System.out.println("updateIndexAfterDelete()" + nodes.toString() + " hasVoc:" + nodes.hasVocabulary());
-        UUID voc = nodes.getGraphId();
+        System.out.println("updateIndexAfterDelete() contains Vocabulary:" + nodes.hasVocabulary());
 
+        UUID voc = nodes.getGraphId();
+        System.out.println("afterDelete vocabularies=" + nodes.getVocabularyIds().size());
         // In case of treshold overcome, make full reindex
-        if (nodes.hasVocabulary() || nodes.getVocabularyIds().size() > fullReindexNodeCountThreshold) {
-            reindexVocabularies();
-            System.out.println("Vocabulary=" + voc + " vocs=" + nodes.getVocabularyIds().size());
-        } else {
-            System.out.println("Vocabulary delete single=" + voc + " vocs=" + nodes.getVocabularyIds().size());
-        }        
+        if (nodes.hasVocabulary()) {
+            nodes.getVocabularyIds().forEach(id -> {
+                // Delete actual vocabulary-object
+                deleteDocumentsFromNamedIndexByGraphId(id, "vocabularies");
+            });
+        }
 
         if (nodes.hasVocabulary()) {
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
@@ -433,18 +434,37 @@ public class IndexElasticSearchService {
         }
     }
 
-    private void deleteDocumentsFromIndexByGraphId(@NotNull UUID graphId) {
+    private void deleteDocumentsFromNamedIndexByGraphId(@NotNull UUID graphId, @NotNull String index) {
 
-        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}",
+        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"id\": \"" + graphId + "\"}}}",
                 ContentType.APPLICATION_JSON);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+        System.out.println("deleteDocumentsFromNamedIndexByGraphId() query:"
+                + "{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}");
+        Response response = alsoUnsuccessful(
+                () -> esRestClient.performRequest("POST", "/" + index + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
             log.info("Successfully deleted documents from elasticsearch index from graph: " + graphId);
         } else {
             log.warn("Unable to delete documents from elasticsearch index");
+        }
+    }
+
+    private void deleteDocumentsFromIndexByGraphId(@NotNull UUID graphId) {
+
+        HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}",
+                ContentType.APPLICATION_JSON);
+        System.out.println("deleteDocumentsFromIndexByGraphId() query:"
+                + "{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}");
+        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
+                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+
+        if (isSuccess(response)) {
+            log.info(responseContentAsString(response));
+            log.info("Successfully deleted vocabulary documents from elasticsearch index from graph: " + graphId);
+        } else {
+            log.warn("Unable to delete vocabulary documents from elasticsearch index");
         }
     }
 
