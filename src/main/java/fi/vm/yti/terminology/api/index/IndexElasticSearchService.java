@@ -193,19 +193,25 @@ public class IndexElasticSearchService {
     void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
-        System.out.println("updateIndexAfterUpdate()" + nodes.toString() + " hasVoc:" + nodes.hasVocabulary());
+        if(log.isDebugEnabled()){
+            log.debug("updateIndexAfterUpdate()" + nodes.toString() + " hasVocabulary:" + nodes.hasVocabulary());
+        }
         UUID voc = nodes.getGraphId();
-        System.out.println("Vocabulary=" + voc + " vocs=" + nodes.getVocabularyIds().size());
-
-        // In case of treshold overcome, make full reindex
-        if (nodes.hasVocabulary() || nodes.getVocabularyIds().size() > fullReindexNodeCountThreshold) {
+        if(log.isDebugEnabled()){
+            log.debug("Vocabulary=" + voc + " vocabulary count=" + nodes.getVocabularyIds().size());
+        }
+        // if treshold is , make full reindex
+        if (nodes.hasVocabulary() && nodes.getVocabularyIds().size() > fullReindexNodeCountThreshold) {
             reindexVocabularies();
         } else {
+            if(log.isDebugEnabled()){
+                log.debug("partial update!");
+            }
             if (nodes.getVocabularyIds() != null && nodes.getVocabularyIds().size() > 0) {
                 // Update vocabulary index
                 // reindexVocabularies();
                 nodes.getVocabularyIds().forEach(id -> {
-                    System.out.println("reindexVocabulary:" + id);
+                    log.info("reindexVocabulary:" + id);
                     reindexGivenVocabulary(voc);
                 });
             }
@@ -227,10 +233,7 @@ public class IndexElasticSearchService {
     void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
-        System.out.println("updateIndexAfterDelete() contains Vocabulary:" + nodes.hasVocabulary());
-
         UUID voc = nodes.getGraphId();
-        System.out.println("afterDelete vocabularies=" + nodes.getVocabularyIds().size());
         // In case of treshold overcome, make full reindex
         if (nodes.hasVocabulary()) {
             nodes.getVocabularyIds().forEach(id -> {
