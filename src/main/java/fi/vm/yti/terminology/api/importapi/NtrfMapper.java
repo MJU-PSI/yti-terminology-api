@@ -238,6 +238,7 @@ public class NtrfMapper {
         logger.info("Incoming records count=" + records.size());
         System.out.println("    userProvider=" + userProvider.getUser());
         List<GenericNode> addNodeList = new ArrayList<>();
+        List<Identifier> deleteNodeList = new ArrayList<>();
 
         ImportStatusResponse response = new ImportStatusResponse();
         response.setStatus(Status.PROCESSING);
@@ -254,7 +255,7 @@ public class NtrfMapper {
 
         for (RECORD o : records) {
             currentRecord = o.getNumb();
-            handleRECORD(vocabulary, o, addNodeList);
+            handleRECORD(vocabulary, o, addNodeList, deleteNodeList);
             flushCount++;
             currentCount++;
             response.setStatus(Status.PROCESSING);
@@ -267,7 +268,8 @@ public class NtrfMapper {
             // Flush datablock to the termed
             if (flushCount > 100) {
                 flushCount = 0;
-                GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
+                GenericDeleteAndSave operation = new GenericDeleteAndSave(deleteNodeList, addNodeList);
+//                GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
                 if (logger.isDebugEnabled())
                     logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
 
@@ -292,7 +294,8 @@ public class NtrfMapper {
                 addNodeList.clear();
             }
         }
-        GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
+        GenericDeleteAndSave operation = new GenericDeleteAndSave(deleteNodeList, addNodeList);
+//        GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
         if (logger.isDebugEnabled())
             logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
         if (!updateAndDeleteInternalNodes(userId, operation, true)) {
@@ -325,7 +328,6 @@ public class NtrfMapper {
         for (DIAG o : DIAGList) {
             handleDIAG(vocabulary, o, addNodeList);
         }
-
         response.setStatus(Status.PROCESSING);
         response.addStatusMessage(new ImportStatusMessage("Vocabulary", "Processing DIAG number=" + DIAGList.size()));
         response.setProcessingProgress(records.size());
@@ -445,10 +447,10 @@ public class NtrfMapper {
 
                         if (!ref.getTargetId().equals(NULL_ID)) {
                             if (sourceId.equals(ref.getTargetId())) {
-                                System.err.println("Self-reference removed from "+key+" id:"+sourceId);
+                                System.err.println("Self-reference removed from " + key + " id:" + sourceId);
                                 statusList.add(new StatusMessage(key,
-                                "Self-reference removed from "+key+" id:"+sourceId));
-                        } else {
+                                        "Self-reference removed from " + key + " id:" + sourceId));
+                            } else {
                                 idref.add(new Identifier(ref.getTargetId(), typeMap.get("Concept").getDomain()));
                                 // Put back int the correct list
                                 refMap.put(refListName, idref);
@@ -664,6 +666,39 @@ public class NtrfMapper {
     }
 
     /**
+     * Remove orphan terms under given concept and graph
+     */
+    private void cleanTerms(UUID graphId, UUID conceptId,  List<Identifier> deleteNodeList) {
+        logger.info("clearTerm from:" + graphId + " concept:" + conceptId.toString());
+        // Get concept
+        GenericNode node = termedService.getConceptNode(graphId, conceptId);
+        if (node != null) {
+            // get references and delete terms and synonyms
+            Map<String, List<Identifier>> references = node.getReferences();
+            List<Identifier> terms = references.get("prefLabelXl");
+            if (terms != null) {
+                terms.forEach(id -> {
+                    deleteNodeList.add(id);
+                });
+            }
+            // Synonyms
+            terms = references.get("altLabelXl");
+            if (terms != null) {
+                terms.forEach(id -> {
+                    deleteNodeList.add(id);
+                });
+            }
+            // notRecommendedSynonym
+            terms = references.get("notRecommendedSynonym");
+            if (terms != null) {
+                terms.forEach(id -> {
+                    deleteNodeList.add(id);
+                });
+            }            
+        }
+    }
+
+    /**
      * Handle mapping of RECORD. NTRF-models all concepts as RECORD-fields. It
      * contains actual terms and references to other concepts and external links.
      * See following example incomimg NTRF:
@@ -717,7 +752,7 @@ public class NtrfMapper {
      *                     Concept and Term is bound
      * @param r
      */
-    void handleRECORD(Graph vocabularity, RECORD r, List<GenericNode> addNodeList) {
+    void handleRECORD(Graph vocabulary, RECORD r, List<GenericNode> addNodeList,  List<Identifier> deleteNodeList) {
         String code = "";
         UUID currentId = null;
         String uri = "";
@@ -734,10 +769,16 @@ public class NtrfMapper {
         code = r.getNumb();
         // Check whether id exist and create id
         if (idMap.get(code) != null) {
-            System.out.println(" UPDATE operation!!!!!!!!! " + code);
+            if(logger.isDebugEnabled()){
+                logger.debug(" UPDATE operation!!!!!!!!! " + code);
+            }
             currentId = idMap.get(code);
+            // Delete terms from existing concept before updating content
+            cleanTerms(vocabulary.getId(), currentId, deleteNodeList);
         } else {
-            System.out.println(" CREATE NEW  operation!!!!!!!!! " + code);
+            if(logger.isDebugEnabled()){
+                logger.debug(" CREATE NEW  operation!!!!!!!!! " + code);
+            }
             currentId = UUID.randomUUID();
         }
 
@@ -793,7 +834,7 @@ public class NtrfMapper {
         List<LANG> langs = r.getLANG();
         langs.forEach(o -> {
             // RECORD/LANG/TE/TERM -> prefLabel
-            hadleLANG(concept, terms, o, properties, references, vocabularity);
+            hadleLANG(concept, terms, o, properties, references, vocabulary);
         });
 
         // Handle Subject
@@ -820,7 +861,7 @@ public class NtrfMapper {
         }
         if (r.getREMK() != null) {
             r.getREMK().forEach(o -> {
-                handleREMK("", o, properties, vocabularity);
+                handleREMK("", o, properties, vocabulary);
             });
         }
         // Filter BCON elemets as list
@@ -847,7 +888,7 @@ public class NtrfMapper {
         TypeId typeId = null;
         typeId = typeMap.get("Concept").getDomain();
         GenericNode node = null;
-        node = new GenericNode(currentId, code, vocabularity.getUri() + code, 0L, createdBy, new Date(), "", new Date(),
+        node = new GenericNode(currentId, code, vocabulary.getUri() + code, 0L, createdBy, new Date(), "", new Date(),
                 typeId, properties, references, emptyMap());
         // Send item to termed-api
         // First add terms
