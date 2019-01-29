@@ -258,6 +258,10 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
 
             bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(),
                     true);
+             nodes.getConceptsIds().forEach(id -> {
+                        // Delete actual vocabulary-object
+                        deleteDocumentsFromNamedIndexByGraphId(id, "concepts");
+                });                    
         }
     }
 
