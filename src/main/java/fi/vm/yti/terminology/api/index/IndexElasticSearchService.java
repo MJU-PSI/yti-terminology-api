@@ -129,9 +129,10 @@ public class IndexElasticSearchService {
         List<String> indexLines = new ArrayList<>();
         vocabularies.forEach(o -> {
             try {
-                String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
+                String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"vocabulary" + "\", \"_id\":"
                         + o.get("id") + "}}\n" + mapper.writeValueAsString(o) + "\n";
                 indexLines.add(line);
+                System.out.println("reindex line:"+line);
             } catch (JsonProcessingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -139,15 +140,18 @@ public class IndexElasticSearchService {
         });
         String index = indexLines.stream().collect(Collectors.joining("\n"));
         String delete = "";
+        // Content type changed for elastic search 6.x
         HttpEntity entity = new NStringEntity(index + delete,
-                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+//                ContentType.create("application/x-ndjson"));
+ContentType.create("application/json", StandardCharsets.UTF_8));
+//                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
-
         params.put("pretty", "true");
         params.put("refresh", "wait_for");
+        System.out.println("Request:"+entity);
 
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
-
+        System.out.println("Response:"+response+"\n Response status line"+response.getStatusLine());
         if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + vocabularies.size());
         } else {
@@ -166,8 +170,11 @@ public class IndexElasticSearchService {
             String index = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
                     + jn.get("id") + "}}\n" + mapper.writeValueAsString(jn) + "\n";
             String delete = "";
+            // CHANGED CONTENT TYPE FOR ELASTIC 6.X
             HttpEntity entity = new NStringEntity(index + delete,
-                    ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+//                    ContentType.create("application/x-ndjson"));
+ContentType.create("application/json", StandardCharsets.UTF_8));
+//                    ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
             Map<String, String> params = new HashMap<>();
 
             params.put("pretty", "true");
@@ -233,19 +240,18 @@ public class IndexElasticSearchService {
     void updateIndexAfterDelete(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
-        UUID voc = nodes.getGraphId();
-        // In case of treshold overcome, make full reindex
-        if (nodes.hasVocabulary()) {
-            nodes.getVocabularyIds().forEach(id -> {
-                // Delete actual vocabulary-object
-                deleteDocumentsFromNamedIndexByGraphId(id, "vocabularies");
-            });
-        }
 
         if (nodes.hasVocabulary()) {
+            //First delete concepts and then
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
+            // In case of treshold overcome, make full reindex
+            if (nodes.hasVocabulary()) {
+                nodes.getVocabularyIds().forEach(id -> {
+                    // Delete actual vocabulary-object
+                    deleteDocumentsFromNamedIndexByGraphId(id, "vocabularies");
+                });
+            }
         } else {
-
             List<Concept> conceptsBeforeDelete = getConceptsFromIndex(nodes.getGraphId(), nodes.getConceptsIds());
             List<Concept> possiblyUpdatedConcepts = termedApiService.getConcepts(nodes.getGraphId(),
                     broaderAndNarrowerIds(singletonList(conceptsBeforeDelete)));
@@ -416,8 +422,11 @@ public class IndexElasticSearchService {
                 .collect(Collectors.joining("\n"));
         String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id))
                 .collect(Collectors.joining("\n"));
+        // Changed   content type for  elastic search 6.x
         HttpEntity entity = new NStringEntity(index + delete,
-                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+//                ContentType.create("application/x-ndjson"));
+ContentType.create("application/json", StandardCharsets.UTF_8));
+//                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
 
         params.put("pretty", "true");
