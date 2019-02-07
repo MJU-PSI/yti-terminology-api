@@ -2018,7 +2018,7 @@ public class NtrfMapper {
         // Uri is parent-uri/term-'code'
         GenericNode node;
         UUID id = UUID.randomUUID();
-        String code = id.toString();
+        String code = "term-"+id.toString();
 
         node = new GenericNode(id, code, vocabularity.getUri() + "term-" + code, 0L, "", new Date(), "", new Date(),
                 typeId, properties, emptyMap(), emptyMap());

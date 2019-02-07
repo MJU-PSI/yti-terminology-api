@@ -1,0 +1,590 @@
+{
+  "dynamic_templates": [
+    {
+      "label": {
+        "path_match": "label.*",
+        "mapping": {
+          "analyzer": "termed",
+          "type": "text"
+        }
+      }
+    },
+    {
+      "sortByLabel": {
+        "path_match": "sortByLabel.*",
+        "mapping": {
+          "type": "keyword"
+        }
+      }
+    },
+    {
+      "vocabularyLabel": {
+        "path_match": "vocabulary.label.*",
+        "mapping": {
+          "index": false,
+          "type": "keyword"
+        }
+      }
+    },
+    {
+      "altLabel": {
+        "path_match": "altLabel.*",
+        "mapping": {
+          "analyzer": "termed",
+          "type": "text"
+        }
+      }
+    },
+    {
+      "definition": {
+        "path_match": "definition.*",
+        "mapping": {
+          "analyzer": "termed",
+          "type": "text"
+        }
+      }
+    }
+  ],
+  "properties": {
+    "broader": {
+      "type": "keyword"
+    },
+    "hasNarrower": {
+      "type": "boolean"
+    },
+    "id": {
+      "type": "keyword"
+    },
+    "modified": {
+      "type": "date",
+      "index": false
+    },
+    "narrower": {
+      "type": "keyword",
+      "index": false
+    },
+    "status": {
+      "type": "keyword"
+    },
+    "uri": {
+      "type": "keyword"
+    },
+    "vocabulary": {
+      "properties": {
+        "id": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+},
+"vocabulary": {
+  "properties": {
+    "code": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "createdBy": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "createdDate": {
+      "type": "date"
+    },
+    "id": {
+      "type": "keyword"
+    },
+    "lastModifiedBy": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "lastModifiedDate": {
+      "type": "date"
+    },
+    "number": {
+      "type": "long"
+    },
+    "properties": {
+      "properties": {
+        "language": {
+          "properties": {
+            "lang": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "regex": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "value": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "prefLabel": {
+          "properties": {
+            "lang": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "regex": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "value": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "status": {
+          "properties": {
+            "lang": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "regex": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "value": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "properties": {
+        "contributor": {
+          "properties": {
+            "code": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "createdBy": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "createdDate": {
+              "type": "date"
+            },
+            "id": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "lastModifiedBy": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "lastModifiedDate": {
+              "type": "date"
+            },
+            "number": {
+              "type": "long"
+            },
+            "properties": {
+              "properties": {
+                "prefLabel": {
+                  "properties": {
+                    "lang": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "regex": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "value": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "references": {
+              "type": "object"
+            },
+            "referrers": {
+              "type": "object"
+            },
+            "type": {
+              "properties": {
+                "graph": {
+                  "properties": {
+                    "id": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "id": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "inGroup": {
+          "properties": {
+            "code": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "createdBy": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "createdDate": {
+              "type": "date"
+            },
+            "id": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "lastModifiedBy": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "lastModifiedDate": {
+              "type": "date"
+            },
+            "number": {
+              "type": "long"
+            },
+            "properties": {
+              "properties": {
+                "definition": {
+                  "properties": {
+                    "lang": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "regex": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "value": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "notation": {
+                  "properties": {
+                    "lang": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "regex": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "value": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "order": {
+                  "properties": {
+                    "lang": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "regex": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "value": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "prefLabel": {
+                  "properties": {
+                    "lang": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "regex": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "value": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "references": {
+              "type": "object"
+            },
+            "referrers": {
+              "type": "object"
+            },
+            "type": {
+              "properties": {
+                "graph": {
+                  "properties": {
+                    "id": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "id": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              }
+            },
+            "uri": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "referrers": {
+      "type": "object"
+    },
+    "type": {
+      "properties": {
+        "graph": {
+          "properties": {
+            "id": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        }
+      }
+    },
+    "uri": {
+      "type": "keyword"
+    }
+  }
+}

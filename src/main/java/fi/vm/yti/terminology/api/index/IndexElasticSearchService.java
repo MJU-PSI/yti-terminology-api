@@ -76,25 +76,34 @@ public class IndexElasticSearchService {
 
     public void initIndex() {
 
-        Stream<String> ind = Stream.of(indexName.split(","));
-        ind.forEach(s -> {
-            initIndex(s.trim());
-        });
+        String[] indexNames=indexName.split(",");
+        String[] indexMaps=createMappingsFilename.split(",");
+        String[] indexMappingTypes=indexMappingType.split(",");
+        if(indexNames.length != indexMaps.length){
+            log.error("InitIndex, configuration error. Mismatching index-names / mappings");
+            return;
+        }
+        for(int x=0;x<indexNames.length;x++){
+            log.info("Init index ="+ indexNames[x]+" - "+indexMaps[x]+" - "+indexMappingTypes[x]);
+            initIndex(indexNames[x],indexMaps[x],indexMappingTypes[x]);
+        }
     }
 
-    public void initIndex(String index) {
+    public void initIndex(String index, String mapping, String mappingType) {
 
         if (deleteIndexOnAppRestart) {
             deleteIndex(index);
         }
 
-        if (!indexExists(index) && createIndex(index) && createMapping(index)) {
+        if (!indexExists(index) && createIndex(index) && createMapping(index,mapping, mappingType)) {
             doFullIndexing();
         }
     }
 
     public void reindex() {
         log.info("Starting reindexing task..");
+        // Clean vocabularies
+        deleteAllDocumentsFromNamedIndex("vocabularies");
         this.deleteAllDocumentsFromIndex();
         this.doFullIndexing();
         log.info("Finished reindexing!");
@@ -128,11 +137,13 @@ public class IndexElasticSearchService {
         ObjectMapper mapper = new ObjectMapper();
         List<String> indexLines = new ArrayList<>();
         vocabularies.forEach(o -> {
-            try {
+            try {                
                 String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"vocabulary" + "\", \"_id\":"
                         + o.get("id") + "}}\n" + mapper.writeValueAsString(o) + "\n";
                 indexLines.add(line);
-                System.out.println("reindex line:"+line);
+                if(log.isDebugEnabled()){
+                    log.debug("reindex line:" + line);
+                }
             } catch (JsonProcessingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -141,17 +152,19 @@ public class IndexElasticSearchService {
         String index = indexLines.stream().collect(Collectors.joining("\n"));
         String delete = "";
         // Content type changed for elastic search 6.x
-        HttpEntity entity = new NStringEntity(index + delete,
-//                ContentType.create("application/x-ndjson"));
-ContentType.create("application/json", StandardCharsets.UTF_8));
-//                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+        HttpEntity entity = new NStringEntity(index + delete, ContentType.create("application/json", StandardCharsets.UTF_8));
+        // ContentType.create("application/json", StandardCharsets.UTF_8));
+        // ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
         params.put("pretty", "true");
         params.put("refresh", "wait_for");
-        System.out.println("Request:"+entity);
-
+        if(log.isDebugEnabled()){
+            log.debug("Request:" + entity);
+        }
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
-        System.out.println("Response:"+response+"\n Response status line"+response.getStatusLine());
+        if(log.isDebugEnabled()){
+            log.debug("Response:" + response + "\n Response status line" + response.getStatusLine());
+        }
         if (isSuccess(response)) {
             log.info("Successfully added/updated documents to elasticsearch index: " + vocabularies.size());
         } else {
@@ -172,9 +185,9 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
             String delete = "";
             // CHANGED CONTENT TYPE FOR ELASTIC 6.X
             HttpEntity entity = new NStringEntity(index + delete,
-//                    ContentType.create("application/x-ndjson"));
-ContentType.create("application/json", StandardCharsets.UTF_8));
-//                    ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+                    // ContentType.create("application/x-ndjson"));
+                    ContentType.create("application/json", StandardCharsets.UTF_8));
+            // ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
             Map<String, String> params = new HashMap<>();
 
             params.put("pretty", "true");
@@ -200,18 +213,18 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
     void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
 
         int fullReindexNodeCountThreshold = 20;
-        if(log.isDebugEnabled()){
+        if (log.isDebugEnabled()) {
             log.debug("updateIndexAfterUpdate()" + nodes.toString() + " hasVocabulary:" + nodes.hasVocabulary());
         }
         UUID voc = nodes.getGraphId();
-        if(log.isDebugEnabled()){
+        if (log.isDebugEnabled()) {
             log.debug("Vocabulary=" + voc + " vocabulary count=" + nodes.getVocabularyIds().size());
         }
         // if treshold is , make full reindex
         if (nodes.hasVocabulary() && nodes.getVocabularyIds().size() > fullReindexNodeCountThreshold) {
             reindexVocabularies();
         } else {
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("partial update!");
             }
             if (nodes.getVocabularyIds() != null && nodes.getVocabularyIds().size() > 0) {
@@ -242,7 +255,7 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
         int fullReindexNodeCountThreshold = 20;
 
         if (nodes.hasVocabulary()) {
-            //First delete concepts and then
+            // First delete concepts and then
             deleteDocumentsFromIndexByGraphId(nodes.getGraphId());
             // In case of treshold overcome, make full reindex
             if (nodes.hasVocabulary()) {
@@ -258,10 +271,9 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
 
             bulkUpdateAndDeleteDocumentsToIndex(nodes.getGraphId(), possiblyUpdatedConcepts, nodes.getConceptsIds(),
                     true);
-             nodes.getConceptsIds().forEach(id -> {
-                        // Delete actual vocabulary-object
-                        deleteDocumentsFromNamedIndexByGraphId(id, "concepts");
-                });                    
+            nodes.getConceptsIds().forEach(id -> {
+                deleteDocumentsFromNamedIndexByGraphId(id, "concepts");
+            });
         }
     }
 
@@ -296,52 +308,19 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
         if (isSuccess(response)) {
             log.info("Elasticsearch index deleted: " + index);
         } else {
-            log.info("Elasticsearch index not deleted. Maybe because it did not exist?");
+            log.info("Elasticsearch index:" + index + " not deleted. Maybe because it did not exist?");
         }
-    }
-
-    private boolean indexExists() {
-        ArrayList<Boolean> failed = new ArrayList<>();
-        log.info("Checking if elasticsearch index exists: " + indexName);
-        Stream<String> ind = Stream.of(indexName.split(",")).map(o -> o.trim());
-        ind.forEach(s -> {
-            if (!indexExists(s)) {
-                failed.add(false);
-            }
-        });
-        if (!failed.isEmpty()) {
-            return false;
-        }
-        return true;
     }
 
     private boolean indexExists(String index) {
         log.info("Checking if elasticsearch index exists: " + index);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("HEAD", "/" + index));
-
         if (response.getStatusLine().getStatusCode() == 404) {
             log.info("Elasticsearch index does not exist: " + index);
             return false;
         } else {
             return true;
         }
-    }
-
-    private boolean createIndex() {
-        ArrayList<Boolean> failed = new ArrayList<>();
-        System.out.println("CreateIndex:" + indexName);
-        Stream<String> ind = Stream.of(indexName.split(",")).map(o -> o.trim());
-        ind.forEach(s -> {
-            System.out.println("Create index:" + s);
-            if (!createIndex(s)) {
-                log.warn("Failed to create index:" + s);
-                failed.add(false);
-            }
-        });
-        if (!failed.isEmpty()) {
-            return false;
-        }
-        return true;
     }
 
     private boolean createIndex(String index) {
@@ -360,36 +339,22 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
         }
     }
 
-    private boolean createMapping() {
+    private boolean createMapping(String index, String mapping, String mappingType) {
 
-        ArrayList<Boolean> failed = new ArrayList<>();
-        System.out.println("CreateIndex:" + indexName);
-        Stream<String> ind = Stream.of(indexName.split(",")).map(o -> o.trim());
-        ind.forEach(s -> {
-            if (!createMapping(s)) {
-                log.warn("Failed to create indexMapping:" + s);
-                failed.add(false);
-            }
-        });
-        if (!failed.isEmpty()) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean createMapping(String index) {
-
-        HttpEntity entity = createHttpEntity(createMappingsFilename);
-        log.info("Trying to create elasticsearch index mapping type: " + indexMappingType);
+        HttpEntity entity = createHttpEntity(mapping);
+        log.info("Trying to create elasticsearch index mapping type: " + mappingType);
+        // Mapping name is same than index name
+        // Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT",
+        // "/" + index + "/_mapping/" + index, singletonMap("pretty", "true"), entity));
 
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("PUT",
-                "/" + index + "/_mapping/" + indexMappingType, singletonMap("pretty", "true"), entity));
+                "/" + index + "/_mapping/" + mappingType, singletonMap("pretty", "true"), entity));
 
         if (isSuccess(response)) {
-            log.info("elasticsearch index mapping type successfully created: " + indexMappingType);
+            log.info("elasticsearch index mapping type successfully created: " + mappingType);
             return true;
         } else {
-            log.warn("Unable to create elasticsearch index mapping type: " + indexMappingType);
+            log.warn("Unable to create elasticsearch index mapping type: " + mappingType);
             return false;
         }
     }
@@ -404,12 +369,12 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
     // }
 
     private @NotNull String createBulkIndexMetaAndSource(@NotNull Concept concept, String index) {
-        return "{\"index\":{\"_index\": \"" + index + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\""
+        return "{\"index\":{\"_index\": \"" + index + "\", \"_type\": \"concept\", \"_id\":\""
                 + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
     }
 
     private @NotNull String createBulkDeleteMeta(@NotNull UUID graphId, @NotNull UUID conceptId) {
-        return "{\"delete\":{\"_index\": \"" + indexName + "\", \"_type\": \"" + indexMappingType + "\", \"_id\":\""
+        return "{\"delete\":{\"_index\": \"" + indexName + "\", \"_type\": \"concept\", \"_id\":\""
                 + Concept.formDocumentId(graphId, conceptId) + "\"}}\n";
     }
 
@@ -426,11 +391,11 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
                 .collect(Collectors.joining("\n"));
         String delete = deleteConceptsIds.stream().map(id -> createBulkDeleteMeta(graphId, id))
                 .collect(Collectors.joining("\n"));
-        // Changed   content type for  elastic search 6.x
+        // Changed content type for elastic search 6.x
         HttpEntity entity = new NStringEntity(index + delete,
-//                ContentType.create("application/x-ndjson"));
-ContentType.create("application/json", StandardCharsets.UTF_8));
-//                ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
+                // ContentType.create("application/x-ndjson"));
+                ContentType.create("application/json", StandardCharsets.UTF_8));
+        // ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
 
         params.put("pretty", "true");
@@ -454,8 +419,6 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"id\": \"" + graphId + "\"}}}",
                 ContentType.APPLICATION_JSON);
-        System.out.println("deleteDocumentsFromNamedIndexByGraphId() query:"
-                + "{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}");
         Response response = alsoUnsuccessful(
                 () -> esRestClient.performRequest("POST", "/" + index + "/_delete_by_query", emptyMap(), body));
 
@@ -471,10 +434,8 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}",
                 ContentType.APPLICATION_JSON);
-        System.out.println("deleteDocumentsFromIndexByGraphId() query:"
-                + "{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}");
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+                "/" + indexName + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -487,8 +448,10 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
     private void deleteAllDocumentsFromIndex() {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+//        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
+//                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
+          Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
+                "/" + indexName + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -498,11 +461,25 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
         }
     }
 
+    private void deleteAllDocumentsFromNamedIndex(String index) {
+
+        HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
+        Response response = alsoUnsuccessful(
+                () -> esRestClient.performRequest("POST", "/" + index + "/_delete_by_query", emptyMap(), body));
+
+        if (isSuccess(response)) {
+            log.info(responseContentAsString(response));
+            log.info("Successfully deleted all documents from elasticsearch index:" + index);
+        } else {
+            log.warn("Unable to delete documents from elasticsearch index:" + index);
+        }
+    }
+
     public @Nullable JsonNode freeSearchFromIndex(String query) {
         Parameters params = new Parameters();
         params.add("source", query.toString());
         params.add("source_content_type", "application/json");
-        String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+        String endpoint = "/" + indexName + "/_search";
 
         HttpEntity body = new NStringEntity(query, ContentType.APPLICATION_JSON);
         try {
@@ -554,7 +531,7 @@ ContentType.create("application/json", StandardCharsets.UTF_8));
 
         String documentId = Concept.formDocumentId(graphId, conceptId);
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("GET",
-                "/" + indexName + "/" + indexMappingType + "/" + urlEncode(documentId) + "/_source"));
+                "/" + indexName + "/concept/" + urlEncode(documentId) + "/_source"));
 
         if (isSuccess(response)) {
             return Concept.createFromIndex(objectMapper, responseContentAsJson(objectMapper, response));
