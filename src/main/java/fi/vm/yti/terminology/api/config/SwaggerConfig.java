@@ -53,6 +53,16 @@ public class SwaggerConfig {
     }
 
     @Bean
+    public Docket exportApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .groupName("export")
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.ant("/export/**"))
+                .build();
+    }
+
+    @Bean
     public Docket integrationApi() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .groupName("integration")
