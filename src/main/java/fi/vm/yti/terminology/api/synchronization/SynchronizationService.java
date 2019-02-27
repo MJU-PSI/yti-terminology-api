@@ -58,7 +58,6 @@ public class SynchronizationService {
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
-
         termedRequester.exchange("/nodes", POST, params, String.class, new DeleteAndSaveOrganizations(delete, save));
     }
 
@@ -70,6 +69,9 @@ public class SynchronizationService {
         params.add("where", "type.id:" + NodeType.Organization);
         params.add("max", "-1");
         params.add("select", "referrers.*");
+System.err.println(" getUnUsedOrganization URL:"+termedRequester.termedUrl);
+System.err.println(" getUnUsedOrganization params:"+params);
+System.err.println(" getUnUsedOrganization request :"+termedRequester.termedUrl+"/node-trees/"+params);
 
         List<OrganizationReferrersNode> organizations =
                 termedRequester.exchange("/node-trees", GET, params, new ParameterizedTypeReference<List<OrganizationReferrersNode>>() {});
