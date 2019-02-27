@@ -156,6 +156,7 @@ public class MigrationService {
 
     public boolean isSchemaInitialized() {
         log.info("Checking if schema is initialized!");
+        System.out.println("isSchemaInitialized got: \n"+termedRequester.exchange("/graphs/" + SCHEMA_GRAPH_ID, GET, Parameters.empty(), String.class)); 
         return termedRequester.exchange("/graphs/" + SCHEMA_GRAPH_ID, GET, Parameters.empty(), Graph.class) != null;
     }
 
