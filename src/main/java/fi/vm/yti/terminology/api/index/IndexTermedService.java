@@ -70,10 +70,10 @@ public class IndexTermedService {
                 .filter(node -> {
                     // Proper vocabularies have existing URI
                     // And don't  start with http://urn.fi/URN:NBN
-                    if(node != null && node.get("uri") != null ){
-                        if ( node.get("uri")!= null && !node.get("uri").textValue().isEmpty() && !node.get("uri").textValue().startsWith("http://urn.fi/URN:NBN")) {
+                    if(node.get("uri") != null ){
+                        if ( !node.get("uri").textValue().isEmpty() && !node.get("uri").textValue().startsWith("http://urn.fi/URN:NBN")) {
                             return true;
-                        }                    
+                        }
                     } 
                     return false;
                 })

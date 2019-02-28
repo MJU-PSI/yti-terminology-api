@@ -23,7 +23,7 @@ public class TermedRequester {
 
     private final String termedUser;
     private final String termedPassword;
-    public final String termedUrl;
+    private final String termedUrl;
     private final RestTemplate restTemplate;
 
     @Autowired
