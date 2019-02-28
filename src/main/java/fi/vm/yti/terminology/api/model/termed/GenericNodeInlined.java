@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
 
@@ -23,7 +21,7 @@ public final class GenericNodeInlined implements Node {
     private final Date lastModifiedDate;
 
     private final TypeId type;
-    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+
     private final Map<String, List<Attribute>> properties;
     private final Map<String, List<GenericNodeInlined>> references;
     private final Map<String, List<GenericNodeInlined>> referrers;
