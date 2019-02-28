@@ -8,14 +8,15 @@ import fi.vm.yti.terminology.api.model.termed.Graph;
 
 public class GraphTest {
 //   String jsonString="{\"id\":\"9d9d546a-221f-44ed-b047-481653eb3192\",\"code\":null,\"uri\":null,\"roles\":[],\"permissions\":{},\"properties\":{\"empty\":false}}";
-   String jsonString="{\"id\":\"9d9d546a-221f-44ed-b047-481653eb3192\",\"code\":null,\"uri\":null,\"roles\":[],\"permissions\":{\"empty\":true},\"properties\":{\"empty\":false}}";
+//   String jsonString="{\"id\":\"9d9d546a-221f-44ed-b047-481653eb3192\",\"code\":null,\"uri\":null,\"roles\":[],\"permissions\":{\"empty\":true},\"properties\":{\"empty\":false}}";
 //   String jsonString="{\"id\":\"9d9d546a-221f-44ed-b047-481653eb3192\",\"code\":null,\"uri\":null,\"roles\":[],\"permissions\":{},\"properties\":{}}";
 
+String jsonString="{\"id\":\"9d9d546a-221f-44ed-b047-481653eb3192\",\"code\":null,\"uri\":null,\"roles\":[],\"permissions\":{\"empty\":true},\"properties\":{\"empty\":false}}";
     private Graph gr =null;
     @org.junit.Before
     public void setUp() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+//        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         gr = mapper.readValue(jsonString,Graph.class);
         assertNotNull(gr);
     }

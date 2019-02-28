@@ -169,6 +169,8 @@ public class MigrationService {
 
     public GenericNode getNode(TypeId domain, UUID id) {
         String url = "/graphs/" + domain.getGraphId() + "/types/" + domain.getId().name() + "/nodes/" + id;
+        System.out.println("getNODE got: \n"+termedRequester.exchange(url, GET, Parameters.empty(), String.class)); 
+
         return requireNonNull(termedRequester.exchange(url, GET, Parameters.empty(), GenericNode.class));
     }
 }

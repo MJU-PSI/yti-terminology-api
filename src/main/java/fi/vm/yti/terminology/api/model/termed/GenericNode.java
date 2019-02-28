@@ -1,5 +1,6 @@
 package fi.vm.yti.terminology.api.model.termed;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Date;
@@ -31,9 +32,11 @@ public final class GenericNode implements Node {
     private Date lastModifiedDate = null;
 
     private final TypeId type;
-
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private final Map<String, List<Attribute>> properties;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private final Map<String, List<Identifier>> references;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private  Map<String, List<Identifier>> referrers = null;
 

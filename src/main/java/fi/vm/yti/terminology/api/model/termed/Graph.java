@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import static java.util.Collections.*;
 import static java.util.UUID.randomUUID;
 
@@ -14,7 +16,10 @@ public final class Graph {
     private final String uri;
 
     private final List<String> roles;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+
     private final Map<String, List<Permission>> permissions;
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     private final Map<String, List<Property>> properties;
 
     // Jackson constructor
