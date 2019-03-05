@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.importapi;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
@@ -75,7 +76,6 @@ public class ExportService {
     }
 
     @NotNull JsonNode getFullVocabulary(UUID id) {
-
         /*
         https://sanastot-dev.suomi.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-bc4b8cb42e7e/node-trees?select=*,references.prefLabelXl:1&where=type.id:Concept%20OR%20type.id:Collection&max=-1
 
@@ -98,6 +98,30 @@ public class ExportService {
         return requireNonNull(rv);            
     }
         
+    @NotNull String getFullVocabularyRDF(UUID id) {
+        /*
+        https://sanastot-dev.suomi.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-bc4b8cb42e7e/node-trees?select=*,references.prefLabelXl:1&where=type.id:Concept%20OR%20type.id:Collection&max=-1
+
+        */
+
+        Parameters params = new Parameters();
+        params.add("select", "*");
+        params.add("select", "references.prefLabelXl:1");
+        // Get all nodes from given graph
+//        params.add("where", "graph.id:" + id + " AND (type.id:" + Vocabulary + " OR type.id:"
+//        + TerminologicalVocabulary + ")");
+        params.add("where", "graph.id:" + id );
+
+        params.add("max", "-1");
+        params.add("content-type","application/rdf+xml");
+        System.out.println("getFullRDF vocabulary: "+params);
+
+        // Execute full search        
+        String rv =  requireNonNull(termedRequester.exchange("/node-trees", GET, params, String.class,TermedContentType.RDF_XML));
+        System.out.println("RDF-XML="+rv);
+        return requireNonNull(rv);            
+    }
+
     ResponseEntity getJSON(UUID vocabularyId){
         // Query status information from ActiveMQ
         System.out.println("getJSON: "+vocabularyId.toString());
@@ -112,7 +136,9 @@ public class ExportService {
         // Query status information from ActiveMQ
         HttpStatus status;
         StringBuffer statusString= new StringBuffer();
-        System.out.println("Response status json");
+        System.out.println("Response status RDF");
+        String response = getFullVocabularyRDF(vocabularyId);
+
         // Construct return message
 //        JsonUtils.prettyPrintJson(response);
 
