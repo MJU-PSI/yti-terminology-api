@@ -6,7 +6,8 @@ public enum TermedContentType {
 
     JSON("application/json"),
     JSON_LD("application/ld+json"),
-    RDF_XML("application/rdf+xml");
+    RDF_XML("application/rdf+xml"),
+    RDF_TURTLE("text/turtle");
 
     private final String contentType;
 
