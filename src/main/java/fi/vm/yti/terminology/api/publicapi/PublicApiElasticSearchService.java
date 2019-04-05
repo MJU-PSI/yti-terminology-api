@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.publicapi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.terminology.api.index.IndexTermedService;
+import fi.vm.yti.terminology.api.util.JsonUtils;
+
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -73,11 +75,14 @@ public class PublicApiElasticSearchService {
             PublicApiConcept concept = new PublicApiConcept();
             concept.setId(UUID.fromString(jsonNode.path("_source").path("id").asText()));
             concept.setVocabularyId(UUID.fromString(jsonNode.path("_source").path("vocabulary").path("id").asText()));
+            concept.setVocabularyUri(jsonNode.path("_source").path("vocabulary").path("uri").asText());
+
             concept.setPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source"), "label"));
             concept.setDefinition(extractLocalizableFromGivenField(jsonNode.path("_source"), "definition"));
             concept.setVocabularyPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source").path("vocabulary"),"label"));
             concept.setUri(jsonNode.path("_source").path("uri").asText());
             concept.setStatus(jsonNode.path("_source").path("status").asText());
+
             // Filtering out items which status  does not match to given one.
             if(status!= null && !status.isEmpty() ){
                 if(!concept.getStatus().equalsIgnoreCase(status)){

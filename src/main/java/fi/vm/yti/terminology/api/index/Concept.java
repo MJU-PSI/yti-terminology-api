@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import fi.vm.yti.terminology.api.util.JsonUtils;
+
 import java.util.*;
 
 import static fi.vm.yti.terminology.api.util.JsonUtils.*;
@@ -62,7 +64,6 @@ final class Concept {
         JsonNode properties = conceptJson.get("properties");
         JsonNode references = conceptJson.get("references");
         JsonNode referrers = conceptJson.get("referrers");
-
         Map<String, List<String>> label =
                 properties.has("prefLabel")
                         ? localizableFromTermedProperties(properties, "prefLabel")
@@ -107,7 +108,7 @@ final class Concept {
     static @NotNull Concept createFromAllNodeResult(@NotNull UUID conceptId, @NotNull UUID vocabularyId, @NotNull AllNodesResult allNodesResult) {
 
         JsonNode conceptJson = requireNonNull(allNodesResult.getNode(conceptId, "Concept"));
-        JsonNode vocabularyJson = requireNonNull(allNodesResult.getNode(vocabularyId));
+        JsonNode vocabularyJson = requireNonNull(allNodesResult.getNode(vocabularyId));        
         Vocabulary vocabulary = Vocabulary.createFromExtJson(vocabularyJson);
 
         JsonNode references = conceptJson.get("references");
