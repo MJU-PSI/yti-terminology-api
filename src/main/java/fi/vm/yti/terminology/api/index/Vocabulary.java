@@ -16,7 +16,8 @@ public final class Vocabulary {
     private final String uri;
     private final Map<String, List<String>> label;
 
-    private Vocabulary(@NotNull UUID graphId, @NotNull String uri, @NotNull Map<String, List<String>> label) {
+    // Optional URI for a while,
+    private Vocabulary(@NotNull UUID graphId,  String uri, @NotNull Map<String, List<String>> label) {
         this.graphId = graphId;
         this.uri = uri;
         this.label = label;
