@@ -31,6 +31,9 @@ public class PublicApiElasticSearchService {
 
     private final IndexTermedService indexTermedService;
 
+    private static Locale[] availableLocales;
+    private static Set<Locale> uniqueNonNullLocales;
+
     @Autowired
     public PublicApiElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
                                         @Value("${search.host.port}") int searchHostPort,
@@ -44,6 +47,16 @@ public class PublicApiElasticSearchService {
         this.indexTermedService = indexTermedService;
     }
 
+    static {
+        availableLocales = Locale.getAvailableLocales();
+        uniqueNonNullLocales = new HashSet<>();
+
+        for (Locale locale : availableLocales) {
+            if (!locale.getLanguage().isEmpty() && !uniqueNonNullLocales.contains(locale)) {
+                uniqueNonNullLocales.add(locale);
+            }
+        }
+    }
 
     List<PublicApiConcept> searchConcept(String searchTerm, String vocabularyId, String status) {
 
@@ -76,7 +89,6 @@ public class PublicApiElasticSearchService {
             concept.setId(UUID.fromString(jsonNode.path("_source").path("id").asText()));
             concept.setVocabularyId(UUID.fromString(jsonNode.path("_source").path("vocabulary").path("id").asText()));
             concept.setVocabularyUri(jsonNode.path("_source").path("vocabulary").path("uri").asText());
-
             concept.setPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source"), "label"));
             concept.setDefinition(extractLocalizableFromGivenField(jsonNode.path("_source"), "definition"));
             concept.setVocabularyPrefLabel(extractLocalizableFromGivenField(jsonNode.path("_source").path("vocabulary"),"label"));
@@ -98,9 +110,14 @@ public class PublicApiElasticSearchService {
 
     public  HashMap<String, String> extractLocalizableFromGivenField(JsonNode node, String fieldName) {
         HashMap<String, String> result = new HashMap<>();
-        result.put("fi", Jsoup.clean(node.get(fieldName).get("fi") == null ? "" : node.get(fieldName).get("fi").get(0).textValue(), Whitelist.none()));
-        result.put("sv", Jsoup.clean(node.get(fieldName).get("sv") == null ? "" : node.get(fieldName).get("sv").get(0).textValue(), Whitelist.none()));
-        result.put("en", Jsoup.clean(node.get(fieldName).get("en") == null ? "" : node.get(fieldName).get("en").get(0).textValue(), Whitelist.none()));
+
+        uniqueNonNullLocales.forEach( locale -> {
+            JsonNode theNode = node.get(fieldName).get(locale.getLanguage());
+            if (theNode != null ) {
+                result.put(locale.getLanguage(),Jsoup.clean(node.get(fieldName).get(locale.getLanguage()).get(0).textValue(), Whitelist.none()));
+            }
+        });
+
         return result;
     }
 }
