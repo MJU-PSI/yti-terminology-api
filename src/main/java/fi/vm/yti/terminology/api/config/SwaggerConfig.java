@@ -81,14 +81,4 @@ public class SwaggerConfig {
                 .paths(PathSelectors.ant("/terminology/publicapi/**"))
                 .build();
     }
-
-    @Bean
-    public Docket resolveApi() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("resolveapi")
-                .select()
-                .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/api/resolve/**"))
-                .build();
-    }
 }

@@ -3,7 +3,6 @@ package fi.vm.yti.terminology.api.resolve;
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
 
-import org.aspectj.apache.bcel.generic.Type;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -37,7 +36,6 @@ public class ResolveController {
             ResolvedResource resource = urlResolverService.resolveResource(uri);
             ResolvableContentType contentType = ResolvableContentType.fromString(format, acceptHeader);
 
-            System.out.println(" RESPONSE_TYPE=" + resource.getType());
             String responseValue = "redirect:" + applicationUrl + formatPath(resource, contentType)
                     + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" : "&format=" + format);
             return new ResponseEntity<>(responseValue, HttpStatus.OK);

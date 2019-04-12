@@ -91,7 +91,6 @@ public final class MetaNode {
         Optional<AttributeMeta> o = textAttributes.stream()
                 .filter(x -> x.getId().equals(name))
                 .findAny();
-        System.out.println("attributeExists("+name+") o="+o.isPresent());
         if(o.isPresent())
             rv = true;
         return rv;
