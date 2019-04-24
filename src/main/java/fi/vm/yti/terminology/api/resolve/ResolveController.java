@@ -5,6 +5,7 @@ import fi.vm.yti.terminology.api.model.termed.NodeType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -14,6 +15,8 @@ import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
+import java.net.URI;
 
 @Controller
 @RequestMapping("/api")
@@ -35,10 +38,16 @@ public class ResolveController {
         try {
             ResolvedResource resource = urlResolverService.resolveResource(uri);
             ResolvableContentType contentType = ResolvableContentType.fromString(format, acceptHeader);
-
-            String responseValue = "redirect:" + applicationUrl + formatPath(resource, contentType)
+            // String responseValue = "redirect:" + applicationUrl + formatPath(resource,
+            // contentType)
+            // + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" :
+            // "&format=" + format);
+            // return new ResponseEntity<>(responseValue, HttpStatus.OK);
+            String responseValue = applicationUrl + formatPath(resource, contentType)
                     + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" : "&format=" + format);
-            return new ResponseEntity<>(responseValue, HttpStatus.OK);
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setLocation(new URI(responseValue));
+            return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
         } catch (Exception ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         }
