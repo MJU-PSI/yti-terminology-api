@@ -157,8 +157,8 @@ public class TerminologyQueryFactory {
                 JsonNode terminology = hit.get("_source");
                 // NOTE: terminology.get("id") would make more sense, but currently concepts contain only graph id => use it here also.
                 String terminologyId = terminology.get("type").get("graph").get("id").textValue();
-                String terminologyCode = terminology.get("code").textValue();
-                String terminologyUri = terminology.get("uri").textValue();
+                String terminologyCode = ElasticRequestUtils.getTextValueOrNull(terminology, "code");
+                String terminologyUri = ElasticRequestUtils.getTextValueOrNull(terminology, "uri");
 
                 JsonNode properties = terminology.get("properties");
                 JsonNode statusArray = properties.get("status");
@@ -171,15 +171,19 @@ public class TerminologyQueryFactory {
                 JsonNode contributorArray = references.get("contributor");
                 List<InformationDomainDTO> domains = new ArrayList<>();
                 List<OrganizationDTO> contributors = new ArrayList<>();
-                for (JsonNode domain : domainArray) {
-                    String domainId = domain.get("id").textValue();
-                    Map<String, String> domainLabel = ElasticRequestUtils.labelFromLangValueArray(domain.get("properties").get("prefLabel"));
-                    domains.add(new InformationDomainDTO(domainId, domainLabel));
+                if (domainArray != null) {
+                    for (JsonNode domain : domainArray) {
+                        String domainId = domain.get("id").textValue();
+                        Map<String, String> domainLabel = ElasticRequestUtils.labelFromLangValueArray(domain.get("properties").get("prefLabel"));
+                        domains.add(new InformationDomainDTO(domainId, domainLabel));
+                    }
                 }
-                for (JsonNode contributor : contributorArray) {
-                    String orgId = contributor.get("id").textValue();
-                    Map<String, String> orgLabel = ElasticRequestUtils.labelFromLangValueArray(contributor.get("properties").get("prefLabel"));
-                    contributors.add(new OrganizationDTO(orgId, orgLabel));
+                if (contributorArray != null) {
+                    for (JsonNode contributor : contributorArray) {
+                        String orgId = contributor.get("id").textValue();
+                        Map<String, String> orgLabel = ElasticRequestUtils.labelFromLangValueArray(contributor.get("properties").get("prefLabel"));
+                        contributors.add(new OrganizationDTO(orgId, orgLabel));
+                    }
                 }
 
                 terminologies.add(new TerminologyDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, labelMap, descriptionMap, domains, contributors));

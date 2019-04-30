@@ -65,4 +65,14 @@ public final class ElasticRequestUtils {
         }
         return !ret.isEmpty() ? ret : null;
     }
+
+    public static String getTextValueOrNull(JsonNode node, String fieldName) {
+        if (node != null) {
+            JsonNode field = node.get(fieldName);
+            if (field != null) {
+                return field.textValue();
+            }
+        }
+        return null;
+    }
 }

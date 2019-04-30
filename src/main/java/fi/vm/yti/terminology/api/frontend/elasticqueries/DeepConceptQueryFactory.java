@@ -94,9 +94,9 @@ public class DeepConceptQueryFactory {
                     JsonNode hits = meta.get("hits");
                     for (JsonNode hit : hits) {
                         JsonNode concept = hit.get("_source");
-                        String conceptId = concept.get("id").textValue();
-                        String conceptUri = textValue(concept.get("uri"));
-                        String conceptStatus = textValue(concept.get("status"));
+                        String conceptId = ElasticRequestUtils.getTextValueOrNull(concept,"id");
+                        String conceptUri = ElasticRequestUtils.getTextValueOrNull(concept, "uri");
+                        String conceptStatus = ElasticRequestUtils.getTextValueOrNull(concept, "status");
                         Map<String, String> labelMap = ElasticRequestUtils.labelFromKeyValueNode(concept.get("label"));
 
                         ConceptSimpleDTO dto = new ConceptSimpleDTO(conceptId, conceptUri, conceptStatus, labelMap);
@@ -108,12 +108,5 @@ public class DeepConceptQueryFactory {
             log.error("Cannot parse deep concept query response", e);
         }
         return ret;
-    }
-
-    private String textValue(JsonNode node) {
-        if (node == null) {
-            return null;
-        }
-        return node.textValue();
     }
 }
