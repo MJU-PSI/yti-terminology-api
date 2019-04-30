@@ -162,7 +162,7 @@ public class TerminologyQueryFactory {
 
                 JsonNode properties = terminology.get("properties");
                 JsonNode statusArray = properties.get("status");
-                String terminologyStatus = statusArray.has(0) ? statusArray.get(0).get("value").textValue() : null;
+                String terminologyStatus = statusArray != null ? (statusArray.has(0) ? statusArray.get(0).get("value").textValue() : "DRAFT") : "DRAFT";
                 Map<String, String> labelMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("prefLabel"));
                 Map<String, String> descriptionMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("description"));
 
