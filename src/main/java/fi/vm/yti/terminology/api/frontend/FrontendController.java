@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.frontend;
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -219,6 +221,13 @@ public class FrontendController {
     String searchConcept(@RequestBody JsonNode query) {
         logger.info("POST /searchConcept requested with query: " + query.toString());
         return elasticSearchService.searchConcept(query);
+    }
+
+    @RequestMapping(value = "/searchTerminology", method = POST, produces = APPLICATION_JSON_VALUE)
+    @ResponseBody
+    TerminologySearchResponse searchTerminology(@RequestBody TerminologySearchRequest request) {
+        logger.info("POST /searchTerminology requested with query: " + request.toString());
+        return elasticSearchService.searchTerminology(request);
     }
 
     @RequestMapping(value = "/configuration", method = GET, produces = APPLICATION_JSON_VALUE)

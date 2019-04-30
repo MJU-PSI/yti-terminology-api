@@ -213,6 +213,7 @@ public class IndexTermedService {
         Parameters params = new Parameters();
         params.add("select", "id");
         params.add("select", "type");
+        params.add("select", "uri");
         params.add("select", "properties.*");
         params.add("where", "graph.id:" + graphId);
         params.add("where", "type.id:" + vocabularyType.name());
