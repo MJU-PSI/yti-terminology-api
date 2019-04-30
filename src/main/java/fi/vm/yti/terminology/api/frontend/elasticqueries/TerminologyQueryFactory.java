@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,6 +54,13 @@ public class TerminologyQueryFactory {
             "      \"minimum_should_match\" : 1\n" +
             "    }\n" +
             "  },\n" +
+            "  \"highlight\": {\n" +
+            "    \"pre_tags\": [\"<b>\"],\n" +
+            "    \"post_tags\": [\"</b>\"],\n" +
+            "    \"fields\": {\n" +
+            "      \"properties.prefLabel.value\": {}\n" +
+            "    }\n" +
+            "  },\n" +
             "  \"size\" : ";
     private static final String deep3 = ",\n" +
         "  \"from\" : ";
@@ -72,6 +80,13 @@ public class TerminologyQueryFactory {
             "        }\n" +
             "      } ],\n" +
             "      \"must_not\" : []\n" +
+            "    }\n" +
+            "  },\n" +
+            "  \"highlight\": {\n" +
+            "    \"pre_tags\": [\"<b>\"],\n" +
+            "    \"post_tags\": [\"</b>\"],\n" +
+            "    \"fields\": {\n" +
+            "      \"properties.prefLabel.value\": {}\n" +
             "    }\n" +
             "  },\n" +
             "  \"size\" : ";
@@ -166,6 +181,9 @@ public class TerminologyQueryFactory {
                 Map<String, String> labelMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("prefLabel"));
                 Map<String, String> descriptionMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("description"));
 
+                // TODO: Does not make sense if cannot make to highlight only matching chars
+                //handleHighlight(hit.get("highlight"), labelMap);
+
                 JsonNode references = terminology.get("references");
                 JsonNode domainArray = references.get("inGroup");
                 JsonNode contributorArray = references.get("contributor");
@@ -193,5 +211,25 @@ public class TerminologyQueryFactory {
             log.error("Cannot parse terminology query response", e);
         }
         return ret;
+    }
+
+    private void handleHighlight(JsonNode highlight, Map<String, String> labelMap) {
+        // TODO: Remove this .. err, interesting thing, when index contains things in "label: {fi: 'koira', se: 'hund'}" form
+        if (highlight != null) {
+            JsonNode valueArray = highlight.get("properties.prefLabel.value");
+            if (valueArray != null) {
+                Map<String, String> hmap = new HashMap<>();
+                for (JsonNode value : valueArray) {
+                    String highlightedLabel = value.textValue();
+                    String lowlightedLabel = highlightedLabel.replaceAll("</?b>", "");
+                    for (Map.Entry<String, String> entry : labelMap.entrySet()) {
+                        if (lowlightedLabel.equals(entry.getValue())) {
+                            hmap.put(entry.getKey(), highlightedLabel);
+                        }
+                    }
+                }
+                labelMap.putAll(hmap);
+            }
+        }
     }
 }

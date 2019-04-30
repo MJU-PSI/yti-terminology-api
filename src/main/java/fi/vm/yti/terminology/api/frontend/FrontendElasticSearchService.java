@@ -91,7 +91,9 @@ public class FrontendElasticSearchService {
         if (request.isSearchConcepts() && !request.getQuery().isEmpty()) {
             try {
                 Request conceptRequest = new Request("POST", "/concepts/_search");
-                conceptRequest.setJsonEntity(deepConceptQueryFactory.createQuery(request.getQuery()));
+                String deepQuery = deepConceptQueryFactory.createQuery(request.getQuery());
+                //logger.debug("Deep concept query:\n" + deepQuery);
+                conceptRequest.setJsonEntity(deepQuery);
                 Response response = esRestClient.performRequest(conceptRequest);
                 deepSearchHits = deepConceptQueryFactory.parseResponse(response);
             } catch (IOException e) {
@@ -105,10 +107,12 @@ public class FrontendElasticSearchService {
                 Set<String> additionalTerminilogyIds = deepSearchHits.keySet();
                 logger.debug("Deep concept search resulted in " + additionalTerminilogyIds.size() + " terminology matches");
                 String finalQuery = terminologyQueryFactory.createQuery(request, additionalTerminilogyIds);
-                //logger.debug("Final terminilogy query:\n" + finalQuery);
+                //logger.debug("Final terminology query:\n" + finalQuery);
                 terminologyRequest.setJsonEntity(finalQuery);
             } else {
-                terminologyRequest.setJsonEntity(terminologyQueryFactory.createQuery(request));
+                String finalQuery = terminologyQueryFactory.createQuery(request);
+                //logger.debug("Final terminology query:\n" + finalQuery);
+                terminologyRequest.setJsonEntity(finalQuery);
             }
             Response response = esRestClient.performRequest(terminologyRequest);
             return terminologyQueryFactory.parseResponse(response, request, deepSearchHits);

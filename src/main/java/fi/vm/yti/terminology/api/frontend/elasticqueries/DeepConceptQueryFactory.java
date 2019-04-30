@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,13 @@ public class DeepConceptQueryFactory {
             "      \"aggs\" : {\n" +
             "        \"top_terminology_hits\" : {\n" +
             "          \"top_hits\" : {\n" +
+            "            \"highlight\": {\n" +
+            "              \"pre_tags\": [\"<b>\"],\n" +
+            "              \"post_tags\": [\"</b>\"],\n" +
+            "              \"fields\": {\n" +
+            "                \"label.*\": {}\n" +
+            "              }\n" +
+            "            },\n" +
             "            \"sort\" : [ { \"_score\" : { \"order\" : \"desc\" } } ],\n" +
             "            \"size\" : 6,\n" +
             "            \"_source\" : {\n" +
@@ -98,6 +106,20 @@ public class DeepConceptQueryFactory {
                         String conceptUri = ElasticRequestUtils.getTextValueOrNull(concept, "uri");
                         String conceptStatus = ElasticRequestUtils.getTextValueOrNull(concept, "status");
                         Map<String, String> labelMap = ElasticRequestUtils.labelFromKeyValueNode(concept.get("label"));
+
+                        JsonNode highlight = hit.get("highlight");
+                        if (highlight != null) {
+                            Iterator<Map.Entry<String, JsonNode>> hlightIter = highlight.fields();
+                            while (hlightIter.hasNext()) {
+                                Map.Entry<String, JsonNode> hlight = hlightIter.next();
+                                String key = hlight.getKey();
+                                // TODO
+                                String value = hlight.getValue().get(0).textValue();
+                                if (key.startsWith("label.") && value != null && !value.isEmpty()) {
+                                    labelMap.put(key.substring(6), value);
+                                }
+                            }
+                        }
 
                         ConceptSimpleDTO dto = new ConceptSimpleDTO(conceptId, conceptUri, conceptStatus, labelMap);
                         topHits.add(dto);
