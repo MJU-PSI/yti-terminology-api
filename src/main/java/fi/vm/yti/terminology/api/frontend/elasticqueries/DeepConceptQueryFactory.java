@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
@@ -15,14 +16,15 @@ import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fi.vm.yti.terminology.api.frontend.searchdto.DeepSearchHitListDTO;
 import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSimpleDTO;
 import fi.vm.yti.terminology.api.frontend.searchdto.DeepSearchConceptHitListDTO;
+import fi.vm.yti.terminology.api.frontend.searchdto.DeepSearchHitListDTO;
 import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 
 public class DeepConceptQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
+    private static final Pattern prefLangPattern = Pattern.compile("[a-z]{2,3}");
 
     private static final String part0 =
         "{\n" +
@@ -31,9 +33,11 @@ public class DeepConceptQueryFactory {
             "      \"must\": [ {\n" +
             "        \"multi_match\" : { \n" +
             "          \"query\" : \"";
-    private static final String part1 =
+    private static final String part1_1 =
         "\",\n" +
-            "          \"fields\" : [ \"label.fi^10\", \"label.*\" ],\n" +
+            "          \"fields\" : [ ";
+    private static final String part1_2 =
+        "\"label.*\" ],\n" +
             "          \"type\" : \"best_fields\",\n" +
             "          \"minimum_should_match\" : \"90%\"\n" +
             "        }\n" +
@@ -78,10 +82,15 @@ public class DeepConceptQueryFactory {
         this.objectMapper = objectMapper;
     }
 
-    public String createQuery(String query) {
+    public String createQuery(String query,
+                              String prefLang) {
         StringBuilder sb = new StringBuilder(part0);
         JsonStringEncoder.getInstance().quoteAsString(query, sb);
-        sb.append(part1);
+        sb.append(part1_1);
+        if (prefLang != null && prefLangPattern.matcher(prefLang).matches()) {
+            sb.append("\"label." + prefLang + "^10\", ");
+        }
+        sb.append(part1_2);
         return sb.toString();
     }
 
@@ -102,7 +111,7 @@ public class DeepConceptQueryFactory {
                     JsonNode hits = meta.get("hits");
                     for (JsonNode hit : hits) {
                         JsonNode concept = hit.get("_source");
-                        String conceptId = ElasticRequestUtils.getTextValueOrNull(concept,"id");
+                        String conceptId = ElasticRequestUtils.getTextValueOrNull(concept, "id");
                         String conceptUri = ElasticRequestUtils.getTextValueOrNull(concept, "uri");
                         String conceptStatus = ElasticRequestUtils.getTextValueOrNull(concept, "status");
                         Map<String, String> labelMap = ElasticRequestUtils.labelFromKeyValueNode(concept.get("label"));

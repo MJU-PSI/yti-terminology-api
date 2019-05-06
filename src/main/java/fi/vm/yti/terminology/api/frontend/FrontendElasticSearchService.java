@@ -91,7 +91,7 @@ public class FrontendElasticSearchService {
         if (request.isSearchConcepts() && !request.getQuery().isEmpty()) {
             try {
                 Request conceptRequest = new Request("POST", "/concepts/_search");
-                String deepQuery = deepConceptQueryFactory.createQuery(request.getQuery());
+                String deepQuery = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang());
                 //logger.debug("Deep concept query:\n" + deepQuery);
                 conceptRequest.setJsonEntity(deepQuery);
                 Response response = esRestClient.performRequest(conceptRequest);
