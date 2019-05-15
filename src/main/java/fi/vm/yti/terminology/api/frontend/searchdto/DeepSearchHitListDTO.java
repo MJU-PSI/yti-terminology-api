@@ -6,14 +6,14 @@ public abstract class DeepSearchHitListDTO<T> {
     public enum Type {CONCEPT};
 
     private final Type type;
-    private int totalHitCount;
+    private long totalHitCount;
     private List<T> topHits;
 
     protected DeepSearchHitListDTO(Type type) {
         this.type = type;
     }
 
-    protected DeepSearchHitListDTO(Type type, int totalHitCount, List<T> topHits) {
+    protected DeepSearchHitListDTO(Type type, long totalHitCount, List<T> topHits) {
         this.type = type;
         this.totalHitCount = totalHitCount;
         this.topHits = topHits;
@@ -23,11 +23,11 @@ public abstract class DeepSearchHitListDTO<T> {
         return type;
     }
 
-    public int getTotalHitCount() {
+    public long getTotalHitCount() {
         return totalHitCount;
     }
 
-    public void setTotalHitCount(final int totalHitCount) {
+    public void setTotalHitCount(final long totalHitCount) {
         this.totalHitCount = totalHitCount;
     }
 

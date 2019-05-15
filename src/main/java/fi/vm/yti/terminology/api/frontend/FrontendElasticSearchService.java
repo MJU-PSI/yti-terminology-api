@@ -1,7 +1,6 @@
 package fi.vm.yti.terminology.api.frontend;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,9 +8,13 @@ import java.util.Set;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +37,7 @@ public class FrontendElasticSearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendElasticSearchService.class);
 
-    private final RestClient esRestClient;
+    private final RestHighLevelClient esRestClient;
 
     private final String indexName;
     private final String indexMappingType;
@@ -52,7 +55,7 @@ public class FrontendElasticSearchService {
                                         ObjectMapper objectMapper) {
         this.indexName = indexName;
         this.indexMappingType = indexMappingType;
-        this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
+        this.esRestClient = new RestHighLevelClient(RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)));
 
         this.objectMapper = objectMapper;
         this.terminologyQueryFactory = new TerminologyQueryFactory(objectMapper);
@@ -77,7 +80,9 @@ public class FrontendElasticSearchService {
         String endpoint = "/" + index + "/" + indexMappingType + "/_search";
         NStringEntity body = new NStringEntity(query.toString(), ContentType.APPLICATION_JSON);
         try {
-            Response response = esRestClient.performRequest("GET", endpoint, Collections.emptyMap(), body);
+            Request request = new Request("POST", endpoint);
+            request.setEntity(body);
+            Response response = esRestClient.getLowLevelClient().performRequest(request);
             return responseContentAsString(response);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -90,11 +95,8 @@ public class FrontendElasticSearchService {
         Map<String, List<DeepSearchHitListDTO<?>>> deepSearchHits = null;
         if (request.isSearchConcepts() && !request.getQuery().isEmpty()) {
             try {
-                Request conceptRequest = new Request("POST", "/concepts/_search");
-                String deepQuery = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang());
-                //logger.debug("Deep concept query:\n" + deepQuery);
-                conceptRequest.setJsonEntity(deepQuery);
-                Response response = esRestClient.performRequest(conceptRequest);
+                SearchRequest query = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang());
+                SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
                 deepSearchHits = deepConceptQueryFactory.parseResponse(response);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -114,7 +116,7 @@ public class FrontendElasticSearchService {
                 //logger.debug("Final terminology query:\n" + finalQuery);
                 terminologyRequest.setJsonEntity(finalQuery);
             }
-            Response response = esRestClient.performRequest(terminologyRequest);
+            Response response = esRestClient.getLowLevelClient().performRequest(terminologyRequest);
             return terminologyQueryFactory.parseResponse(response, request, deepSearchHits);
         } catch (IOException e) {
             throw new RuntimeException(e);

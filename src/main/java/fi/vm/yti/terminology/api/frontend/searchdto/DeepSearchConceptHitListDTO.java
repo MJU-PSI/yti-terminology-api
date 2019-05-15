@@ -7,7 +7,7 @@ public class DeepSearchConceptHitListDTO extends DeepSearchHitListDTO<ConceptSim
         super(Type.CONCEPT);
     }
 
-    public DeepSearchConceptHitListDTO(int totalCount, List<ConceptSimpleDTO> topHits) {
+    public DeepSearchConceptHitListDTO(long totalCount, List<ConceptSimpleDTO> topHits) {
         super(Type.CONCEPT, totalCount, topHits);
     }
 }
