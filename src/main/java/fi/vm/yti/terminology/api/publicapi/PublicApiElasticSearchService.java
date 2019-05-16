@@ -39,7 +39,7 @@ public class PublicApiElasticSearchService {
     private final IndexTermedService indexTermedService;
 
     private static Locale[] availableLocales;
-    private static Set<Locale> uniqueNonNullLocales;
+    private static Set<String> uniqueNonNullLanguages;
 
     @Autowired
     public PublicApiElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
@@ -56,33 +56,51 @@ public class PublicApiElasticSearchService {
 
     static {
         availableLocales = Locale.getAvailableLocales();
-        uniqueNonNullLocales = new HashSet<>();
+        uniqueNonNullLanguages = new HashSet<>();
 
         for (Locale locale : availableLocales) {
-            if (!locale.getLanguage().isEmpty() && !uniqueNonNullLocales.contains(locale)) {
-                uniqueNonNullLocales.add(locale);
+            if (!locale.getLanguage().isEmpty() && !uniqueNonNullLanguages.contains(locale.getLanguage())) {
+                uniqueNonNullLanguages.add(locale.getLanguage());
             }
         }
     }
 
     List<PublicApiConcept> searchConcept(String searchTerm,
                                          String vocabularyId,
-                                         String status) {
+                                         String status,
+                                         String language) {
 
         String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
 
         StringBuilder queryBuilder = new StringBuilder();
-        if (vocabularyId == null || vocabularyId.isEmpty() || vocabularyId.equals("0")) {
-            queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");
-            JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
-            queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+        System.out.println("language is : " + language);
+        if (language != null && !language.isEmpty()) {
+            String labelPart = "label." + language;
+            if (vocabularyId == null || vocabularyId.isEmpty() || vocabularyId.equals("0")) {
+                queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
+                queryBuilder.append("\",\"fields\":[\"" + labelPart + "\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+            } else {
+                queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"match\":{\"vocabulary.id\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(vocabularyId, queryBuilder);
+                queryBuilder.append("\"}},{\"multi_match\":{\"query\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
+                queryBuilder.append("\",\"fields\":[\"" + labelPart + "\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+            }
         } else {
-            queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"match\":{\"vocabulary.id\":\"");
-            JsonStringEncoder.getInstance().quoteAsString(vocabularyId, queryBuilder);
-            queryBuilder.append("\"}},{\"multi_match\":{\"query\":\"");
-            JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
-            queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+            if (vocabularyId == null || vocabularyId.isEmpty() || vocabularyId.equals("0")) {
+                queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
+                queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+            } else {
+                queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"match\":{\"vocabulary.id\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(vocabularyId, queryBuilder);
+                queryBuilder.append("\"}},{\"multi_match\":{\"query\":\"");
+                JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
+                queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+            }
         }
+
         NStringEntity body = new NStringEntity(queryBuilder.toString(), ContentType.APPLICATION_JSON);
 
         try {
@@ -127,10 +145,10 @@ public class PublicApiElasticSearchService {
                                                                     String fieldName) {
         HashMap<String, String> result = new HashMap<>();
 
-        uniqueNonNullLocales.forEach(locale -> {
-            JsonNode theNode = node.get(fieldName).get(locale.getLanguage());
+        uniqueNonNullLanguages.forEach(language -> {
+            JsonNode theNode = node.get(fieldName).get(language);
             if (theNode != null) {
-                result.put(locale.getLanguage(), Jsoup.clean(node.get(fieldName).get(locale.getLanguage()).get(0).textValue(), Whitelist.none()));
+                result.put(language, Jsoup.clean(node.get(fieldName).get(language).get(0).textValue(), Whitelist.none()));
             }
         });
 
