@@ -4,23 +4,23 @@ import java.util.List;
 import java.util.Map;
 
 public class TerminologySearchResponse {
-    private int totalHitCount;
+    private long totalHitCount;
     private int resultStart;
     private List<TerminologyDTO> terminologies;
     private Map<String, List<DeepSearchHitListDTO<?>>> deepHits;
 
-    public TerminologySearchResponse(int totalHitCount, int resultStart, List<TerminologyDTO> terminologies, Map<String, List<DeepSearchHitListDTO<?>>> deepHits) {
+    public TerminologySearchResponse(long totalHitCount, int resultStart, List<TerminologyDTO> terminologies, Map<String, List<DeepSearchHitListDTO<?>>> deepHits) {
         this.totalHitCount = totalHitCount;
         this.resultStart = resultStart;
         this.terminologies = terminologies;
         this.deepHits = deepHits;
     }
 
-    public int getTotalHitCount() {
+    public long getTotalHitCount() {
         return totalHitCount;
     }
 
-    public void setTotalHitCount(final int totalHitCount) {
+    public void setTotalHitCount(final long totalHitCount) {
         this.totalHitCount = totalHitCount;
     }
 
