@@ -2,16 +2,25 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.elasticsearch.client.Response;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.text.Text;
+import org.elasticsearch.index.query.MatchPhrasePrefixQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermsQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -27,149 +36,68 @@ public class TerminologyQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
 
-    private static final String deep0 =
-        "{\n" +
-            "  \"query\" : {\n" +
-            "    \"bool\" : {\n" +
-            "      \"should\" : [ {\n" +
-            "        \"bool\" : {\n" +
-            "          \"must\": [ {\n" +
-            "            \"match_phrase_prefix\" : {\n" +
-            "              \"properties.prefLabel.value\" : {\n" +
-            "                \"query\": \"";
-    private static final String deep1 =
-        "\"\n" +
-            "              }\n" +
-            "            }\n" +
-            "          } ],\n" +
-            "          \"must_not\" : []\n" +
-            "        }\n" +
-            "      }, {\n" +
-            "        \"terms\" : {\n" +
-            "          \"type.graph.id.keyword\" : [";
-    private static final String deep2 =
-        "]\n" +
-            "        }\n" +
-            "      } ],\n" +
-            "      \"minimum_should_match\" : 1\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"highlight\": {\n" +
-            "    \"pre_tags\": [\"<b>\"],\n" +
-            "    \"post_tags\": [\"</b>\"],\n" +
-            "    \"fields\": {\n" +
-            "      \"properties.prefLabel.value\": {}\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"size\" : ";
-    private static final String deep3 = ",\n" +
-        "  \"from\" : ";
-    private static final String deep4 = "\n" +
-        "}\n";
-    private static final String part0 =
-        "{\n" +
-            "  \"query\" : {\n" +
-            "    \"bool\" : {\n" +
-            "      \"must\": [ {\n" +
-            "        \"match_phrase_prefix\" : {\n" +
-            "          \"properties.prefLabel.value\" : {\n" +
-            "            \"query\": \"";
-    private static final String part1 =
-        "\"\n" +
-            "          }\n" +
-            "        }\n" +
-            "      } ],\n" +
-            "      \"must_not\" : []\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"highlight\": {\n" +
-            "    \"pre_tags\": [\"<b>\"],\n" +
-            "    \"post_tags\": [\"</b>\"],\n" +
-            "    \"fields\": {\n" +
-            "      \"properties.prefLabel.value\": {}\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"size\" : ";
-    private static final String part2 = ",\n" +
-        "  \"from\" : ";
-    private static final String part3 = "\n" +
-        "}";
-
     private ObjectMapper objectMapper;
 
     public TerminologyQueryFactory(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
-    public String createQuery(TerminologySearchRequest request) {
-        return createQuery(request.getQuery(), request.getPageSize(), request.getPageFrom());
+    public SearchRequest createQuery(TerminologySearchRequest request) {
+        return createQuery(request.getQuery(), Collections.EMPTY_SET, request.getPageSize(), request.getPageFrom());
     }
 
-    public String createQuery(TerminologySearchRequest request,
-                              Collection<String> additionalTerminologyIds) {
-        if (additionalTerminologyIds.isEmpty()) {
-            return createQuery(request.getQuery(), request.getPageSize(), request.getPageFrom());
-        }
+    public SearchRequest createQuery(TerminologySearchRequest request,
+                                     Collection<String> additionalTerminologyIds) {
         return createQuery(request.getQuery(), additionalTerminologyIds, request.getPageSize(), request.getPageFrom());
     }
 
-    private String createQuery(String query,
-                               Collection<String> additionalTerminologyIds,
-                               int pageSize,
-                               int pageFrom) {
-        StringBuilder sb = new StringBuilder(deep0);
-        JsonStringEncoder.getInstance().quoteAsString(query, sb);
-        sb.append(deep1);
-        sb.append(additionalTerminologyIds.stream().map(id -> "\"" + id + "\"").collect(Collectors.joining(",")));
-        sb.append(deep2);
-        sb.append(pageSize);
-        sb.append(deep3);
-        sb.append(pageFrom);
-        sb.append(deep4);
-        return sb.toString();
-    }
+    private SearchRequest createQuery(String query,
+                                      Collection<String> additionalTerminologyIds,
+                                      int pageSize,
+                                      int pageFrom) {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
+            .from(pageFrom)
+            .size(pageSize);
 
-    private String createQuery(String query,
-                               int pageSize,
-                               int pageFrom) {
-        if (query.isEmpty()) {
-            return createQuery(pageSize, pageFrom);
+        MatchPhrasePrefixQueryBuilder labelQuery = null;
+        if (!query.isEmpty()) {
+            labelQuery = QueryBuilders.matchPhrasePrefixQuery("properties.prefLabel.value", query);
+            sourceBuilder.highlighter(new HighlightBuilder().preTags("<b>").postTags("</b>").field("properties.prefLabel.value"));
         }
 
-        StringBuilder sb = new StringBuilder(part0);
-        JsonStringEncoder.getInstance().quoteAsString(query, sb);
-        sb.append(part1);
-        sb.append(pageSize);
-        sb.append(part2);
-        sb.append(pageFrom);
-        sb.append(part3);
-        return sb.toString();
+        TermsQueryBuilder idQuery = null;
+        if (additionalTerminologyIds != null && !additionalTerminologyIds.isEmpty()) {
+            idQuery = QueryBuilders.termsQuery("type.graph.id.keyword", additionalTerminologyIds);
+        }
+
+        if (idQuery != null && labelQuery != null) {
+            sourceBuilder.query(QueryBuilders.boolQuery()
+                .should(labelQuery)
+                .should(idQuery)
+                .minimumShouldMatch(1));
+        } else if (idQuery != null) {
+            sourceBuilder.query(idQuery);
+        } else if (labelQuery != null) {
+            sourceBuilder.query(labelQuery);
+        } else {
+            sourceBuilder.query(QueryBuilders.matchAllQuery());
+        }
+
+        SearchRequest sr = new SearchRequest("vocabularies")
+            .source(sourceBuilder);
+        return sr;
     }
 
-    private String createQuery(int pageSize,
-                               int pageFrom) {
-        return
-            "{\n" +
-                "  \"query\" : {\n" +
-                "    \"match_all\" : {}\n" +
-                "  },\n" +
-                "  \"size\" : " + pageSize + ",\n" +
-                "  \"from\" : " + pageFrom + "\n" +
-                "}\n";
-    }
-
-    public TerminologySearchResponse parseResponse(Response response,
+    public TerminologySearchResponse parseResponse(SearchResponse response,
                                                    TerminologySearchRequest request,
                                                    Map<String, List<DeepSearchHitListDTO<?>>> deepSearchHitList) {
         List<TerminologyDTO> terminologies = new ArrayList<>();
         TerminologySearchResponse ret = new TerminologySearchResponse(0, request.getPageFrom(), terminologies, deepSearchHitList);
         try {
-            JsonNode root = objectMapper.readTree(response.getEntity().getContent());
-            JsonNode meta = root.get("hits");
-            ret.setTotalHitCount(meta.get("total").intValue());
-            JsonNode hits = meta.get("hits");
-            for (JsonNode hit : hits) {
-                JsonNode terminology = hit.get("_source");
+            SearchHits hits = response.getHits();
+            ret.setTotalHitCount(hits.getTotalHits());
+            for (SearchHit hit : hits) {
+                JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
                 // NOTE: terminology.get("id") would make more sense, but currently concepts contain only graph id => use it here also.
                 String terminologyId = terminology.get("type").get("graph").get("id").textValue();
                 String terminologyCode = ElasticRequestUtils.getTextValueOrNull(terminology, "code");
@@ -182,7 +110,7 @@ public class TerminologyQueryFactory {
                 Map<String, String> descriptionMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("description"));
 
                 // TODO: Does not make sense if cannot make to highlight only matching chars
-                //handleHighlight(hit.get("highlight"), labelMap);
+                //handleHighlight(hit.getHighlightFields(), labelMap);
 
                 JsonNode references = terminology.get("references");
                 JsonNode domainArray = references.get("inGroup");
@@ -213,14 +141,15 @@ public class TerminologyQueryFactory {
         return ret;
     }
 
-    private void handleHighlight(JsonNode highlight, Map<String, String> labelMap) {
+    private void handleHighlight(Map<String, HighlightField> highlightFields,
+                                 Map<String, String> labelMap) {
         // TODO: Remove this .. err, interesting thing, when index contains things in "label: {fi: 'koira', se: 'hund'}" form
-        if (highlight != null) {
-            JsonNode valueArray = highlight.get("properties.prefLabel.value");
-            if (valueArray != null) {
+        if (highlightFields != null) {
+            HighlightField field = highlightFields.get("properties.prefLabel.value");
+            if (field != null) {
                 Map<String, String> hmap = new HashMap<>();
-                for (JsonNode value : valueArray) {
-                    String highlightedLabel = value.textValue();
+                for (Text fragment : field.getFragments()) {
+                    String highlightedLabel = fragment.string();
                     String lowlightedLabel = highlightedLabel.replaceAll("</?b>", "");
                     for (Map.Entry<String, String> entry : labelMap.entrySet()) {
                         if (lowlightedLabel.equals(entry.getValue())) {

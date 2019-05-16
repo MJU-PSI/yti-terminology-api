@@ -104,19 +104,15 @@ public class FrontendElasticSearchService {
         }
 
         try {
-            Request terminologyRequest = new Request("POST", "/vocabularies/_search");
+            SearchRequest finalQuery;
             if (deepSearchHits != null && !deepSearchHits.isEmpty()) {
                 Set<String> additionalTerminilogyIds = deepSearchHits.keySet();
                 logger.debug("Deep concept search resulted in " + additionalTerminilogyIds.size() + " terminology matches");
-                String finalQuery = terminologyQueryFactory.createQuery(request, additionalTerminilogyIds);
-                //logger.debug("Final terminology query:\n" + finalQuery);
-                terminologyRequest.setJsonEntity(finalQuery);
+                finalQuery = terminologyQueryFactory.createQuery(request, additionalTerminilogyIds);
             } else {
-                String finalQuery = terminologyQueryFactory.createQuery(request);
-                //logger.debug("Final terminology query:\n" + finalQuery);
-                terminologyRequest.setJsonEntity(finalQuery);
+                finalQuery = terminologyQueryFactory.createQuery(request);
             }
-            Response response = esRestClient.getLowLevelClient().performRequest(terminologyRequest);
+            SearchResponse response = esRestClient.search(finalQuery, RequestOptions.DEFAULT);
             return terminologyQueryFactory.parseResponse(response, request, deepSearchHits);
         } catch (IOException e) {
             throw new RuntimeException(e);
