@@ -35,6 +35,8 @@ import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 public class TerminologyQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
+    public static final int DEFAULT_PAGE_SIZE = 10;
+    public static final int DEFAULT_PAGE_FROM = 0;
 
     private ObjectMapper objectMapper;
 
@@ -43,12 +45,12 @@ public class TerminologyQueryFactory {
     }
 
     public SearchRequest createQuery(TerminologySearchRequest request) {
-        return createQuery(request.getQuery(), Collections.EMPTY_SET, request.getPageSize(), request.getPageFrom());
+        return createQuery(request.getQuery(), Collections.EMPTY_SET, pageSize(request), pageFrom(request));
     }
 
     public SearchRequest createQuery(TerminologySearchRequest request,
                                      Collection<String> additionalTerminologyIds) {
-        return createQuery(request.getQuery(), additionalTerminologyIds, request.getPageSize(), request.getPageFrom());
+        return createQuery(request.getQuery(), additionalTerminologyIds, pageSize(request), pageFrom(request));
     }
 
     private SearchRequest createQuery(String query,
@@ -92,7 +94,7 @@ public class TerminologyQueryFactory {
                                                    TerminologySearchRequest request,
                                                    Map<String, List<DeepSearchHitListDTO<?>>> deepSearchHitList) {
         List<TerminologyDTO> terminologies = new ArrayList<>();
-        TerminologySearchResponse ret = new TerminologySearchResponse(0, request.getPageFrom(), terminologies, deepSearchHitList);
+        TerminologySearchResponse ret = new TerminologySearchResponse(0, pageFrom(request), terminologies, deepSearchHitList);
         try {
             SearchHits hits = response.getHits();
             ret.setTotalHitCount(hits.getTotalHits());
@@ -160,5 +162,21 @@ public class TerminologyQueryFactory {
                 labelMap.putAll(hmap);
             }
         }
+    }
+
+    private int pageSize(TerminologySearchRequest request) {
+        Integer size = request.getPageSize();
+        if (size != null && size >= 0) {
+            return size.intValue();
+        }
+        return DEFAULT_PAGE_SIZE;
+    }
+
+    private int pageFrom(TerminologySearchRequest request) {
+        Integer from = request.getPageFrom();
+        if (from != null && from >= 0) {
+            return from.intValue();
+        }
+        return DEFAULT_PAGE_FROM;
     }
 }
