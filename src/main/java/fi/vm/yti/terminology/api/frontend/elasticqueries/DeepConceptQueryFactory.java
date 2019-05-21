@@ -42,7 +42,7 @@ public class DeepConceptQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
 
-    private static final Pattern prefLangPattern = Pattern.compile("[a-z]{2,3}");
+    private static final Pattern prefLangPattern = Pattern.compile("[a-zA-Z-]+");
     private static final FetchSourceContext sourceIncludes = new FetchSourceContext(true, new String[]{ "id", "uri", "status", "label", "vocabulary" }, new String[]{});
     private static final Script topHitScript = new Script(ScriptType.INLINE, Script.DEFAULT_SCRIPT_LANG, "_score", Collections.emptyMap());
 
