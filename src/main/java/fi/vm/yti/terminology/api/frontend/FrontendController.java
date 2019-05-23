@@ -134,16 +134,21 @@ public class FrontendController {
                           @RequestParam(required = false, defaultValue = "true") boolean sync,
                           @RequestBody GenericNode vocabularyNode) {
 
-        logger.info("POST /vocabulary requested with params: templateGraphId: " +
-            templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+        try {
+            logger.info("POST /vocabulary requested with params: templateGraphId: " +
+                templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
-        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
-        logger.info("Creating terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
-            predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
-        termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
-        logger.info("Created terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
-            predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
-        return predefinedOrGeneratedGraphId;
+            UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+            logger.info("Creating terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
+                predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
+            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            logger.info("Created terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
+                predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
+            return predefinedOrGeneratedGraphId;
+        } catch(RuntimeException e) {
+            logger.error("Exception thrown while trying to create terminology " + prefix + ": " + e.getMessage(), e);
+            throw e;
+        }
     }
 
     @RequestMapping(value = "/vocabulary", method = DELETE, produces = APPLICATION_JSON_VALUE)
