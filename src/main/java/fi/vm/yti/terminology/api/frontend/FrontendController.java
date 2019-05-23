@@ -1,21 +1,32 @@
 package fi.vm.yti.terminology.api.frontend;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.YtiUser;
-import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
-import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
-import fi.vm.yti.terminology.api.model.termed.*;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
+import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
+import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import fi.vm.yti.terminology.api.model.termed.GenericNodeInlined;
+import fi.vm.yti.terminology.api.model.termed.Graph;
+import fi.vm.yti.terminology.api.model.termed.Identifier;
+import fi.vm.yti.terminology.api.model.termed.MetaNode;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -111,8 +122,8 @@ public class FrontendController {
     }
 
     @RequestMapping(value = "/vocabularies", method = GET, produces = APPLICATION_JSON_VALUE)
-    JsonNode getVocabularyList( @RequestParam(required = false, defaultValue = "true") boolean incomplete) {
-        logger.info("GET /vocabularies requested incomplete="+incomplete);
+    JsonNode getVocabularyList(@RequestParam(required = false, defaultValue = "true") boolean incomplete) {
+        logger.info("GET /vocabularies requested incomplete=" + incomplete);
         return termedService.getVocabularyList(incomplete);
     }
 
@@ -124,10 +135,14 @@ public class FrontendController {
                           @RequestBody GenericNode vocabularyNode) {
 
         logger.info("POST /vocabulary requested with params: templateGraphId: " +
-                    templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+            templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
         UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+        logger.info("Creating terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
+            predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
         termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+        logger.info("Created terminology. Prefix: " + prefix + ", NodeId: " + vocabularyNode.getId().toString() + ", GraphId: " +
+            predefinedOrGeneratedGraphId.toString() + ", TemplateGraphId: " + templateGraphId.toString());
         return predefinedOrGeneratedGraphId;
     }
 
