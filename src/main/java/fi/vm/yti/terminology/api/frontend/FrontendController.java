@@ -123,12 +123,20 @@ public class FrontendController {
                           @RequestParam(required = false, defaultValue = "true") boolean sync,
                           @RequestBody GenericNode vocabularyNode) {
 
-        logger.info("POST /vocabulary requested with params: templateGraphId: " +
-                    templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+        try {
+            logger.info("POST /vocabulary requested with params: templateGraphId: " +
+                templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
-        UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
-        termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
-        return predefinedOrGeneratedGraphId;
+            UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            logger.info("Vocabulary with prefix \"" + prefix + "\" created");
+            return predefinedOrGeneratedGraphId;
+        } catch(RuntimeException|Error e) {
+            logger.error("createVocabuluary failed", e);
+            throw e;
+        } finally {
+            logger.info("Vocabulary creation finished");
+        }
     }
 
     @RequestMapping(value = "/vocabulary", method = DELETE, produces = APPLICATION_JSON_VALUE)
