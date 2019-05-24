@@ -212,7 +212,6 @@ public class IndexElasticSearchService {
 
     void updateIndexAfterUpdate(@NotNull AffectedNodes nodes) {
 
-        log.info("updateIndexAfterUpdate()");
         int fullReindexNodeCountThreshold = 20;
         if (log.isDebugEnabled()) {
             log.debug("updateIndexAfterUpdate()" + nodes.toString() + " hasVocabulary:" + nodes.hasVocabulary());

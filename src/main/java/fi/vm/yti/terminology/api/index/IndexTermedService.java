@@ -91,7 +91,6 @@ public class IndexTermedService {
 
 	@NotNull List<Concept> getAllConceptsForGraph(@NotNull UUID graphId) {
 
-        log.info("getAllConceptsForGraph(" + graphId.toString() + ")");
 	    AllNodesResult allNodesResult = this.fetchAllNodesInGraph(graphId);
 
         Optional<UUID> vocabularyNodeId = allNodesResult.getVocabularyNodeId();
@@ -158,8 +157,8 @@ public class IndexTermedService {
 
     private @Nullable Vocabulary getVocabulary(@NotNull UUID graphId) {
 
-        log.info("getVocabulary(" + graphId.toString() + ")");
 	    JsonNode vocabularyNode = getVocabularyNode(graphId);
+
         if (vocabularyNode != null) {
             return Vocabulary.createFromExtJson(vocabularyNode);
         } else {
@@ -170,7 +169,6 @@ public class IndexTermedService {
 
     public @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId) {
 
-        log.info("getVocabularyNode(" + graphId.toString() + ")");
         JsonNode json = getVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
         if (json != null) {
             return json;
