@@ -178,6 +178,10 @@ public class IndexElasticSearchService {
         boolean rv = true;
         // Get vocabulary
         JsonNode jn = termedApiService.getTerminologyVocabularyNode(vocId);
+        if(jn==null){
+            log.warn("Missing vocabulary during elasticsearch reindexing  :" + vocId.toString());
+            return false;
+        }
         ObjectMapper mapper = new ObjectMapper();
         try {
             String index = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
@@ -185,9 +189,7 @@ public class IndexElasticSearchService {
             String delete = "";
             // CHANGED CONTENT TYPE FOR ELASTIC 6.X
             HttpEntity entity = new NStringEntity(index + delete,
-                    // ContentType.create("application/x-ndjson"));
                     ContentType.create("application/json", StandardCharsets.UTF_8));
-            // ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
             Map<String, String> params = new HashMap<>();
 
             params.put("pretty", "true");
