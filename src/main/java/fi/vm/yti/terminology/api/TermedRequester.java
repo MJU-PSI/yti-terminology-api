@@ -4,6 +4,8 @@ import fi.vm.yti.terminology.api.exception.TermedEndpointException;
 import fi.vm.yti.terminology.api.util.Parameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -19,6 +21,7 @@ import java.util.function.Supplier;
 @Service
 public class TermedRequester {
 
+    private static final Logger logger = LoggerFactory.getLogger(TermedRequester.class);
     private static TermedContentType DEFAULT_CONTENT_TYPE = TermedContentType.JSON;
 
     private final String termedUser;
@@ -182,16 +185,24 @@ public class TermedRequester {
     }
 
     private static <T> T mapExceptions(Supplier<T> supplier) {
+        boolean success = false;
         try {
-            return supplier.get();
+            logger.info("Making Termed request");
+            T ret = supplier.get();
+            success = true;
+            return ret;
         } catch (ResourceAccessException e) {
+            logger.warn("Catched ResourceAccessException: " + e.getMessage(), e);
             throw new TermedEndpointException(e);
         } catch (HttpClientErrorException ex)   {
+            logger.warn("Catched HttpClientErrorException(" + ex.getStatusCode() + "): " + ex.getMessage(), ex);
             if (ex.getStatusCode() != HttpStatus.NOT_FOUND) {
                 throw ex;
             } else {
                 return null;
             }
+        } finally {
+            logger.info("Termed request finished (success: " + success + ")");
         }
     }
 
