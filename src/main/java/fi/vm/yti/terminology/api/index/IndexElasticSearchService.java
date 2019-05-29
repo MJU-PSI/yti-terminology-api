@@ -216,7 +216,7 @@ public class IndexElasticSearchService {
 
         int fullReindexNodeCountThreshold = 20;
         if (log.isDebugEnabled()) {
-            log.debug("updateIndexAfterUpdate()" + nodes.toString() + " hasVocabulary:" + nodes.hasVocabulary());
+            log.debug("updateIndexAfterUpdate() " + nodes.toString() + " hasVocabulary:" + nodes.hasVocabulary());
         }
         UUID voc = nodes.getGraphId();
         if (log.isDebugEnabled()) {

@@ -224,6 +224,7 @@ public class IndexTermedService {
 
     private @NotNull AllNodesResult fetchAllNodesInGraph(UUID graphId) {
 
+        log.info("Fetching all nodes for graph " + graphId.toString());
         Parameters params = Parameters.single("max", "-1");
         JsonNode response = termedRequester.exchange("/graphs/" + graphId + "/nodes", GET, params, JsonNode.class);
         return new AllNodesResult(requireNonNull(response));
