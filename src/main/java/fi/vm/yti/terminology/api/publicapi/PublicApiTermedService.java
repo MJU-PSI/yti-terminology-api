@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.publicapi;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +64,12 @@ public class PublicApiTermedService {
 
             vocabulary.setPrefLabel(prefLabelAsLocalizable(genericNode));
             vocabulary.setStatus(getStatus(genericNode));
-            vocabulary.setLanguages(getLanguages(genericNode));
+            List<String> languages = getLanguages(genericNode);
+            if (languages != null && !languages.isEmpty()) {
+                vocabulary.setLanguages(languages);
+            } else {
+                vocabulary.setLanguages(Arrays.asList("en", "fi", "sv"));
+            }
             if (!codesAlreadyAdded.contains(genericNode.getType().getGraphId().toString())) {
                 result.add(vocabulary);
                 codesAlreadyAdded.add(genericNode.getType().getGraphId().toString());
