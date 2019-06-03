@@ -17,6 +17,8 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,10 +28,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.terminology.api.index.IndexTermedService;
+import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsJson;
 
 @Service
 public class PublicApiElasticSearchService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PublicApiElasticSearchService.class);
 
     private final String indexName;
     private final String indexMappingType;
@@ -70,13 +75,14 @@ public class PublicApiElasticSearchService {
                                          String status,
                                          String language) {
 
-        String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+        final String endpoint = "/" + indexName + "/" + indexMappingType + "/_search";
+        final boolean terminologyGiven = vocabularyId != null && !vocabularyId.isEmpty() && !"0".equals(vocabularyId);
 
         StringBuilder queryBuilder = new StringBuilder();
-        System.out.println("language is : " + language);
-        if (language != null && !language.isEmpty()) {
+        if (language != null && !language.isEmpty() && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(language).matches()) {
             String labelPart = "label." + language;
-            if (vocabularyId == null || vocabularyId.isEmpty() || vocabularyId.equals("0")) {
+            logger.debug("Searching concepts based on '" + labelPart + "'");
+            if (!terminologyGiven) {
                 queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");
                 JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
                 queryBuilder.append("\",\"fields\":[\"" + labelPart + "\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
@@ -88,16 +94,19 @@ public class PublicApiElasticSearchService {
                 queryBuilder.append("\",\"fields\":[\"" + labelPart + "\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
             }
         } else {
-            if (vocabularyId == null || vocabularyId.isEmpty() || vocabularyId.equals("0")) {
+            if (language != null && !language.isEmpty()) {
+                logger.warn("Rejected concept search language specifier: '" + language + "'");
+            }
+            if (!terminologyGiven) {
                 queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");
                 JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
-                queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+                queryBuilder.append("\",\"fields\":[\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
             } else {
                 queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"match\":{\"vocabulary.id\":\"");
                 JsonStringEncoder.getInstance().quoteAsString(vocabularyId, queryBuilder);
                 queryBuilder.append("\"}},{\"multi_match\":{\"query\":\"");
                 JsonStringEncoder.getInstance().quoteAsString(searchTerm, queryBuilder);
-                queryBuilder.append("\",\"fields\":[\"label.fi^10\",\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
+                queryBuilder.append("\",\"fields\":[\"label.*\"],\"type\":\"best_fields\",\"minimum_should_match\":\"90%\"}}],\"must_not\":[]}},\"highlight\":{\"pre_tags\":[\"<b>\"],\"post_tags\":[\"</b>\"],\"fields\":{\"label.*\":{}}},\"from\":0,\"size\":100,\"sort\":[\"_score\"]}");
             }
         }
 

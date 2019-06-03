@@ -13,9 +13,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class ElasticRequestUtils {
+
+    public static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z]+(?:-[a-zA-Z0-9-]+)?");
 
     private ElasticRequestUtils() {
         // prevent construction

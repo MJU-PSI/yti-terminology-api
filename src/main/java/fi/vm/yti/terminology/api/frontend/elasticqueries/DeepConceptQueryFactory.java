@@ -42,7 +42,6 @@ public class DeepConceptQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
 
-    private static final Pattern prefLangPattern = Pattern.compile("[a-zA-Z-]+");
     private static final FetchSourceContext sourceIncludes = new FetchSourceContext(true, new String[]{ "id", "uri", "status", "label", "vocabulary" }, new String[]{});
     private static final Script topHitScript = new Script(ScriptType.INLINE, Script.DEFAULT_SCRIPT_LANG, "_score", Collections.emptyMap());
 
@@ -58,7 +57,7 @@ public class DeepConceptQueryFactory {
         MultiMatchQueryBuilder multiMatch = QueryBuilders.multiMatchQuery(query, "label.*")
             .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
             .minimumShouldMatch("90%");
-        if (prefLang != null && prefLangPattern.matcher(prefLang).matches()) {
+        if (prefLang != null && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(prefLang).matches()) {
             multiMatch = multiMatch.field("label." + prefLang, 10);
         }
 
