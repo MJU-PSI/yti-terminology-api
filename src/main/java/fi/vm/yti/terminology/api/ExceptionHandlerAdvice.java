@@ -16,7 +16,7 @@ public class ExceptionHandlerAdvice {
     @ExceptionHandler(Throwable.class)
     public void logAll(Throwable throwable,
                        HttpServletRequest request) throws Throwable {
-        logger.error("Rogue catchable thrown while handling request to \"" + request.getServletPath() + "\"", throwable);
+        logger.warn("Rogue catchable thrown while handling request to \"" + request.getServletPath() + "\"", throwable);
         throw throwable;
     }
 }

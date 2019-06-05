@@ -173,17 +173,17 @@ public class FrontendTermedService {
         List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
         List<Property> prefLabel = mapToList(vocabularyNode.getProperties().get("prefLabel"), Attribute::asProperty);
 
-        logger.info("Creating graph for \"" + prefix + "\"");
+        logger.debug("Creating graph for \"" + prefix + "\"");
         createGraph(prefix, prefLabel, graphId);
-        logger.info("Graph created for \"" + prefix + "\"");
+        logger.debug("Graph created for \"" + prefix + "\"");
         List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
 
-        logger.info("Updating types for \"" + prefix + "\"");
+        logger.debug("Updating types for \"" + prefix + "\"");
         updateTypes(graphId, graphMetaNodes);
-        logger.info("Handling nodes for \"" + prefix + "\"");
+        logger.debug("Handling nodes for \"" + prefix + "\"");
         updateAndDeleteInternalNodes(
                 new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))), sync, null);
-        logger.info("Finished for \"" + prefix + "\"");
+        logger.debug("Finished for \"" + prefix + "\"");
     }
 
     void deleteVocabulary(UUID graphId) {

@@ -160,7 +160,7 @@ public class TermedRequester {
                                                               @NotNull String username,
                                                               @NotNull String password,
                                                               @NotNull TermedContentType contentType) {
-        logger.info("Termed request: " + method.toString() + ":" + path);
+        logger.debug("Termed request: " + method.toString() + ":" + path);
         return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password, contentType)), responseType).getBody());
     }
 
@@ -182,22 +182,23 @@ public class TermedRequester {
                                                               @NotNull String username,
                                                               @NotNull String password,
                                                               @NotNull TermedContentType contentType) {
-        logger.info("Termed request: " + method.toString() + ":" + path);
+        logger.debug("Termed request: " + method.toString() + ":" + path);
         return mapExceptions(() -> restTemplate.exchange(createUrl(path, parameters), method, new HttpEntity<>(body, createHeaders(username, password, contentType)), responseType).getBody());
     }
 
     private static <T> T mapExceptions(Supplier<T> supplier) {
         boolean success = false;
         try {
-            StringBuilder sb = new StringBuilder("Making termed request (");
-            StackTraceElement[] stes = new Exception().getStackTrace();
-            for (int i = 1; i < stes.length && i < 5; i++) {
-                sb.append(stes[i].toString());
-                sb.append(";");
+            if (logger.isDebugEnabled()) {
+                StringBuilder sb = new StringBuilder("Making termed request (");
+                StackTraceElement[] stes = new Exception().getStackTrace();
+                for (int i = 1; i < stes.length && i < 5; i++) {
+                    sb.append(stes[i].toString());
+                    sb.append(";");
+                }
+                sb.append(")");
+                logger.debug(sb.toString());
             }
-            sb.append(")");
-
-            logger.info(sb.toString());
             T ret = supplier.get();
             success = true;
             return ret;
@@ -212,7 +213,7 @@ public class TermedRequester {
                 return null;
             }
         } finally {
-            logger.info("Termed request finished (success: " + success + ")");
+            logger.debug("Termed request finished (success: " + success + ")");
         }
     }
 

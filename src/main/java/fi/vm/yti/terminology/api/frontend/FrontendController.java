@@ -129,13 +129,13 @@ public class FrontendController {
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
             termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
-            logger.info("Vocabulary with prefix \"" + prefix + "\" created");
+            logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
             return predefinedOrGeneratedGraphId;
         } catch(RuntimeException|Error e) {
             logger.error("createVocabuluary failed", e);
             throw e;
         } finally {
-            logger.info("Vocabulary creation finished");
+            logger.debug("Vocabulary creation finished");
         }
     }
 
