@@ -245,6 +245,7 @@ public class FrontendController {
         Configuration conf = new Configuration();
         conf.codeListUrl = this.serviceUrls.getCodeListUrl();
         conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
+        conf.commentsUrl = this.serviceUrls.getCommentsUrl();
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
         conf.env = this.serviceUrls.getEnv();
         conf.restrictFilterOptions = this.restrictFilterOptions;
