@@ -16,7 +16,10 @@ import java.util.UUID;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 @Controller
 @RequestMapping("/api")
@@ -35,6 +38,17 @@ public class ResolveController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<String> resolve(@RequestParam String uri, @RequestParam(required = false) String format,
             @RequestHeader("Accept") String acceptHeader) {
+
+        // Check whether uri is syntactically valid.
+        try {
+            URI u = new URI(uri);
+            URL ur = u.toURL();
+        } catch(URISyntaxException uex){
+            return new ResponseEntity<>(uex.getMessage(), HttpStatus.BAD_REQUEST);               
+        } catch (MalformedURLException mex) {
+            return new ResponseEntity<>(mex.getMessage(), HttpStatus.BAD_REQUEST);               
+        }
+        // ok, continue into the resolver
         try {
             ResolvedResource resource = urlResolverService.resolveResource(uri);
             ResolvableContentType contentType = ResolvableContentType.fromString(format, acceptHeader);
@@ -48,7 +62,7 @@ public class ResolveController {
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setLocation(new URI(responseValue));
             return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
-        } catch (Exception ex) {
+        } catch (Exception ex) {        
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
