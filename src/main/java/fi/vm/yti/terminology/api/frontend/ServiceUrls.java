@@ -22,6 +22,9 @@ import javax.validation.constraints.NotNull;
         private String groupManagementUrl;
 
         @NotNull
+        private String commentsUrl;
+
+        @NotNull
         private String env;
 
         public String getCodeListUrl() {
@@ -38,6 +41,14 @@ import javax.validation.constraints.NotNull;
 
         public void setDataModelUrl(String dataModelUrl) {
             this.dataModelUrl = dataModelUrl;
+        }
+
+        public String getCommentsUrl() {
+            return commentsUrl;
+        }
+
+        public void setCommentsUrl(String commentsUrl) {
+            this.commentsUrl = commentsUrl;
         }
 
         public String getGroupManagementUrl() {
