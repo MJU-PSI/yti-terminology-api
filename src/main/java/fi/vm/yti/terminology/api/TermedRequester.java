@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,11 +32,16 @@ public class TermedRequester {
 
     @Autowired
     TermedRequester(@Value("${api.user}") String termedUser,
-                    @Value("${api.pw}") String termedPassword,
+                    @Value("${api.pw}") @Nullable String termedPassword,
                     @Value("${api.url}") String termedUrl,
-                    RestTemplate restTemplate) {
+                    RestTemplate restTemplate,
+                    Environment env) {
         this.termedUser = termedUser;
-        this.termedPassword = termedPassword;
+        if (termedPassword != null) {
+            this.termedPassword = termedPassword;
+        } else {
+            this.termedPassword = env.getProperty("API_PW");
+        }
         this.termedUrl = termedUrl;
         this.restTemplate = restTemplate;
     }
