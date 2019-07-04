@@ -32,7 +32,7 @@ public class TermedRequester {
 
     @Autowired
     TermedRequester(@Value("${api.user}") String termedUser,
-                    @Value("${api.pw}") @Nullable String termedPassword,
+                    @Value("${api.pw: #{null}}") @Nullable String termedPassword,
                     @Value("${api.url}") String termedUrl,
                     RestTemplate restTemplate,
                     Environment env) {
