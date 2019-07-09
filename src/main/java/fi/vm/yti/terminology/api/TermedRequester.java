@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 public class TermedRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(TermedRequester.class);
+    private static final String API_PW = "API_PW";
     private static TermedContentType DEFAULT_CONTENT_TYPE = TermedContentType.JSON;
 
     private final String termedUser;
@@ -35,12 +36,13 @@ public class TermedRequester {
                     @Value("${api.pw: #{null}}") @Nullable String termedPassword,
                     @Value("${api.url}") String termedUrl,
                     RestTemplate restTemplate,
-                    Environment env) {
+                    Environment environment) {
         this.termedUser = termedUser;
-        if (termedPassword != null) {
-            this.termedPassword = termedPassword;
+        final String termedApiPassword = environment.getProperty(API_PW);
+        if (termedApiPassword != null) {
+            this.termedPassword = termedApiPassword;
         } else {
-            this.termedPassword = env.getProperty("API_PW");
+            this.termedPassword = termedPassword;
         }
         this.termedUrl = termedUrl;
         this.restTemplate = restTemplate;
