@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.resolve;
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +26,7 @@ import java.net.URL;
 @Controller
 @RequestMapping("/api")
 public class ResolveController {
+    private static final Logger logger = LoggerFactory.getLogger(ResolveController.class);
 
     private final ResolveService urlResolverService;
     private final String applicationUrl;
@@ -38,6 +41,8 @@ public class ResolveController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<String> resolve(@RequestParam String uri, @RequestParam(required = false) String format,
             @RequestHeader("Accept") String acceptHeader) {
+
+        logger.debug("Resolving URI: " + uri);
 
         // Check whether uri is syntactically valid.
         try {
