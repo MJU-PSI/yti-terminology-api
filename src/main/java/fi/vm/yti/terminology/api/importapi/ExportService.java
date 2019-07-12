@@ -60,7 +60,7 @@ public class ExportService {
     @NotNull
     JsonNode getFullVocabulary(UUID id) {
         /*
-         * https://sanastot-dev.suomi.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-
+         * https://sanastot.dev.yti.cloud.vrk.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-
          * bc4b8cb42e7e/node-trees?select=*,references.prefLabelXl:1&where=type.id:
          * Concept%20OR%20type.id:Collection&max=-1
          * 
@@ -75,7 +75,7 @@ public class ExportService {
     @NotNull
     JsonNode getVocabulary(UUID id, String nodeTypes) {
         /*
-         * https://sanastot-dev.suomi.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-
+         * https://sanastot.dev.yti.cloud.vrk.fi/termed-api/graphs/5b3eb5d7-0239-484d-8515-
          * bc4b8cb42e7e/node-trees?select=*,references.prefLabelXl:1&where=type.id:
          * Concept%20OR%20type.id:Collection&max=-1
          * 
