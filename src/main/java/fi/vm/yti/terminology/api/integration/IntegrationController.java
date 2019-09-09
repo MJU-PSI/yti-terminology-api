@@ -4,6 +4,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +26,6 @@ public class IntegrationController {
 
     private final IntegrationService integrationService;
 
-
     private static final Logger logger = LoggerFactory.getLogger(IntegrationController.class);
 
     public IntegrationController(IntegrationService integrationService) {
@@ -39,27 +41,53 @@ public class IntegrationController {
     }
 
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
-     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity<String>  containers(
-                               @ApiParam(value = "Language code for sorting results.") @RequestParam(value="language", required = false, defaultValue = "fi") String language,
-                               @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value="pageSize", required = true, defaultValue= "0") int pageSize,
-                               @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value="from", required = false, defaultValue= "0")  int from,
-                               @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value="status", required = false) String statusEnum,                               
-                               @ApiParam(value = "After date filtering parameter, results will be codes with modified date after this ISO 8601 formatted date string.") @RequestParam(value="after", required = false) String after,
-                               @ApiParam(value = "Include pagination related meta element and wrap response items in bulk array.") @RequestParam(value="includeMeta", required = false) boolean includeMeta
-    ) {
-        if(logger.isDebugEnabled()){
-            logger.debug("integrationController.containers");
+    @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity<String> containers(
+            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false, defaultValue = "fi") String language,
+            @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
+            @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
+            @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) String statusEnum,
+            @ApiParam(value = "After date filtering parameter, results will be codes with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after,
+            @ApiParam(value = "Include pagination related meta element and wrap response items in bulk array.") @RequestParam(value = "includeMeta", required = false) boolean includeMeta) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("integrationController.containers.GET");
         }
         return integrationService.handleContainers(language, pageSize, from, statusEnum, after, includeMeta);
     }
 
     @ApiResponse(code = 200, message = "Returns JSON with Concept-list.")
     @RequestMapping(value = "/resources", method = GET, produces = APPLICATION_JSON_VALUE)
-    ResponseEntity<String>  resources(@ApiParam(value = "Container URL.") @RequestParam(value="container", required = false) String container){
-        if(logger.isDebugEnabled()){
+    ResponseEntity<String> resources(
+            @ApiParam(value = "Container URL.") @RequestParam(value = "container", required = false) String container) {
+        if (logger.isDebugEnabled()) {
             logger.debug("integrationController.resources");
         }
-        return integrationService.handleResources(container);
+        return integrationService.handleResources(container,  (Set<String>) null);
+    }
+
+    @ApiResponse(code = 200, message = "Returns JSON with filtered Concept-list if excluded URIS are given as parameter")
+    @RequestMapping(value = "/resources", method = POST, produces = APPLICATION_JSON_VALUE)
+    ResponseEntity<String> resources(
+            @ApiParam(value = "Container URL.") @RequestParam(value = "container", required = false) String container,
+            @ApiParam(value = "A set of resource URIs in CSL format to be excluded from the results.") @RequestParam(value = "excludedResourceUris", required = false) String excludedResourceUris) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("integrationController.resources.POST");
+        }
+        Set<String> uriSet = null;
+        if(excludedResourceUris != null){
+            // if exclude list given, filter out those from result
+            uriSet = parseUri(excludedResourceUris);            
+        }
+       return integrationService.handleResources(container, uriSet);
+    }
+
+    private Set<String> parseUri(final String uriCsl) {
+        final Set<String> uriSet = new HashSet<>();
+        if (uriCsl != null) {
+            for (final String uri : uriCsl.split(",")) {
+                uriSet.add(uri);
+            }
+        }
+        return uriSet;
     }
 }

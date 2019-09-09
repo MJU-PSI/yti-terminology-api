@@ -62,10 +62,11 @@ public class IntegrationService {
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
         /**
-         * Elastic query, returns 10k results from index and filter out items without URI
+         * Elastic query, returns 10k results from index and filter out items without
+         * URI
          */
-        String query="{ \"query\" : {\"bool\":{\"must\": {\"match_all\" : {}},\"filter\": {\"exists\": { \"field\": \"uri\"} }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
-        if(logger.isDebugEnabled()){
+        String query = "{ \"query\" : {\"bool\":{\"must\": {\"match_all\" : {}},\"filter\": {\"exists\": { \"field\": \"uri\"} }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
+        if (logger.isDebugEnabled()) {
             logger.debug("HandleVocabularies() query=" + query);
         }
         JsonNode result = elasticSearchService.freeSearchFromIndex(query, "vocabularies");
@@ -75,27 +76,27 @@ public class IntegrationService {
             nodes.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    // Some   vocabularies  has no status at all
+                    // Some vocabularies has no status at all
                     String stat = null;
                     if (source.findPath("status") != null) {
                         stat = source.findPath("status").findPath("value").asText();
                     }
 
-                    String modifiedDate =null;
-                    if(source.get("lastModifiedDate") != null) {
+                    String modifiedDate = null;
+                    if (source.get("lastModifiedDate") != null) {
                         modifiedDate = source.get("lastModifiedDate").asText();
                     }
                     // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
                     // Get uri and remove last part after /
                     String uri = null;
-                    if(source.get("uri")!= null ){
+                    if (source.get("uri") != null) {
                         uri = source.get("uri").asText();
                         // Remove code from uri so
-                        uri = uri.substring(0,uri.lastIndexOf("/"))+"/";
+                        uri = uri.substring(0, uri.lastIndexOf("/")) + "/";
                     }
                     ContainersResponse respItem = new ContainersResponse();
                     respItem.setUri(uri);
-                    if(stat!=null && !stat.isEmpty()){
+                    if (stat != null && !stat.isEmpty()) {
                         respItem.setStatus(stat);
                     }
                     if (modifiedDate != null) {
@@ -106,21 +107,21 @@ public class IntegrationService {
                     JsonNode label = source.findPath("prefLabel");
                     if (label != null) {
                         PrefLabel plab = new PrefLabel();
-                        label.forEach(lb->{
-                            String lan=null;
-                            String val=null;
-                            if(lb.findPath("lang") != null){
-                                lan=lb.findPath("lang").asText();
+                        label.forEach(lb -> {
+                            String lan = null;
+                            String val = null;
+                            if (lb.findPath("lang") != null) {
+                                lan = lb.findPath("lang").asText();
                             }
-                            if(lb.findPath("value") != null){
-                                val=lb.findPath("value").asText();
+                            if (lb.findPath("value") != null) {
+                                val = lb.findPath("value").asText();
                             }
-                            if(lan != null){
-                                if(lan.equalsIgnoreCase("fi")){
+                            if (lan != null) {
+                                if (lan.equalsIgnoreCase("fi")) {
                                     plab.setFi(val);
-                                } else if(lan.equalsIgnoreCase("en")){
+                                } else if (lan.equalsIgnoreCase("en")) {
                                     plab.setEn(val);
-                                } else if(lan.equalsIgnoreCase("sv")){
+                                } else if (lan.equalsIgnoreCase("sv")) {
                                     plab.setSv(val);
                                 }
                             }
@@ -131,26 +132,26 @@ public class IntegrationService {
                     JsonNode description = source.findPath("description");
                     if (description != null) {
                         Description desc = new Description();
-                        description.forEach(de->{
-                            String lan=null;
-                            String val=null;
-                            if(de.findPath("lang") != null){
-                                lan=de.findPath("lang").asText();
+                        description.forEach(de -> {
+                            String lan = null;
+                            String val = null;
+                            if (de.findPath("lang") != null) {
+                                lan = de.findPath("lang").asText();
                             }
-                            if(de.findPath("value") != null){
-                                val=de.findPath("value").asText();
-                                val=Jsoup.clean(val, Whitelist.none());
+                            if (de.findPath("value") != null) {
+                                val = de.findPath("value").asText();
+                                val = Jsoup.clean(val, Whitelist.none());
                             }
-                            if(lan != null){
-                                if(lan.equalsIgnoreCase("fi")){
+                            if (lan != null) {
+                                if (lan.equalsIgnoreCase("fi")) {
                                     desc.setFi(val);
-                                } else if(lan.equalsIgnoreCase("en")){
+                                } else if (lan.equalsIgnoreCase("en")) {
                                     desc.setEn(val);
-                                } else if(lan.equalsIgnoreCase("sv")){
+                                } else if (lan.equalsIgnoreCase("sv")) {
                                     desc.setSv(val);
                                 }
                             }
-                        }); 
+                        });
                         respItem.setDescription(desc);
                     }
                     resp.add(respItem);
@@ -162,9 +163,9 @@ public class IntegrationService {
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(resp), HttpStatus.OK);
     }
 
-    ResponseEntity<String> handleResources(String url) {
+    ResponseEntity<String> handleResources(String url, Set<String> uriSet) {
         if (logger.isDebugEnabled())
-            logger.debug("GET /resources requested. URL=" + url);
+            logger.debug("(GET/POST) /resources requested. URL=" + url + " UriSet=" + uriSet);
 
         UUID id = null;
         List<Graph> vocs = termedService.getGraphs();
@@ -176,25 +177,14 @@ public class IntegrationService {
         if (id == null) {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
-        // Id resolved, fetch vocabulary and filter out  vocabularies without URI
+        // Id resolved, fetch vocabulary and filter out vocabularies without URI
         /**
          * Elastic query, returns 10k results from index
          * 
-         * {
-         *     "query" : {
-         *     	"bool":{
-         *     		"must": {
-         * 	            "match":  {
-         * 	            	"vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713"
-         * 	            }
-         *     		},
-         *     		"filter": {
-         *     			"exists": { "field": "uri"} 
-         *     		}
-         *     	}
-         *     },
-         *     "size":"10000",
-         *     "_source":["id","properties.prefLabel","properties.description","lastModifiedDate","properties.status","uri"]
+         * { "query" : { "bool":{ "must": { "match": {
+         * "vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713" } }, "filter": {
+         * "exists": { "field": "uri"} } } }, "size":"10000",
+         * "_source":["id","properties.prefLabel","properties.description","lastModifiedDate","properties.status","uri"]
          * }
          * 
          * GET /_search
@@ -264,9 +254,20 @@ public class IntegrationService {
                         }
                         respItem.setDescription(desc);
                     }
-                    resp.add(respItem);
+                    // filter out items from exclude-list
+                    if (uriSet != null) {
+                        if (!uriSet.contains(respItem.getUri())){
+                            resp.add(respItem);
+                        } else {
+                            logger.info("Handle resources filtering out URI:"+respItem.getUri());
+                        }
+                    } else {
+                        resp.add(respItem);
+                    }
                 } else {
-                    System.out.println("hit=" + hit);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("hit=" + hit);
+                    }
                 }
             });
         }
