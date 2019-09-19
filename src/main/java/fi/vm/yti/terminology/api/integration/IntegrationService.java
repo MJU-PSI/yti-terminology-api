@@ -1,6 +1,10 @@
 package fi.vm.yti.terminology.api.integration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -10,9 +14,13 @@ import fi.vm.yti.terminology.api.integration.containers.ContainersResponse;
 import fi.vm.yti.terminology.api.integration.containers.Description;
 import fi.vm.yti.terminology.api.integration.containers.PrefLabel;
 import fi.vm.yti.terminology.api.model.integration.ConceptSuggestion;
-import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
+import fi.vm.yti.terminology.api.model.integration.Meta;
+import fi.vm.yti.terminology.api.model.integration.ResponseWrapper;
+import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
+import fi.vm.yti.terminology.api.model.termed.*;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.slf4j.Logger;
@@ -23,6 +31,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.Operator;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.index.query.TermsQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,13 +51,16 @@ import static java.util.Collections.emptyMap;
 
 @Service
 public class IntegrationService {
-
     private static final Logger logger = LoggerFactory.getLogger(IntegrationService.class);
     private final TermedRequester termedRequester;
     private final FrontendGroupManagementService groupManagementService;
     private final FrontendTermedService termedService;
     private final IndexElasticSearchService elasticSearchService;
     private final AuthenticatedUserProvider userProvider;
+    private final String indexName;
+    private final String VOCABULARY_INDEX = "vocabularies";
+    private final String CONCEPTS_INDEX = "concepts";
+
     /**
      * Map containing metadata types. used when creating nodes.
      */
@@ -46,131 +69,231 @@ public class IntegrationService {
     @Autowired
     public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
-            AuthenticatedUserProvider userProvider) {
+            AuthenticatedUserProvider userProvider, @Value("${search.index.name}") String indexName) {
         this.termedRequester = termedRequester;
         this.groupManagementService = groupManagementService;
         this.termedService = frontendTermedService;
         this.elasticSearchService = elasticSearchService;
         this.userProvider = userProvider;
+        this.indexName = indexName;
     }
 
-    ResponseEntity<String> handleContainers(String language, int pageSize, int from, String statusEnum, String after,
-            boolean includeMeta) {
-        if (logger.isDebugEnabled())
-            logger.debug("GET /containers requested. status=" + statusEnum);
+    ResponseEntity<String> handleContainers(IntegrationContainerRequest request) {
 
+        if (logger.isDebugEnabled())
+            logger.debug("GET /containers requested. status=" + request.getStatus());
+
+        SearchRequest sr = createVocabularyQuery(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("HandleVocabularies() query=" + sr.source().toString());
+        }
+
+        JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
+
+        logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
+        // Use highLevel API result so
+        logger.error("json-result:" + r);
+        Meta meta = new Meta();
+        meta.setAfter(request.getAfter());
+        meta.setPageSize(request.getPageSize());
+        meta.setFrom(request.getPageFrom());
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
+        if (r != null) {
+            r = r.get("hits");
+            // Total hits
+            if (r.get("total") != null) {
+                meta.setTotalResults(r.get("total").asInt());
+            }
+            r = r.get("hits");
+            r.forEach(hit -> {
+                JsonNode source = hit.get("_source");
+                if (source != null) {
+                    resp.add(parseContainerResponse(source));
+                } else {
+                    logger.error("r-hit=" + hit);
+                }
+            });
+            meta.setResultCount(r.size());
+        }
+
+        ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
+        wrapper.setMeta(meta);
+        wrapper.setResults(resp);
+        /*
+         * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
+         * System.out.println(" marrer.write=" + mapper.writeValueAsString(wrapper)); }
+         * catch (JsonProcessingException jpe) { }
+         */
+        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
         /**
          * Elastic query, returns 10k results from index and filter out items without
          * URI
          */
-        String query = "{ \"query\" : {\"bool\":{\"must\": {\"match_all\" : {}},\"filter\": {\"exists\": { \"field\": \"uri\"} }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
-        if (logger.isDebugEnabled()) {
-            logger.debug("HandleVocabularies() query=" + query);
-        }
-        JsonNode result = elasticSearchService.freeSearchFromIndex(query, "vocabularies");
-        JsonNode nodes = result.get("hits");
-        if (nodes != null) {
-            nodes = nodes.get("hits");
-            nodes.forEach(hit -> {
-                JsonNode source = hit.get("_source");
-                if (source != null) {
-                    // Some vocabularies has no status at all
-                    String stat = null;
-                    if (source.findPath("status") != null) {
-                        stat = source.findPath("status").findPath("value").asText();
-                    }
-
-                    String modifiedDate = null;
-                    if (source.get("lastModifiedDate") != null) {
-                        modifiedDate = source.get("lastModifiedDate").asText();
-                    }
-                    // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
-                    // Get uri and remove last part after /
-                    String uri = null;
-                    if (source.get("uri") != null) {
-                        uri = source.get("uri").asText();
-                        // Remove code from uri so
-                        uri = uri.substring(0, uri.lastIndexOf("/")) + "/";
-                    }
-                    ContainersResponse respItem = new ContainersResponse();
-                    respItem.setUri(uri);
-                    if (stat != null && !stat.isEmpty()) {
-                        respItem.setStatus(stat);
-                    }
-                    if (modifiedDate != null) {
-                        // Curently returns 2019-01-07T09:16:32.432+02:00
-                        // use only first 19 chars
-                        respItem.setModified(modifiedDate.substring(0, 19));
-                    }
-                    JsonNode label = source.findPath("prefLabel");
-                    if (label != null) {
-                        PrefLabel plab = new PrefLabel();
-                        label.forEach(lb -> {
-                            String lan = null;
-                            String val = null;
-                            if (lb.findPath("lang") != null) {
-                                lan = lb.findPath("lang").asText();
-                            }
-                            if (lb.findPath("value") != null) {
-                                val = lb.findPath("value").asText();
-                            }
-                            if (lan != null) {
-                                if (lan.equalsIgnoreCase("fi")) {
-                                    plab.setFi(val);
-                                } else if (lan.equalsIgnoreCase("en")) {
-                                    plab.setEn(val);
-                                } else if (lan.equalsIgnoreCase("sv")) {
-                                    plab.setSv(val);
-                                }
-                            }
-                        });
-                        respItem.setPrefLabel(plab);
-                    }
-
-                    JsonNode description = source.findPath("description");
-                    if (description != null) {
-                        Description desc = new Description();
-                        description.forEach(de -> {
-                            String lan = null;
-                            String val = null;
-                            if (de.findPath("lang") != null) {
-                                lan = de.findPath("lang").asText();
-                            }
-                            if (de.findPath("value") != null) {
-                                val = de.findPath("value").asText();
-                                val = Jsoup.clean(val, Whitelist.none());
-                            }
-                            if (lan != null) {
-                                if (lan.equalsIgnoreCase("fi")) {
-                                    desc.setFi(val);
-                                } else if (lan.equalsIgnoreCase("en")) {
-                                    desc.setEn(val);
-                                } else if (lan.equalsIgnoreCase("sv")) {
-                                    desc.setSv(val);
-                                }
-                            }
-                        });
-                        respItem.setDescription(desc);
-                    }
-                    resp.add(respItem);
-                } else {
-                    logger.error("hit=" + hit);
-                }
-            });
-        }
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(resp), HttpStatus.OK);
+        // String query = "{ \"query\" : {\"bool\":{\"must\": {\"match_all\" :
+        // {}},\"filter\": {\"exists\": { \"field\": \"uri\"}
+        // }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
     }
 
-    ResponseEntity<String> handleResources(String url, Set<String> uriSet) {
+    private SearchRequest createVocabularyQuery(IntegrationContainerRequest request) {
+        // String query, Set<String> status, Date after, Integer pageSize, Integer
+        // pageFrom, QueryBuilder privilegeQuery,Set<String> filter
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+        List<QueryBuilder> mustList = boolQuery.must();
+        // Match all
+
+        mustList.add(QueryBuilders.matchAllQuery());
+
+        if (request.getAfter() != null) {
+            mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
+        }
+        // Add mandatory filter: "filter": {"exists": { "field": "uri"} }
+        /*
+         * QueryBuilder urlExistQuery = QueryBuilders.boolQuery()
+         * .must(QueryBuilders.existsQuery("url")); mustList.add(urlExistQuery);
+         */
+        if (request.getFilter() != null) {
+            QueryBuilder filterQuery = QueryBuilders.boolQuery()
+                    .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
+            mustList.add(filterQuery);
+        }
+
+        if (request.getStatus() != null) {
+            QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                    .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
+            mustList.add(statusQuery);
+        }
+
+        if (mustList.size() > 0) {
+            logger.info("Multiple matches");
+            sourceBuilder.query(boolQuery);
+        } else {
+            logger.info("ALL matches");
+            sourceBuilder.query(QueryBuilders.matchAllQuery());
+        }
+
+        if (request.getPageFrom() != null) {
+            sourceBuilder.from(request.getPageFrom());
+        }
+
+        if (request.getPageSize() != null && request.getPageSize() > 0) {
+            sourceBuilder.size(request.getPageSize());
+            if (request.getPageFrom() == null) {
+                sourceBuilder.from(0);
+            }
+        } else {
+            sourceBuilder.size(10000);
+        }
+        String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.description",
+                "lastModifiedDate", "properties.status", "uri" };
+        sourceBuilder.fetchSource(includeFields, null);
+        // Add endpoint into the request
+        SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
+
+        logger.info("SearchRequest=" + sr);
+        logger.debug(sr.source().toString());
+        return sr;
+    }
+
+    /**
+     * Transform containers response from elastic to integration-api JSON format
+     * 
+     * @param source
+     * @return
+     */
+    private ContainersResponse parseContainerResponse(JsonNode source) {
+        ContainersResponse respItem = new ContainersResponse();
+        // Some vocabularies has no status at all
+        String stat = null;
+        if (source.findPath("status") != null) {
+            stat = source.findPath("status").findPath("value").asText();
+        }
+
+        String modifiedDate = null;
+        if (source.get("lastModifiedDate") != null) {
+            modifiedDate = source.get("lastModifiedDate").asText();
+        }
+        // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
+        // Get uri and remove last part after /
+        String uri = null;
+        if (source.get("uri") != null) {
+            uri = source.get("uri").asText();
+            // Remove code from uri so
+            uri = uri.substring(0, uri.lastIndexOf("/")) + "/";
+        }
+        respItem.setUri(uri);
+        if (stat != null && !stat.isEmpty()) {
+            respItem.setStatus(stat);
+        }
+        if (modifiedDate != null) {
+            // Curently returns 2019-01-07T09:16:32.432+02:00
+            // use only first 19 chars
+            respItem.setModified(modifiedDate.substring(0, 19));
+        }
+        JsonNode label = source.findPath("prefLabel");
+        if (label != null) {
+            PrefLabel plab = new PrefLabel();
+            label.forEach(lb -> {
+                String lan = null;
+                String val = null;
+                if (lb.findPath("lang") != null) {
+                    lan = lb.findPath("lang").asText();
+                }
+                if (lb.findPath("value") != null) {
+                    val = lb.findPath("value").asText();
+                }
+                if (lan != null) {
+                    if (lan.equalsIgnoreCase("fi")) {
+                        plab.setFi(val);
+                    } else if (lan.equalsIgnoreCase("en")) {
+                        plab.setEn(val);
+                    } else if (lan.equalsIgnoreCase("sv")) {
+                        plab.setSv(val);
+                    }
+                }
+            });
+            respItem.setPrefLabel(plab);
+        }
+
+        JsonNode description = source.findPath("description");
+        if (description != null) {
+            Description desc = new Description();
+            description.forEach(de -> {
+                String lan = null;
+                String val = null;
+                if (de.findPath("lang") != null) {
+                    lan = de.findPath("lang").asText();
+                }
+                if (de.findPath("value") != null) {
+                    val = de.findPath("value").asText();
+                    val = Jsoup.clean(val, Whitelist.none());
+                }
+                if (lan != null) {
+                    if (lan.equalsIgnoreCase("fi")) {
+                        desc.setFi(val);
+                    } else if (lan.equalsIgnoreCase("en")) {
+                        desc.setEn(val);
+                    } else if (lan.equalsIgnoreCase("sv")) {
+                        desc.setSv(val);
+                    }
+                }
+            });
+            respItem.setDescription(desc);
+        }
+        return respItem;
+    }
+
+    ResponseEntity<String> handleResources(IntegrationResourceRequest request) {
         if (logger.isDebugEnabled())
-            logger.debug("(GET/POST) /resources requested. URL=" + url + " UriSet=" + uriSet);
+            logger.debug("(GET/POST) /resources requested. URL=" + request.getContainer() + " UriSet="
+                    + request.getFilter());
 
         UUID id = null;
         List<Graph> vocs = termedService.getGraphs();
         for (Graph g : vocs) {
-            if (g.getUri() != null && !g.getUri().isEmpty() && g.getUri().equals(url)) {
+            if (g.getUri() != null && !g.getUri().isEmpty() && g.getUri().equals(request.getContainer())) {
                 id = g.getId();
             }
         }
@@ -178,100 +301,191 @@ public class IntegrationService {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
         // Id resolved, fetch vocabulary and filter out vocabularies without URI
+
+        SearchRequest sr = createResourcesQuery(request, id);
+        if (logger.isDebugEnabled()) {
+            logger.debug("HandleVocabularies() query=" + sr.source().toString());
+        }
+
+        JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
+        logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
+        // Use highLevel API result so
+        logger.info("json-result:" + r);
+
+        Meta meta = new Meta();
+        meta.setAfter(request.getAfter());
+        meta.setPageSize(request.getPageSize());
+        meta.setFrom(request.getPageFrom());
+        // Response item list
+        List<ContainersResponse> resp = new ArrayList<>();
+        if (r != null) {
+            r = r.get("hits");
+            // Total hits
+            if (r.get("total") != null) {
+                meta.setTotalResults(r.get("total").asInt());
+            }
+            r = r.get("hits");
+            r.forEach(hit -> {
+                JsonNode source = hit.get("_source");
+                if (source != null) {
+                    resp.add(parseResourceResponse(source));
+                } else {
+                    logger.error("handleResources hit=" + hit);
+                }
+            });
+            meta.setResultCount(r.size());
+        } else {
+            // Empty result list
+            meta.setResultCount(0);
+        }
+        System.out.println("total META=" + meta.getTotalResults());
+        System.out.println("current block  META=" + meta.getResultCount());
+
         /**
          * Elastic query, returns 10k results from index
          * 
          * { "query" : { "bool":{ "must": { "match": {
          * "vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713" } }, "filter": {
          * "exists": { "field": "uri"} } } }, "size":"10000",
-         * "_source":["id","properties.prefLabel","properties.description","lastModifiedDate","properties.status","uri"]
-         * }
+         * "_source":["id","label","definition","modified", "status","uri"] }
          * 
          * GET /_search
          */
-        String query = "{\"query\": { \"bool\":{ \"must\":{ \"match\": { \"vocabulary.id\":\"" + id
-                + "\" } },\"filter\": {\"exists\": {\"field\": \"uri\"}}}},\"size\":\"10000\", \"_source\":[\"id\",\"label\",\"definition\",\"modified\", \"status\",\"uri\"]}";
 
-        JsonNode result = elasticSearchService.freeSearchFromIndex(query);
-        // Response item list
-        List<ContainersResponse> resp = new ArrayList<>();
-        JsonNode nodes = result.get("hits");
-        if (nodes != null) {
-            nodes = nodes.get("hits");
-            nodes.forEach(hit -> {
-                JsonNode source = hit.get("_source");
-                if (source != null) {
-                    String stat = source.get("status").asText();
-                    String modifiedDate = source.get("modified").asText();
-                    String uri = source.get("uri").asText();
+        ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
+        wrapper.setMeta(meta);
+        wrapper.setResults(resp);
+        /*
+         * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
+         * System.out.println(" marrer.write=" + mapper.writeValueAsString(wrapper)); }
+         * catch (JsonProcessingException jpe) { }
+         */
+        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
+    }
 
-                    ContainersResponse respItem = new ContainersResponse();
-                    respItem.setUri(uri);
-                    respItem.setStatus(stat);
-                    if (modifiedDate != null) {
-                        // Curently returns 2019-01-07T09:16:32.432+02:00
-                        // use only first 19 chars
-                        respItem.setModified(modifiedDate.substring(0, 19));
-                    }
-                    JsonNode label = source.get("label");
-                    if (label != null) {
-                        PrefLabel plab = new PrefLabel();
-                        // fi
-                        JsonNode lan = label.get("fi");
-                        if (lan != null) {
-                            plab.setFi(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
-                        }
-                        // en
-                        lan = label.get("en");
-                        if (lan != null) {
-                            plab.setEn(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
-                        }
-                        // sv
-                        lan = label.get("sv");
-                        if (lan != null) {
-                            plab.setSv(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
-                        }
-                        respItem.setPrefLabel(plab);
-                    }
+    private SearchRequest createResourcesQuery(IntegrationResourceRequest request, UUID vocabularyId) {
+        /*
+         * { "query" : { "bool":{ "must": { "match": {
+         * "vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713" } }, "filter": {
+         * "exists": { "field": "uri"} } } }, "size":"10000",
+         * "_source":["id","properties.prefLabel","properties.description",
+         * "lastModifiedDate","properties.status","uri"]
+         */
 
-                    JsonNode description = source.get("definition");
-                    if (description != null) {
-                        Description desc = new Description();
-                        // fi
-                        JsonNode d = description.get("fi");
-                        if (d != null) {
-                            desc.setFi(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
-                        }
-                        // en
-                        d = label.get("en");
-                        if (d != null) {
-                            desc.setEn(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
-                        }
-                        // sv
-                        d = label.get("sv");
-                        if (d != null) {
-                            desc.setSv(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
-                        }
-                        respItem.setDescription(desc);
-                    }
-                    // filter out items from exclude-list
-                    if (uriSet != null) {
-                        if (!uriSet.contains(respItem.getUri())){
-                            resp.add(respItem);
-                        } else {
-                            logger.info("Handle resources filtering out URI:"+respItem.getUri());
-                        }
-                    } else {
-                        resp.add(respItem);
-                    }
-                } else {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("hit=" + hit);
-                    }
-                }
-            });
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+        List<QueryBuilder> mustList = boolQuery.must();
+        // Match all
+
+        mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
+
+        if (request.getAfter() != null) {
+            mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
         }
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(resp), HttpStatus.OK);
+        // Add mandatory filter: "filter": {"exists": { "field": "uri"} }
+        /*
+         * QueryBuilder urlExistQuery = QueryBuilders.boolQuery()
+         * .must(QueryBuilders.existsQuery("url")); mustList.add(urlExistQuery);
+         */
+        if (request.getFilter() != null) {
+            QueryBuilder filterQuery = QueryBuilders.boolQuery()
+                    .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
+            mustList.add(filterQuery);
+        }
+
+        if (request.getStatus() != null) {
+            QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                    .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
+            mustList.add(statusQuery);
+        }
+
+        if (mustList.size() > 0) {
+            logger.info("Multiple matches");
+            sourceBuilder.query(boolQuery);
+        } else {
+            logger.info("ALL matches");
+            sourceBuilder.query(QueryBuilders.matchAllQuery());
+        }
+
+        if (request.getPageFrom() != null) {
+            sourceBuilder.from(request.getPageFrom());
+        }
+
+        if (request.getPageSize() != null && request.getPageSize() > 0) {
+            sourceBuilder.size(request.getPageSize());
+            if (request.getPageFrom() == null) {
+                sourceBuilder.from(0);
+            }
+        } else {
+            sourceBuilder.size(10000);
+        }
+        String[] includeFields = new String[] { "id", "label", "definition", "modified", "status", "uri" };
+        sourceBuilder.fetchSource(includeFields, null);
+        // Add endpoint into the request
+        SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
+
+        logger.info("SearchRequest=" + sr);
+        logger.debug(sr.source().toString());
+        return sr;
+    }
+
+    /** Transform incoming response into the resource-api JSON form */
+    private ContainersResponse parseResourceResponse(JsonNode source) {
+        String stat = source.get("status").asText();
+        String modifiedDate = source.get("modified").asText();
+        String uri = source.get("uri").asText();
+
+        ContainersResponse respItem = new ContainersResponse();
+        respItem.setUri(uri);
+        respItem.setStatus(stat);
+        if (modifiedDate != null) {
+            // Curently returns 2019-01-07T09:16:32.432+02:00
+            // use only first 19 chars
+            respItem.setModified(modifiedDate.substring(0, 19));
+        }
+        JsonNode label = source.get("label");
+        if (label != null) {
+            PrefLabel plab = new PrefLabel();
+            // fi
+            JsonNode lan = label.get("fi");
+            if (lan != null) {
+                plab.setFi(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
+            }
+            // en
+            lan = label.get("en");
+            if (lan != null) {
+                plab.setEn(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
+            }
+            // sv
+            lan = label.get("sv");
+            if (lan != null) {
+                plab.setSv(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
+            }
+            respItem.setPrefLabel(plab);
+        }
+
+        JsonNode description = source.get("definition");
+        if (description != null) {
+            Description desc = new Description();
+            // fi
+            JsonNode d = description.get("fi");
+            if (d != null) {
+                desc.setFi(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
+            }
+            // en
+            d = label.get("en");
+            if (d != null) {
+                desc.setEn(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
+            }
+            // sv
+            d = label.get("sv");
+            if (d != null) {
+                desc.setSv(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
+            }
+            respItem.setDescription(desc);
+        }
+        return respItem;
     }
 
     /**

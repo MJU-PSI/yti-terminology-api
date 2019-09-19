@@ -8,9 +8,13 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.RequestOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -44,6 +48,8 @@ public class IndexElasticSearchService {
     private static final Logger log = LoggerFactory.getLogger(IndexElasticSearchService.class);
 
     private final RestClient esRestClient;
+    private final RestHighLevelClient esHiLvClient;
+
     private final String createIndexFilename;
     private final String createMappingsFilename;
     private final String indexName;
@@ -63,7 +69,7 @@ public class IndexElasticSearchService {
             @Value("${search.index.name}") String indexName,
             @Value("${search.index.mapping.type}") String indexMappingType,
             @Value("${search.index.deleteIndexOnAppRestart}") boolean deleteIndexOnAppRestart,
-            IndexTermedService termedApiService, ObjectMapper objectMapper) {
+            IndexTermedService termedApiService, ObjectMapper objectMapper, final RestHighLevelClient esHiLvClient) {
         this.createIndexFilename = createIndexFilename;
         this.createMappingsFilename = createMappingsFilename;
         this.indexName = indexName;
@@ -72,20 +78,21 @@ public class IndexElasticSearchService {
         this.termedApiService = termedApiService;
         this.objectMapper = objectMapper;
         this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
+        this.esHiLvClient = esHiLvClient; // Use that for resource api
     }
 
     public void initIndex() {
 
-        String[] indexNames=indexName.split(",");
-        String[] indexMaps=createMappingsFilename.split(",");
-        String[] indexMappingTypes=indexMappingType.split(",");
-        if(indexNames.length != indexMaps.length){
+        String[] indexNames = indexName.split(",");
+        String[] indexMaps = createMappingsFilename.split(",");
+        String[] indexMappingTypes = indexMappingType.split(",");
+        if (indexNames.length != indexMaps.length) {
             log.error("InitIndex, configuration error. Mismatching index-names / mappings");
             return;
         }
-        for(int x=0;x<indexNames.length;x++){
-            log.info("Init index ="+ indexNames[x]+" - "+indexMaps[x]+" - "+indexMappingTypes[x]);
-            initIndex(indexNames[x],indexMaps[x],indexMappingTypes[x]);
+        for (int x = 0; x < indexNames.length; x++) {
+            log.info("Init index =" + indexNames[x] + " - " + indexMaps[x] + " - " + indexMappingTypes[x]);
+            initIndex(indexNames[x], indexMaps[x], indexMappingTypes[x]);
         }
     }
 
@@ -95,7 +102,7 @@ public class IndexElasticSearchService {
             deleteIndex(index);
         }
 
-        if (!indexExists(index) && createIndex(index) && createMapping(index,mapping, mappingType)) {
+        if (!indexExists(index) && createIndex(index) && createMapping(index, mapping, mappingType)) {
             doFullIndexing();
         }
     }
@@ -137,11 +144,11 @@ public class IndexElasticSearchService {
         ObjectMapper mapper = new ObjectMapper();
         List<String> indexLines = new ArrayList<>();
         vocabularies.forEach(o -> {
-            try {                
+            try {
                 String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"vocabulary" + "\", \"_id\":"
                         + o.get("id") + "}}\n" + mapper.writeValueAsString(o) + "\n";
                 indexLines.add(line);
-                if(log.isDebugEnabled()){
+                if (log.isDebugEnabled()) {
                     log.debug("reindex line:" + line);
                 }
             } catch (JsonProcessingException e) {
@@ -152,17 +159,18 @@ public class IndexElasticSearchService {
         String index = indexLines.stream().collect(Collectors.joining("\n"));
         String delete = "";
         // Content type changed for elastic search 6.x
-        HttpEntity entity = new NStringEntity(index + delete, ContentType.create("application/json", StandardCharsets.UTF_8));
+        HttpEntity entity = new NStringEntity(index + delete,
+                ContentType.create("application/json", StandardCharsets.UTF_8));
         // ContentType.create("application/json", StandardCharsets.UTF_8));
         // ContentType.create("application/x-ndjson", StandardCharsets.UTF_8));
         Map<String, String> params = new HashMap<>();
         params.put("pretty", "true");
         params.put("refresh", "wait_for");
-        if(log.isDebugEnabled()){
+        if (log.isDebugEnabled()) {
             log.debug("Request:" + entity);
         }
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
-        if(log.isDebugEnabled()){
+        if (log.isDebugEnabled()) {
             log.debug("Response:" + response + "\n Response status line" + response.getStatusLine());
         }
         if (isSuccess(response)) {
@@ -178,7 +186,7 @@ public class IndexElasticSearchService {
         boolean rv = true;
         // Get vocabulary
         JsonNode jn = termedApiService.getTerminologyVocabularyNode(vocId);
-        if(jn==null){
+        if (jn == null) {
             log.warn("Missing vocabulary during elasticsearch reindexing  :" + vocId.toString());
             return false;
         }
@@ -371,8 +379,8 @@ public class IndexElasticSearchService {
     // }
 
     private @NotNull String createBulkIndexMetaAndSource(@NotNull Concept concept, String index) {
-        return "{\"index\":{\"_index\": \"" + index + "\", \"_type\": \"concept\", \"_id\":\""
-                + concept.getDocumentId() + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
+        return "{\"index\":{\"_index\": \"" + index + "\", \"_type\": \"concept\", \"_id\":\"" + concept.getDocumentId()
+                + "\"}}\n" + concept.toElasticSearchDocument(objectMapper) + "\n";
     }
 
     private @NotNull String createBulkDeleteMeta(@NotNull UUID graphId, @NotNull UUID conceptId) {
@@ -436,8 +444,8 @@ public class IndexElasticSearchService {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match\": {\"vocabulary.id\": \"" + graphId + "\"}}}",
                 ContentType.APPLICATION_JSON);
-        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-                "/" + indexName + "/_delete_by_query", emptyMap(), body));
+        Response response = alsoUnsuccessful(
+                () -> esRestClient.performRequest("POST", "/" + indexName + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -450,10 +458,12 @@ public class IndexElasticSearchService {
     private void deleteAllDocumentsFromIndex() {
 
         HttpEntity body = new NStringEntity("{\"query\": { \"match_all\": {}}}", ContentType.APPLICATION_JSON);
-//        Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-//                "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(), body));
-          Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST",
-                "/" + indexName + "/_delete_by_query", emptyMap(), body));
+        // Response response = alsoUnsuccessful(() ->
+        // esRestClient.performRequest("POST",
+        // "/" + indexName + "/" + indexMappingType + "/_delete_by_query", emptyMap(),
+        // body));
+        Response response = alsoUnsuccessful(
+                () -> esRestClient.performRequest("POST", "/" + indexName + "/_delete_by_query", emptyMap(), body));
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
@@ -501,6 +511,34 @@ public class IndexElasticSearchService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public @Nullable JsonNode freeSearchFromIndex(SearchRequest sr) {
+        final SearchResponse response;
+        JsonNode obj = null;
+        try {
+            response = esHiLvClient.search(sr, RequestOptions.DEFAULT);
+            log.info("Search result count="+response.getHits().getTotalHits());
+            // setResultCounts(meta, response);
+            // String -> JSON
+            obj =  objectMapper.readTree(response.toString());
+            /*
+            response.getHits().forEach(hit -> {
+                try {
+                    String resp = hit.getSourceAsString();
+                    // String -> JSON
+                    obj = objectMapper.readTree(resp);
+                } catch (final IOException e) {
+                    log.error("getContainers reading value from JSON string failed: " + hit.getSourceAsString(), e);
+                    throw new RuntimeException(e);
+                }
+            });
+            */
+        } catch (final IOException e) {
+            log.error("SearchRequest failed!", e);
+            throw new RuntimeException(e);
+        }
+        return obj;
     }
 
     public @Nullable JsonNode freeSearchFromIndex(String query, String indexName) {

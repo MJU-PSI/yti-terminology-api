@@ -64,7 +64,7 @@ dependencies {
     compile "org.jetbrains:annotations:15.0"
     compile "ch.qos.logback:logback-core"
     compile "net.logstash.logback:logstash-logback-encoder:5.0"
-
+    compile "javax.ws.rs:javax.ws.rs-api:2.1.1"
     compile "org.springframework.security:spring-security-core"
     compile "org.springframework.security:spring-security-config"
     compile "org.springframework.security:spring-security-web"
