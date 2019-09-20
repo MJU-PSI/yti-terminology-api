@@ -51,6 +51,7 @@ public class LuceneQueryFactory {
                     final StandardQueryParser parser = new StandardQueryParser();
                     try {
                         parser.setAllowLeadingWildcard(true);
+                        LOG.info(" BuildLuceneQuery"+parsedQuery.toString());
                         return QueryBuilders.queryStringQuery(parser.parse(parsedQuery, "").toString());
                     } catch (final QueryNodeException e) {
                         // nop
@@ -58,7 +59,7 @@ public class LuceneQueryFactory {
                 }
             }
         }
-        LOG.debug("Query string disqualified: '" + searchTerm + "'");
-        throw new BadRequestException("Invalid query");
+        LOG.error("Search term string disqualified: '" + searchTerm + "'");
+        return null;
     }
 }

@@ -396,23 +396,21 @@ public class IntegrationService {
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
-        // Match vocabularyId which is mandatory
-        mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
-
         // if searh-term is given,  match for all labels
         if(request.getSearchTerm() != null){
-            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");
+            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");  
             mustList.add(labelQuery);
+        }
+
+        // Match vocabularyId which is mandatory
+        if(vocabularyId != null){
+            mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
         }
 
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
         }
-        // Add mandatory filter: "filter": {"exists": { "field": "uri"} }
-        /*
-         * QueryBuilder urlExistQuery = QueryBuilders.boolQuery()
-         * .must(QueryBuilders.existsQuery("url")); mustList.add(urlExistQuery);
-         */
+        
         if (request.getFilter() != null) {
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
                     .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
@@ -425,10 +423,18 @@ public class IntegrationService {
             mustList.add(statusQuery);
         }
 
-        if (mustList.size() > 0) {
+        // if searh-term is given,  match for all labels
+        if(request.getSearchTerm() != null){
+            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");     
+            mustList.add(labelQuery);
+        }
+
+        // more than id-match
+        if (mustList.size() > 1) {
             logger.info("Multiple matches");
             sourceBuilder.query(boolQuery);
-        } else {
+        } else { 
+            // get all from given vocabulary
             logger.info("ALL matches");
             sourceBuilder.query(QueryBuilders.matchAllQuery());
         }

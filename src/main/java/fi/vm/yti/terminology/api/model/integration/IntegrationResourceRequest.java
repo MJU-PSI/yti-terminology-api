@@ -24,6 +24,7 @@ public class IntegrationResourceRequest {
     private String language;
     private String container;
     private Set<String> status;
+    private Set<String> includeIncompleteFrom;
     private Date after;
     private Set<String> filter;
     private Integer pageSize;
@@ -31,14 +32,16 @@ public class IntegrationResourceRequest {
 
     public IntegrationResourceRequest(){}
 
-    public IntegrationResourceRequest(final String searchTerm,
+    public IntegrationResourceRequest(final String container,
+                                      final String searchTerm,
                                       final String language,
-                                      final String container,
+                                      final Set<String> includeIncompleteFrom,                                      
                                       final Set<String> status,
                                       final Date after,
                                       final Set<String> filter,
                                       final Integer pageSize,
                                       final Integer pageFrom) {
+        this.includeIncompleteFrom = includeIncompleteFrom;
         this.searchTerm = searchTerm;
         this.language = language;
         this.container = container;
@@ -79,6 +82,14 @@ public class IntegrationResourceRequest {
 
     public void setStatus(final Set<String> status) {
         this.status = status;
+    }
+
+    public Set<String> getIncludeIncompleteFrom() {
+        return includeIncompleteFrom;
+    }
+
+    public void setIncludeIncompleteFrom(final Set<String> incompl) {
+        this.includeIncompleteFrom = incompl;
     }
 
     public Date getAfter() {
