@@ -92,7 +92,7 @@ public class IntegrationService {
 
         logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
         // Use highLevel API result so
-        logger.error("json-result:" + r);
+        logger.debug("Raw json-result:" + r);
         Meta meta = new Meta();
         meta.setAfter(request.getAfter());
         meta.setPageSize(request.getPageSize());
@@ -308,9 +308,8 @@ public class IntegrationService {
         }
 
         JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
-        logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
         // Use highLevel API result so
-        logger.info("json-result:" + r);
+        logger.debug("raw json-result:" + r);
 
         Meta meta = new Meta();
         meta.setAfter(request.getAfter());
@@ -363,6 +362,26 @@ public class IntegrationService {
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
     }
 
+
+    /**
+     * {
+   "searchTerm":"string",
+   "language":"string",
+   "container":"string",
+   "status": [
+       "string"    
+   ],
+   "after":"2019-09-11T09:27:29.964Z",
+   "filter":[
+      "string"
+   ],
+   "pageSize":0,
+   "pageFrom":0
+}
+     * @param request
+     * @param vocabularyId
+     * @return
+     */
     private SearchRequest createResourcesQuery(IntegrationResourceRequest request, UUID vocabularyId) {
         /*
          * { "query" : { "bool":{ "must": { "match": {
@@ -373,12 +392,18 @@ public class IntegrationService {
          */
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        LuceneQueryFactory luceneQueryFactory = new LuceneQueryFactory();
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
-        // Match all
-
+        // Match vocabularyId which is mandatory
         mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
+
+        // if searh-term is given,  match for all labels
+        if(request.getSearchTerm() != null){
+            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");
+            mustList.add(labelQuery);
+        }
 
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));

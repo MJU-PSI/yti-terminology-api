@@ -4,7 +4,22 @@ import java.util.Date;
 import java.util.Set;
 
 public class IntegrationResourceRequest {
-
+/**
+ * {
+   "searchTerm":"string",
+   "language":"string",
+   "container":"string",
+   "status": [
+       "string"    
+   ],
+   "after":"2019-09-11T09:27:29.964Z",
+   "filter":[
+      "string"
+   ],
+   "pageSize":0,
+   "pageFrom":0
+}
+ */
     private String searchTerm;
     private String language;
     private String container;
