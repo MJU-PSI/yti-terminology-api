@@ -7,6 +7,7 @@ public class IntegrationContainerRequest {
 
     private String searchTerm;
     private String language;
+    private Set<String> includeIncompleteFrom;
     private Set<String> status;
     private Date after;
     private Set<String> filter;
@@ -17,6 +18,7 @@ public class IntegrationContainerRequest {
 
     public IntegrationContainerRequest(final String searchTerm,
                                       final String language,
+                                      final Set<String> includeIncompleteFrom,                                      
                                       final Set<String> status,
                                       final Date after,
                                       final Set<String> filter,
@@ -24,6 +26,7 @@ public class IntegrationContainerRequest {
                                       final Integer pageFrom) {
         this.searchTerm = searchTerm;
         this.language = language;
+        this.includeIncompleteFrom = includeIncompleteFrom;
         this.status = status;
         this.after = after;
         this.filter = filter;
@@ -38,12 +41,26 @@ public class IntegrationContainerRequest {
         this.searchTerm = searchTerm;
     }
 
+    /**
+     * @return String return the language
+     */
     public String getLanguage() {
         return language;
     }
 
-    public void setLanguage(final String language) {
+    /**
+     * @param language the language to set
+     */
+    public void setLanguage(String language) {
         this.language = language;
+    }
+
+    public Set<String> getIncludeIncompleteFrom() {
+        return includeIncompleteFrom;
+    }
+
+    public void setIncludeIncompleteFrom(final Set<String> incompl) {
+        this.includeIncompleteFrom = incompl;
     }
 
     public Set<String> getStatus() {
@@ -98,4 +115,5 @@ public class IntegrationContainerRequest {
             ", pageFrom=" + pageFrom +
             '}';
     }
+
 }
