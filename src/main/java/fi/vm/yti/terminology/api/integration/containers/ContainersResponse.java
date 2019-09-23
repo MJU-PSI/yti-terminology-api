@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import fi.vm.yti.terminology.api.util.JsonUtils;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "uri",
@@ -106,4 +108,13 @@ public class ContainersResponse implements Serializable
         this.modified = modified;
     }
 
+    @Override
+    public String toString() {
+        String value = "{\"uri\":\""+this.uri+"\","+
+        "\"prefLabel\":\""+this.prefLabel+"\","+
+        "\"description\":\""+this.description+"\","+ 
+        "\"status\":\""+this.status+"\","+
+        "\"modified\":\""+this.modified+"\"}";     
+        return value;
+    }
 }

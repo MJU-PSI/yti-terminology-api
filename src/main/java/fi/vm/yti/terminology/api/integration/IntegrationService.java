@@ -330,7 +330,12 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    resp.add(parseResourceResponse(source));
+                    ContainersResponse node = parseResourceResponse(source);
+                    if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
+                        resp.add(node);
+                    } else {
+                        logger.error("Resource response missing mandatory fields. dropping " + node);
+                    }
                 } else {
                     logger.error("handleResources hit=" + hit);
                 }
@@ -453,14 +458,14 @@ public class IntegrationService {
         String stat = null;
         String modifiedDate = null;
         String uri = null;
-        if (source.get("status") != null){
+        if (source.get("status") != null) {
             stat = source.get("status").asText();
         } else {
             logger.warn("Resource response missing status");
         }
         if (source.get("modified") != null) {
             modifiedDate = source.get("modified").asText();
-        }else {
+        } else {
             logger.warn("Resource response missing modified date");
         }
         if (source.get("uri") != null) {
