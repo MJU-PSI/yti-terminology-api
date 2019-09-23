@@ -42,6 +42,8 @@ import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,6 +54,8 @@ import static java.util.Collections.emptyMap;
 @Service
 public class IntegrationService {
     private static final Logger logger = LoggerFactory.getLogger(IntegrationService.class);
+    private static final Set<String> sortLanguages = new HashSet<>(
+            Arrays.asList("fi", "en", "sv"));
     private final TermedRequester termedRequester;
     private final FrontendGroupManagementService groupManagementService;
     private final FrontendTermedService termedService;
@@ -398,10 +402,13 @@ public class IntegrationService {
         List<QueryBuilder> mustList = boolQuery.must();
         // if searh-term is given,  match for all labels
         if(request.getSearchTerm() != null){
-            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");  
+            logger.info("Additional SearchTerm="+request.getSearchTerm());
+            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+                    .field("label.*");
             mustList.add(labelQuery);
         }
 
+    
         // Match vocabularyId which is mandatory
         if(vocabularyId != null){
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
@@ -425,19 +432,12 @@ public class IntegrationService {
 
         // if searh-term is given,  match for all labels
         if(request.getSearchTerm() != null){
-            QueryStringQueryBuilder  labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");     
+            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+                    .field("label.*");
             mustList.add(labelQuery);
         }
 
-        // more than id-match
-        if (mustList.size() > 1) {
-            logger.info("Multiple matches");
-            sourceBuilder.query(boolQuery);
-        } else { 
-            // get all from given vocabulary
-            logger.info("ALL matches");
-            sourceBuilder.query(QueryBuilders.matchAllQuery());
-        }
+        sourceBuilder.query(boolQuery);
 
         if (request.getPageFrom() != null) {
             sourceBuilder.from(request.getPageFrom());
@@ -517,6 +517,23 @@ public class IntegrationService {
             respItem.setDescription(desc);
         }
         return respItem;
+    }
+
+    private void addLanguagePrefLabelSort(final String language, final String backupSortField,
+            final String sortFieldWithoutLanguage, final SearchSourceBuilder searchBuilder) {
+        if (language != null && !language.isEmpty()) {
+            searchBuilder.sort(SortBuilders.fieldSort("prefLabel." + language + ".keyword").order(SortOrder.ASC)
+                    .unmappedType("keyword"));
+            sortLanguages.forEach(sortLanguage -> {
+                if (!language.equalsIgnoreCase(sortLanguage)) {
+                    searchBuilder.sort(SortBuilders.fieldSort("prefLabel." + sortLanguage + ".keyword")
+                            .order(SortOrder.ASC).unmappedType("keyword"));
+                }
+            });
+            searchBuilder.sort(backupSortField, SortOrder.ASC);
+        } else {
+            searchBuilder.sort(sortFieldWithoutLanguage, SortOrder.ASC);
+        }
     }
 
     /**
