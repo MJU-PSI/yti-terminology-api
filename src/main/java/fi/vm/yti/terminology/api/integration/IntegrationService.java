@@ -54,8 +54,7 @@ import static java.util.Collections.emptyMap;
 @Service
 public class IntegrationService {
     private static final Logger logger = LoggerFactory.getLogger(IntegrationService.class);
-    private static final Set<String> sortLanguages = new HashSet<>(
-            Arrays.asList("fi", "en", "sv"));
+    private static final Set<String> sortLanguages = new HashSet<>(Arrays.asList("fi", "en", "sv"));
     private final TermedRequester termedRequester;
     private final FrontendGroupManagementService groupManagementService;
     private final FrontendTermedService termedService;
@@ -366,22 +365,11 @@ public class IntegrationService {
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
     }
 
-
     /**
-     * {
-   "searchTerm":"string",
-   "language":"string",
-   "container":"string",
-   "status": [
-       "string"    
-   ],
-   "after":"2019-09-11T09:27:29.964Z",
-   "filter":[
-      "string"
-   ],
-   "pageSize":0,
-   "pageFrom":0
-}
+     * { "searchTerm":"string", "language":"string", "container":"string", "status":
+     * [ "string" ], "after":"2019-09-11T09:27:29.964Z", "filter":[ "string" ],
+     * "pageSize":0, "pageFrom":0 }
+     * 
      * @param request
      * @param vocabularyId
      * @return
@@ -400,24 +388,23 @@ public class IntegrationService {
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
-        // if searh-term is given,  match for all labels
-        if(request.getSearchTerm() != null){
-            logger.info("Additional SearchTerm="+request.getSearchTerm());
+        // if searh-term is given, match for all labels
+        if (request.getSearchTerm() != null) {
+            logger.info("Additional SearchTerm=" + request.getSearchTerm());
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
         }
 
-    
         // Match vocabularyId which is mandatory
-        if(vocabularyId != null){
+        if (vocabularyId != null) {
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
         }
 
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
         }
-        
+
         if (request.getFilter() != null) {
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
                     .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
@@ -430,8 +417,8 @@ public class IntegrationService {
             mustList.add(statusQuery);
         }
 
-        // if searh-term is given,  match for all labels
-        if(request.getSearchTerm() != null){
+        // if searh-term is given, match for all labels
+        if (request.getSearchTerm() != null) {
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
@@ -463,9 +450,24 @@ public class IntegrationService {
 
     /** Transform incoming response into the resource-api JSON form */
     private ContainersResponse parseResourceResponse(JsonNode source) {
-        String stat = source.get("status").asText();
-        String modifiedDate = source.get("modified").asText();
-        String uri = source.get("uri").asText();
+        String stat = null;
+        String modifiedDate = null;
+        String uri = null;
+        if (source.get("status") != null){
+            stat = source.get("status").asText();
+        } else {
+            logger.warn("Resource response missing status");
+        }
+        if (source.get("modified") != null) {
+            modifiedDate = source.get("modified").asText();
+        }else {
+            logger.warn("Resource response missing modified date");
+        }
+        if (source.get("uri") != null) {
+            uri = source.get("uri").asText();
+        } else {
+            logger.warn("Resource response missing URI");
+        }
 
         ContainersResponse respItem = new ContainersResponse();
         respItem.setUri(uri);
