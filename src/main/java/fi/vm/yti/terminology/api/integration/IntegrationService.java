@@ -447,7 +447,10 @@ public class IntegrationService {
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
-
+        // Add label sorting according to labe
+        if (request.getLanguage() != null) {
+                addLanguagePrefLabelSort(request.getLanguage(), "label.fi", "label."+request.getLanguage(), sourceBuilder);
+        }
         logger.info("SearchRequest=" + sr);
         logger.debug(sr.source().toString());
         return sr;

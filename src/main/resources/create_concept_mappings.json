@@ -4,8 +4,7 @@
       "label": {
         "path_match":   "label.*",
         "mapping": {
-          "type": "text",
-          "analyzer": "termed"
+          "type": "keyword"
         }
       }
     },
