@@ -159,7 +159,7 @@ public class IntegrationService {
          */
         if (request.getFilter() != null) {
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
+                    .mustNot(QueryBuilders.termsQuery("uri", request.getFilter()));
             mustList.add(filterQuery);
         }
 
@@ -168,6 +168,9 @@ public class IntegrationService {
                     .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
             mustList.add(statusQuery);
         }
+
+        // Don't return items without URI
+        mustList.add(QueryBuilders.existsQuery("uri"));
 
         if (mustList.size() > 0) {
             logger.info("Multiple matches");
@@ -194,9 +197,15 @@ public class IntegrationService {
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
+        // Add label sorting according to label
+        if (request.getLanguage() != null) {
+//            addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
+        }
 
-        logger.info("SearchRequest=" + sr);
-        logger.debug(sr.source().toString());
+        if (logger.isDebugEnabled()) {
+            logger.debug("SearchRequest=" + sr);
+            logger.debug(sr.source().toString());
+        }
         return sr;
     }
 
@@ -411,8 +420,9 @@ public class IntegrationService {
         }
 
         if (request.getFilter() != null) {
+            logger.info("Exclude filter:"+request.getFilter());
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.termsQuery("id", request.getFilter()));
+                    .mustNot(QueryBuilders.termsQuery("uri", request.getFilter()));
             mustList.add(filterQuery);
         }
 
@@ -422,12 +432,15 @@ public class IntegrationService {
             mustList.add(statusQuery);
         }
 
-        // if searh-term is given, match for all labels
+        // if search-term is given, match for all labels containing it
         if (request.getSearchTerm() != null) {
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
         }
+
+        // Don't return items without URI
+        mustList.add(QueryBuilders.existsQuery("uri"));
 
         sourceBuilder.query(boolQuery);
 
@@ -447,12 +460,14 @@ public class IntegrationService {
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
-        // Add label sorting according to labe
+        // Add label sorting according to label
         if (request.getLanguage() != null) {
-                addLanguagePrefLabelSort(request.getLanguage(), "label.fi", "label."+request.getLanguage(), sourceBuilder);
+            addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
         }
-        logger.info("SearchRequest=" + sr);
-        logger.debug(sr.source().toString());
+        if (logger.isDebugEnabled()) {
+            logger.info("SearchRequest=" + sr);
+            logger.debug(sr.source().toString());
+        }
         return sr;
     }
 
@@ -532,12 +547,12 @@ public class IntegrationService {
     private void addLanguagePrefLabelSort(final String language, final String backupSortField,
             final String sortFieldWithoutLanguage, final SearchSourceBuilder searchBuilder) {
         if (language != null && !language.isEmpty()) {
-            searchBuilder.sort(SortBuilders.fieldSort("prefLabel." + language + ".keyword").order(SortOrder.ASC)
+            searchBuilder.sort(SortBuilders.fieldSort("label." + language + ".keyword").order(SortOrder.ASC)
                     .unmappedType("keyword"));
             sortLanguages.forEach(sortLanguage -> {
                 if (!language.equalsIgnoreCase(sortLanguage)) {
-                    searchBuilder.sort(SortBuilders.fieldSort("prefLabel." + sortLanguage + ".keyword")
-                            .order(SortOrder.ASC).unmappedType("keyword"));
+                    searchBuilder.sort(SortBuilders.fieldSort("label." + sortLanguage + ".keyword").order(SortOrder.ASC)
+                            .unmappedType("keyword"));
                 }
             });
             searchBuilder.sort(backupSortField, SortOrder.ASC);

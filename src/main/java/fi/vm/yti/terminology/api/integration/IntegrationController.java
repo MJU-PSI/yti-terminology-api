@@ -84,6 +84,7 @@ public class IntegrationController {
             @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
             @ApiParam(value = "Status") @RequestParam(value = "status", required = false) Set<String> status,
             @ApiParam(value = "After") @RequestParam(value = "after", required = false) Date after,
+            @ApiParam(value = "Filter") @RequestParam(value = "filter", required = false) Set<String> filter,
             @ApiParam(value = "Search") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,
             @ApiParam(value = "From") @RequestParam(value = "from", required = false) Integer from) {
@@ -95,6 +96,7 @@ public class IntegrationController {
         request.setContainer(container);
         request.setLanguage(lang);
         request.setStatus(status);
+        request.setFilter(filter);
         request.setAfter(after);
         request.setSearchTerm(searchTerm);
         request.setPageSize(pageSize);
