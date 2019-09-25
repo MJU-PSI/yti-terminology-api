@@ -146,7 +146,7 @@ public class IndexElasticSearchService {
         vocabularies.forEach(o -> {
             try {
                 String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"vocabulary" + "\", \"_id\":"
-                        + o.get("id") + "}}\n" + mapper.writeValueAsString(o) + "\n";
+                        + o.get("id") + "}}\n" + mapper.writeValueAsString(o).toLowerCase() + "\n";
                 indexLines.add(line);
                 if (log.isDebugEnabled()) {
                     log.debug("reindex line:" + line);
@@ -193,7 +193,7 @@ public class IndexElasticSearchService {
         ObjectMapper mapper = new ObjectMapper();
         try {
             String index = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
-                    + jn.get("id") + "}}\n" + mapper.writeValueAsString(jn) + "\n";
+                    + jn.get("id") + "}}\n" + mapper.writeValueAsString(jn).toLowerCase() + "\n";
             String delete = "";
             // CHANGED CONTENT TYPE FOR ELASTIC 6.X
             HttpEntity entity = new NStringEntity(index + delete,
