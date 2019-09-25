@@ -146,7 +146,7 @@ public class IndexElasticSearchService {
         vocabularies.forEach(o -> {
             try {
                 String line = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"vocabulary" + "\", \"_id\":"
-                        + o.get("id") + "}}\n" + mapper.writeValueAsString(o).toLowerCase() + "\n";
+                        + o.get("id") + "}}\n" + mapper.writeValueAsString(o) + "\n";
                 indexLines.add(line);
                 if (log.isDebugEnabled()) {
                     log.debug("reindex line:" + line);
@@ -193,7 +193,7 @@ public class IndexElasticSearchService {
         ObjectMapper mapper = new ObjectMapper();
         try {
             String index = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
-                    + jn.get("id") + "}}\n" + mapper.writeValueAsString(jn).toLowerCase() + "\n";
+                    + jn.get("id") + "}}\n" + mapper.writeValueAsString(jn) + "\n";
             String delete = "";
             // CHANGED CONTENT TYPE FOR ELASTIC 6.X
             HttpEntity entity = new NStringEntity(index + delete,
@@ -518,22 +518,17 @@ public class IndexElasticSearchService {
         JsonNode obj = null;
         try {
             response = esHiLvClient.search(sr, RequestOptions.DEFAULT);
-            log.info("Search result count="+response.getHits().getTotalHits());
+            log.info("Search result count=" + response.getHits().getTotalHits());
             // setResultCounts(meta, response);
             // String -> JSON
-            obj =  objectMapper.readTree(response.toString());
+            obj = objectMapper.readTree(response.toString());
             /*
-            response.getHits().forEach(hit -> {
-                try {
-                    String resp = hit.getSourceAsString();
-                    // String -> JSON
-                    obj = objectMapper.readTree(resp);
-                } catch (final IOException e) {
-                    log.error("getContainers reading value from JSON string failed: " + hit.getSourceAsString(), e);
-                    throw new RuntimeException(e);
-                }
-            });
-            */
+             * response.getHits().forEach(hit -> { try { String resp =
+             * hit.getSourceAsString(); // String -> JSON obj = objectMapper.readTree(resp);
+             * } catch (final IOException e) {
+             * log.error("getContainers reading value from JSON string failed: " +
+             * hit.getSourceAsString(), e); throw new RuntimeException(e); } });
+             */
         } catch (final IOException e) {
             log.error("SearchRequest failed!", e);
             throw new RuntimeException(e);
