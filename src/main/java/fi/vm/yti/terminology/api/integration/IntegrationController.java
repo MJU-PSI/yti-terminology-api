@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,13 +37,21 @@ public class IntegrationController {
         this.integrationService = integrationService;
     }
 
+    /**
+     * 
+     * @param vocabularyId
+     * @param after
+     * @param incomingConcept
+     * @return
+     */
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
-    @RequestMapping(value = "/vocabulary/{vocabularyId}/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/vocabulary/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(
-            @ApiParam(value = "Vocabulary where new concept is suggested.") @PathVariable("vocabularyId") String vocabularyId,
+            @ApiParam(value = "Vocabulary where new concept is suggested.") @RequestParam(value = "vocabularyUti", required = true)  String vocabularyUri,
             @RequestBody ConceptSuggestion incomingConcept) {
-        return integrationService.handleConceptSuggestion(vocabularyId, incomingConcept);
+        return integrationService.handleConceptSuggestion(vocabularyUri, incomingConcept);
     }
+
 
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -51,6 +60,8 @@ public class IntegrationController {
             @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
+            @ApiParam(value = "Boolean whether include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
+            @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false)  Set<String> includeIncompleteFrom,
             @ApiParam(value = "After date filtering parameter, results will be codes with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) Date after) {
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.containers.GET");
@@ -62,6 +73,8 @@ public class IntegrationController {
         containersRequest.setPageFrom(from);
         containersRequest.setStatus(statusEnum);
         containersRequest.setAfter(after);
+        containersRequest.setIncludeIncomplete(incomplete);
+        containersRequest.setIncludeIncompleteFrom(includeIncompleteFrom);
         return integrationService.handleContainers(containersRequest);
     }
 
@@ -84,7 +97,7 @@ public class IntegrationController {
             @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
             @ApiParam(value = "Status") @RequestParam(value = "status", required = false) Set<String> status,
             @ApiParam(value = "After") @RequestParam(value = "after", required = false) Date after,
-            @ApiParam(value = "Filter") @RequestParam(value = "filter", required = false) Set<String> filter,
+            @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
             @ApiParam(value = "Search") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,
             @ApiParam(value = "From") @RequestParam(value = "from", required = false) Integer from) {

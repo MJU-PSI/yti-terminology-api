@@ -2,10 +2,9 @@
   "dynamic_templates": [
     {
       "label": {
-        "path_match":   "label.*",
+        "path_match": "label.*",
         "mapping": {
-          "type": "text",
-          "analyzer":"termed"
+          "type": "text"
         }
       }
     },
@@ -19,7 +18,7 @@
     },
     {
       "vocabularyLabel": {
-        "path_match":   "vocabulary.label.*",
+        "path_match": "vocabulary.label.*",
         "mapping": {
           "type": "keyword",
           "index": false
@@ -28,7 +27,7 @@
     },
     {
       "altLabel": {
-        "path_match":   "altLabel.*",
+        "path_match": "altLabel.*",
         "mapping": {
           "type": "text",
           "analyzer": "termed"
@@ -37,7 +36,7 @@
     },
     {
       "definition": {
-        "path_match":   "definition.*",
+        "path_match": "definition.*",
         "mapping": {
           "type": "text",
           "analyzer": "termed"

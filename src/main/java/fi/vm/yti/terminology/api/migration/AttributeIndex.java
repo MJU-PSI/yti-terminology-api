@@ -547,6 +547,23 @@ public final class AttributeIndex {
         );
     }
 
+    @NotNull
+    public static AttributeMeta contact(TypeId domain, long index) {
+        return new AttributeMeta(
+                "source",
+                "http://uri.suomi.fi/datamodel/ns/st#contact",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Yhteydenotto",
+                                "Contact"
+                        ),
+                        type("string:single,area")
+                )
+        );
+    }
 
     // prevent construction
     private AttributeIndex() {

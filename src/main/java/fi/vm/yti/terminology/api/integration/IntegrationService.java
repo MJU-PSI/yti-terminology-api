@@ -23,17 +23,18 @@ import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -112,6 +113,7 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
+                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -125,14 +127,14 @@ public class IntegrationService {
         wrapper.setResults(resp);
         /*
          * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
-         * System.out.println(" marrer.write=" + mapper.writeValueAsString(wrapper)); }
+         * System.out.println(" mapper.write=" + mapper.writeValueAsString(wrapper)); }
          * catch (JsonProcessingException jpe) { }
          */
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
-        /**
-         * Elastic query, returns 10k results from index and filter out items without
-         * URI
-         */
+        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper),
+                HttpStatus.OK);/**
+                                * Elastic query, returns 10k results from index and filter out items without
+                                * URI
+                                */
         // String query = "{ \"query\" : {\"bool\":{\"must\": {\"match_all\" :
         // {}},\"filter\": {\"exists\": { \"field\": \"uri\"}
         // }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
@@ -147,7 +149,7 @@ public class IntegrationService {
         List<QueryBuilder> mustList = boolQuery.must();
         // Match all
 
-        mustList.add(QueryBuilders.matchAllQuery());
+//        mustList.add(QueryBuilders.matchAllQuery());
 
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
@@ -163,17 +165,55 @@ public class IntegrationService {
             mustList.add(filterQuery);
         }
 
-        if (request.getStatus() != null) {
-            QueryBuilder statusQuery = QueryBuilders.boolQuery()
-                    .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+            QueryBuilder statusQuery = null;
+            Set<String> sq = request.getStatus();
+            logger.info("Status query set");
+
+            if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
+                // remove incomplete if not specifially asked
+                sq.remove("INCOMPLETE");
+            }
+            // add actual status filtering
+            statusQuery = QueryBuilders.boolQuery().should(QueryBuilders.termsQuery("status", sq))
+                    .minimumShouldMatch(1);
             mustList.add(statusQuery);
+        } else {
+            QueryBuilder statusQuery = null;
+            logger.info("Status empty, so use default and filter out incomplete.");            
+            // incompleteQueryBuilder.must(nestedQuery("organizations",
+            // termsQuery("organizations.id.keyword", includeIncompleteFrom),
+            // ScoreMode.None));
+
+            // Default case, where return all except incomplete status
+            /*
+             * QueryBuilder statusQ = QueryBuilders .nestedQuery( "properties.status",
+             * QueryBuilders.termQuery("status.value","INCOMPLETE"), ScoreMode.None);
+             */
+            /*
+             * QueryBuilder statusQ = QueryBuilders.boolQuery() .should(QueryBuilders
+             * .nestedQuery("properties.status.value", QueryBuilders.boolQuery(),
+             * ScoreMode.None) .should(QueryBuilders.termQuery("value",
+             * "INCOMPLETE")).minimumShouldMatch("1"));
+             */
+ 
+          //  statusQuery = QueryBuilders.boolQuery()
+          //                      .mustNot(QueryBuilders.termsQuery("status","INCOMPLETE")).minimumShouldMatch(1);
+            
+//            mustList.add(statusQuery);
         }
 
+        /*
+         * if (request.getStatus() != null) { QueryBuilder statusQuery =
+         * QueryBuilders.boolQuery() .should(QueryBuilders.termsQuery("status",
+         * request.getStatus())).minimumShouldMatch(1); mustList.add(statusQuery); }
+         */
         // Don't return items without URI
         mustList.add(QueryBuilders.existsQuery("uri"));
 
         if (mustList.size() > 0) {
-            logger.info("Multiple matches");
+            logger.info("Multiple matches:"+mustList.size());
+            mustList.forEach(o -> {System.out.println(o.toString());});
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -192,14 +232,16 @@ public class IntegrationService {
         } else {
             sourceBuilder.size(10000);
         }
+
         String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.description",
-                "lastModifiedDate", "properties.status", "uri" };
+                "lastModifiedDate", "properties.status", "uri", "references.contributor.id" };
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
         if (request.getLanguage() != null) {
-//            addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
+            // addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label",
+            // sourceBuilder);
         }
 
         if (logger.isDebugEnabled()) {
@@ -339,6 +381,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
+                    System.out.println("resources-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+
                     ContainersResponse node = parseResourceResponse(source);
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
                         resp.add(node);
@@ -408,8 +452,22 @@ public class IntegrationService {
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
+            final BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+            boolQueryBuilder
+                    .should(luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*"));
+            boolQueryBuilder.minimumShouldMatch(1);
+            // mustList.add(boolQueryBuilder);
+            logger.info("Additional lucene query=" + boolQueryBuilder.toString());
         }
-
+        /**
+         * if (searchTerm != null && !searchTerm.isEmpty()) { final BoolQueryBuilder
+         * boolQueryBuilder = boolQuery();
+         * boolQueryBuilder.should(luceneQueryFactory.buildPrefixSuffixQuery(searchTerm).field("prefLabel.*"));
+         * boolQueryBuilder.should(luceneQueryFactory.buildPrefixSuffixQuery(searchTerm).field("codeValue"));
+         * if (!codeSchemeUuids.isEmpty()) { boolQueryBuilder.should(termsQuery("id",
+         * codeSchemeUuids)); } boolQueryBuilder.minimumShouldMatch(1);
+         * builder.must(boolQueryBuilder); }
+         */
         // Match vocabularyId which is mandatory
         if (vocabularyId != null) {
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
@@ -420,13 +478,13 @@ public class IntegrationService {
         }
 
         if (request.getFilter() != null) {
-            logger.info("Exclude filter:"+request.getFilter());
+            logger.info("Exclude filter:" + request.getFilter());
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
                     .mustNot(QueryBuilders.termsQuery("uri", request.getFilter()));
             mustList.add(filterQuery);
         }
 
-        if (request.getStatus() != null) {
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             QueryBuilder statusQuery = QueryBuilders.boolQuery()
                     .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
             mustList.add(statusQuery);
@@ -464,10 +522,10 @@ public class IntegrationService {
         if (request.getLanguage() != null) {
             addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
         }
-        if (logger.isDebugEnabled()) {
-            logger.info("SearchRequest=" + sr);
-            logger.debug(sr.source().toString());
-        }
+        // if (logger.isDebugEnabled()) {
+        logger.info("SearchRequest=" + sr);
+        logger.debug(sr.source().toString());
+        // }
         return sr;
     }
 
@@ -581,7 +639,7 @@ public class IntegrationService {
      * @param vocabularityId
      * @return
      */
-    ResponseEntity<String> handleConceptSuggestion(String vocabularityId, ConceptSuggestion incomingConcept) {
+    ResponseEntity<String> handleConceptSuggestion(String vocabularyUri, ConceptSuggestion incomingConcept) {
         if (logger.isDebugEnabled())
             logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
@@ -592,12 +650,12 @@ public class IntegrationService {
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
         // Filter given code as result
-        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(vocabularityId)).map(o -> {
+        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(vocabularyUri)).map(o -> {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
             return new ResponseEntity<>(
-                    "Created Concept suggestion failed for " + vocabularityId + ". Multiple matches for vocabulary. \n",
+                    "Created Concept suggestion failed for " + vocabularyUri + ". Multiple matches for vocabulary. \n",
                     HttpStatus.NOT_FOUND);
         } else if (vocabularies.size() == 1) {
             // found, set UUID
@@ -606,11 +664,11 @@ public class IntegrationService {
             // It may be UUID, so try to convert that
             // Try if it is UUID
             try {
-                activeVocabulary = UUID.fromString(vocabularityId);
+                activeVocabulary = UUID.fromString(vocabularyUri);
             } catch (IllegalArgumentException ex) {
                 // Not UUID, error.
                 return new ResponseEntity<>(
-                        "Created Concept suggestion failed for " + vocabularityId + ". Vocabulary not found. \n",
+                        "Created Concept suggestion failed for " + vocabularyUri + ". Vocabulary not found. \n",
                         HttpStatus.NOT_FOUND);
             }
         }
@@ -619,7 +677,7 @@ public class IntegrationService {
         GenericNodeInlined vocabularyNode = termedService.getVocabulary(activeVocabulary);
         if (vocabularyNode == null) {
             return new ResponseEntity<>(
-                    "Created Concept suggestion failed for UUID:" + vocabularityId + ". Vocabulary not found. \n",
+                    "Created Concept suggestion failed for UUID:" + vocabularyUri + ". Vocabulary not found. \n",
                     HttpStatus.NOT_FOUND);
         }
 

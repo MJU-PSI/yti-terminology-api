@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.index;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -132,7 +134,29 @@ public class IndexElasticSearchService {
         // Get vocabularies under graphs
         graphs.forEach(o -> {
             JsonNode jn = termedApiService.getTerminologyVocabularyNode(o);
+            // Get status and put it in tge root level
+            String status = null;
+            JsonNode j = jn.path("properties").path("status");
+            if (j != null) {
+                if (j.isArray()) {
+                    // iterate through status values
+                    for (final JsonNode objNode : j) {
+                        if (objNode.get("value") != null) {
+                            status = objNode.get("value").asText();
+                        }
+                    }
+                }
+                System.out.println("GET STATUS:" + status);
+                JsonUtils.prettyPrintJson(j);
+            }
+
+            // resolve organization info from references.contributor
             if (jn != null) {
+                // Add status into the root level
+                if (status != null) {
+                    ((ObjectNode) jn).put("status", status);
+                }
+                System.out.println("Line 135 vocabulary node=" + JsonUtils.prettyPrintJsonAsString(jn));
                 vocabularies.add(jn);
             }
         });
@@ -190,6 +214,7 @@ public class IndexElasticSearchService {
             log.warn("Missing vocabulary during elasticsearch reindexing  :" + vocId.toString());
             return false;
         }
+
         ObjectMapper mapper = new ObjectMapper();
         try {
             String index = "{\"index\":{\"_index\": \"vocabularies\", \"_type\": \"" + "vocabulary" + "\", \"_id\":"
@@ -296,7 +321,6 @@ public class IndexElasticSearchService {
 
     private void reindexGraph(@NotNull UUID graphId, boolean waitForRefresh) {
         log.info("Trying to index concepts of graph " + graphId);
-
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
         bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), waitForRefresh);
         log.info("Indexed " + concepts.size() + " concepts");
@@ -417,11 +441,11 @@ public class IndexElasticSearchService {
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
 
         if (isSuccess(response)) {
-            log.info("Successfully added/updated documents to elasticsearch index: " + updateConcepts.size());
-            log.info("Successfully deleted documents from elasticsearch index: " + deleteConceptsIds.size());
+            log.info("Successfully added/updated concepts documents to elasticsearch index: " + updateConcepts.size());
+            log.info("Successfully deleted concepts  documents from elasticsearch index: " + deleteConceptsIds.size());
         } else {
-            log.warn("Unable to add or update document to elasticsearch index: " + updateConcepts.size());
-            log.warn("Unable to delete document from elasticsearch index: " + deleteConceptsIds.size());
+            log.warn("Unable to add or update concepts document to elasticsearch index: " + updateConcepts.size());
+            log.warn("Unable to delete concepts document from elasticsearch index: " + deleteConceptsIds.size());
         }
     }
 
