@@ -8,6 +8,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Required;
@@ -46,12 +49,14 @@ public class IntegrationController {
      */
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
     @RequestMapping(value = "/vocabulary/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    ResponseEntity<String> conceptSuggestion(
-            @ApiParam(value = "Vocabulary where new concept is suggested.") @RequestParam(value = "vocabularyUti", required = true)  String vocabularyUri,
+    ResponseEntity<String> conceptSuggestion(@Context HttpServletRequest req,
+            @ApiParam(value = "Vocabulary where new concept is suggested.") @RequestParam(value = "vocabularyUti", required = true) String vocabularyUri,
             @RequestBody ConceptSuggestion incomingConcept) {
+        if (req != null) {
+            logger.debug("ConceptSuggestion incoming reaquest from" + req.getRemoteHost());
+        }
         return integrationService.handleConceptSuggestion(vocabularyUri, incomingConcept);
     }
-
 
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
@@ -61,7 +66,7 @@ public class IntegrationController {
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
             @ApiParam(value = "Boolean whether include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
-            @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false)  Set<String> includeIncompleteFrom,
+            @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
             @ApiParam(value = "After date filtering parameter, results will be codes with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) Date after) {
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.containers.GET");
@@ -119,10 +124,10 @@ public class IntegrationController {
 
     @ApiResponse(code = 200, message = "Returns JSON with filtered Concept-list if excluded URIS are given")
     @RequestMapping(value = "/resources", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    ResponseEntity<String> resources(@RequestBody IntegrationResourceRequest resourceRequest) { 
+    ResponseEntity<String> resources(@RequestBody IntegrationResourceRequest resourceRequest) {
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.resources.POST");
-        }        
+        }
         return integrationService.handleResources(resourceRequest);
     }
 }

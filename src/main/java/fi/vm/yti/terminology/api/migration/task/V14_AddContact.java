@@ -43,8 +43,7 @@ public class V14_AddContact implements MigrationTask {
 
         String domainName = meta.getDomain().getId().name();
         if (domainName.equals("TerminologicalVocabulary")) {
-            meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 6));
-System.out.println("Add contact into the metamodel");
+            meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 20));
             updateTextAttributeDescription(meta, "contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta."
                             + " Suositeltava muoto esimerkiksi: \"Sanastotyöryhmän ylläpito: yllapito@example.org\"",
