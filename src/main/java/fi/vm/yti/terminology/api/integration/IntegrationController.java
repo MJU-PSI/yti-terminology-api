@@ -48,14 +48,14 @@ public class IntegrationController {
      * @return
      */
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
-    @RequestMapping(value = "/vocabulary/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/terminologyy/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(@Context HttpServletRequest req,
-            @ApiParam(value = "Vocabulary where new concept is suggested.") @RequestParam(value = "vocabularyUti", required = true) String vocabularyUri,
+            @ApiParam(value = "Terminology URI where new concept is suggested.") @RequestParam(value = "terminologyUri", required = true) String terminologyUri,
             @RequestBody ConceptSuggestion incomingConcept) {
         if (req != null) {
             logger.debug("ConceptSuggestion incoming reaquest from" + req.getRemoteHost());
         }
-        return integrationService.handleConceptSuggestion(vocabularyUri, incomingConcept);
+        return integrationService.handleConceptSuggestion(terminologyUri, incomingConcept);
     }
 
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")

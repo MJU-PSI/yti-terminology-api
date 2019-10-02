@@ -639,7 +639,7 @@ public class IntegrationService {
      * @param vocabularityId
      * @return
      */
-    ResponseEntity<String> handleConceptSuggestion(String vocabularyUri, ConceptSuggestion incomingConcept) {
+    ResponseEntity<String> handleConceptSuggestion(String terminologyUri, ConceptSuggestion incomingConcept) {
         if (logger.isDebugEnabled())
             logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
@@ -650,12 +650,12 @@ public class IntegrationService {
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
         // Filter given code as result
-        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(vocabularyUri)).map(o -> {
+        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(terminologyUri)).map(o -> {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
             return new ResponseEntity<>(
-                    "Created Concept suggestion failed for " + vocabularyUri + ". Multiple matches for vocabulary. \n",
+                    "Created Concept suggestion failed for " + terminologyUri + ". Multiple matches for terminology. \n",
                     HttpStatus.NOT_FOUND);
         } else if (vocabularies.size() == 1) {
             // found, set UUID
@@ -664,11 +664,11 @@ public class IntegrationService {
             // It may be UUID, so try to convert that
             // Try if it is UUID
             try {
-                activeVocabulary = UUID.fromString(vocabularyUri);
+                activeVocabulary = UUID.fromString(terminologyUri);
             } catch (IllegalArgumentException ex) {
                 // Not UUID, error.
                 return new ResponseEntity<>(
-                        "Created Concept suggestion failed for " + vocabularyUri + ". Vocabulary not found. \n",
+                        "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
                         HttpStatus.NOT_FOUND);
             }
         }
@@ -677,7 +677,7 @@ public class IntegrationService {
         GenericNodeInlined vocabularyNode = termedService.getVocabulary(activeVocabulary);
         if (vocabularyNode == null) {
             return new ResponseEntity<>(
-                    "Created Concept suggestion failed for UUID:" + vocabularyUri + ". Vocabulary not found. \n",
+                    "Created Concept suggestion failed for UUID:" + terminologyUri + ". Terminology not found. \n",
                     HttpStatus.NOT_FOUND);
         }
 
