@@ -138,7 +138,12 @@ public class IndexElasticSearchService {
             String status = null;
             JsonNode j = null;
             if(jn.path("properties")!= null){
+              System.out.println("properties found");
               j = jn.path("properties").path("status");
+              System.out.println("properties status="+j);
+              if(j.isMissingNode()){
+                  j=null;
+              }
             }
             if (j != null) {
                 if (j.isArray()) {
