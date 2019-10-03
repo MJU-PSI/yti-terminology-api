@@ -136,7 +136,10 @@ public class IndexElasticSearchService {
             JsonNode jn = termedApiService.getTerminologyVocabularyNode(o);
             // Get status and put it in tge root level
             String status = null;
-            JsonNode j = jn.path("properties").path("status");
+            JsonNode j = null;
+            if(jn.path("properties")!= null){
+              j = jn.path("properties").path("status");
+            }
             if (j != null) {
                 if (j.isArray()) {
                     // iterate through status values
