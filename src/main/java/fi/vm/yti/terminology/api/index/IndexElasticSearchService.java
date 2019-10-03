@@ -137,7 +137,7 @@ public class IndexElasticSearchService {
             // Get status and put it in tge root level
             String status = null;
             JsonNode j = null;
-            if(jn.path("properties")!= null){
+            if( jn != null && jn.path("properties") != null){
               System.out.println("properties found");
               j = jn.path("properties").path("status");
               System.out.println("properties status="+j);
