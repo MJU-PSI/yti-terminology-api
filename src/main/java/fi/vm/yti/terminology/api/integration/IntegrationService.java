@@ -94,7 +94,7 @@ public class IntegrationService {
 
         JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
 
-        logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
+        // logger.info(" result:" + JsonUtils.prettyPrintJsonAsString(r));
         // Use highLevel API result so
         logger.debug("Raw json-result:" + r);
         Meta meta = new Meta();
@@ -113,7 +113,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+                    // System.out.println("containers-Response=" +
+                    // JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -149,7 +150,7 @@ public class IntegrationService {
         List<QueryBuilder> mustList = boolQuery.must();
         // Match all
 
-//        mustList.add(QueryBuilders.matchAllQuery());
+        // mustList.add(QueryBuilders.matchAllQuery());
 
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
@@ -180,27 +181,12 @@ public class IntegrationService {
             mustList.add(statusQuery);
         } else {
             QueryBuilder statusQuery = null;
-            logger.info("Status empty, so use default and filter out incomplete.");            
-            // incompleteQueryBuilder.must(nestedQuery("organizations",
-            // termsQuery("organizations.id.keyword", includeIncompleteFrom),
-            // ScoreMode.None));
-
-            // Default case, where return all except incomplete status
-            /*
-             * QueryBuilder statusQ = QueryBuilders .nestedQuery( "properties.status",
-             * QueryBuilders.termQuery("status.value","INCOMPLETE"), ScoreMode.None);
-             */
-            /*
-             * QueryBuilder statusQ = QueryBuilders.boolQuery() .should(QueryBuilders
-             * .nestedQuery("properties.status.value", QueryBuilders.boolQuery(),
-             * ScoreMode.None) .should(QueryBuilders.termQuery("value",
-             * "INCOMPLETE")).minimumShouldMatch("1"));
-             */
- 
-          //  statusQuery = QueryBuilders.boolQuery()
-          //                      .mustNot(QueryBuilders.termsQuery("status","INCOMPLETE")).minimumShouldMatch(1);
-            
-//            mustList.add(statusQuery);
+            logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
+            if (!request.getIncludeIncomplete()) {
+                statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery("status", "INCOMPLETE"))
+                        .minimumShouldMatch(1);
+                mustList.add(statusQuery);
+            }
         }
 
         /*
@@ -212,8 +198,12 @@ public class IntegrationService {
         mustList.add(QueryBuilders.existsQuery("uri"));
 
         if (mustList.size() > 0) {
-            logger.info("Multiple matches:"+mustList.size());
-            mustList.forEach(o -> {System.out.println(o.toString());});
+
+            logger.info("Multiple matches:" + mustList.size());
+/*            mustList.forEach(o -> {
+                System.out.println(o.toString());
+            });
+            */
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -654,9 +644,8 @@ public class IntegrationService {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
-            return new ResponseEntity<>(
-                    "Created Concept suggestion failed for " + terminologyUri + ". Multiple matches for terminology. \n",
-                    HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Created Concept suggestion failed for " + terminologyUri
+                    + ". Multiple matches for terminology. \n", HttpStatus.NOT_FOUND);
         } else if (vocabularies.size() == 1) {
             // found, set UUID
             activeVocabulary = vocabularies.get(0).id;

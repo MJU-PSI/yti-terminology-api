@@ -146,8 +146,7 @@ public class IndexElasticSearchService {
                         }
                     }
                 }
-                System.out.println("GET STATUS:" + status);
-                JsonUtils.prettyPrintJson(j);
+                //JsonUtils.prettyPrintJson(j);
             }
 
             // resolve organization info from references.contributor
@@ -156,7 +155,6 @@ public class IndexElasticSearchService {
                 if (status != null) {
                     ((ObjectNode) jn).put("status", status);
                 }
-                System.out.println("Line 135 vocabulary node=" + JsonUtils.prettyPrintJsonAsString(jn));
                 vocabularies.add(jn);
             }
         });

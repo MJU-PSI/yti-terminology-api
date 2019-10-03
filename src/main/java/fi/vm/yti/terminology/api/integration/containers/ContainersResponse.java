@@ -2,6 +2,8 @@
 package fi.vm.yti.terminology.api.integration.containers;
 
 import java.io.Serializable;
+import java.util.List;
+
 import javax.validation.Valid;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,15 +12,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "uri",
-    "prefLabel",
-    "description",
-    "status",
-    "modified"
-})
-public class ContainersResponse implements Serializable
-{
+@JsonPropertyOrder({ "uri", "prefLabel", "description", "status", "modified" })
+public class ContainersResponse implements Serializable {
 
     @JsonProperty("uri")
     private String uri;
@@ -32,6 +27,9 @@ public class ContainersResponse implements Serializable
     private String status;
     @JsonProperty("modified")
     private String modified;
+
+    private List<String> language;
+
     private final static long serialVersionUID = 306028529823257143L;
 
     /**
@@ -108,9 +106,20 @@ public class ContainersResponse implements Serializable
         this.modified = modified;
     }
 
+    @JsonProperty("language")
+    public List<String> getLanguage() {
+        return language;
+    }
+
+    @JsonProperty("language")
+    public void setLanguage(List<String> language) {
+        this.language = language;
+    }
+
     @Override
     public String toString() {
         String value = "{\"uri\":\""+this.uri+"\","+
+        "\"language\":\""+this.language+"\","+
         "\"prefLabel\":\""+this.prefLabel+"\","+
         "\"description\":\""+this.description+"\","+ 
         "\"status\":\""+this.status+"\","+
