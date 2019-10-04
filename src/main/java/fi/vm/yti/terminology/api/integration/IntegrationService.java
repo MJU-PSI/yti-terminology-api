@@ -162,11 +162,19 @@ public class IntegrationService {
          */
         if (request.getFilter() != null) {
             String u = request.getFilter().toString();
+            request.getFilter().forEach(o->{
+               System.out.println("Filter out:"+o);
+               QueryBuilder fq = QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery("uri", o+"*"));
+               mustList.add(fq);
+
+            }
+            );
+            /*
             u="http://uri.suomi.fi/terminology/rak/";
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
-//                    .must(QueryBuilders.termsQuery("uri", request.getFilter()));
                     .mustNot(QueryBuilders.termsQuery("uri", u));
             mustList.add(filterQuery);
+            */
         }
 
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
