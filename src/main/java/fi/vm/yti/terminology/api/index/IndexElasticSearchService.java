@@ -132,12 +132,12 @@ public class IndexElasticSearchService {
         // Get graphs
         List<UUID> graphs = termedApiService.fetchAllAvailableVocabularyGraphIds();
         // Get vocabularies under graphs
-        graphs.forEach(o -> {
+        graphs.forEach(o -> {            
             JsonNode jn = termedApiService.getTerminologyVocabularyNode(o);
 
             // resolve organization info from references.contributor
             if (jn != null) {
-                // Get status and put it in tge root level
+                // Get status and put it in the root level
                 String status = null;
                 JsonNode j = null;
                 if (jn.path("properties") != null) {

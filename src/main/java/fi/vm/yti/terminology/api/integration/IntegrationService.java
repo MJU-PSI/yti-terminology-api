@@ -48,6 +48,7 @@ import org.elasticsearch.search.sort.SortOrder;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -148,7 +149,6 @@ public class IntegrationService {
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
-        // Match all
 
         // mustList.add(QueryBuilders.matchAllQuery());
 
@@ -161,8 +161,11 @@ public class IntegrationService {
          * .must(QueryBuilders.existsQuery("url")); mustList.add(urlExistQuery);
          */
         if (request.getFilter() != null) {
+            String u = request.getFilter().toString();
+            u="http://uri.suomi.fi/terminology/rak/";
             QueryBuilder filterQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.termsQuery("uri", request.getFilter()));
+//                    .must(QueryBuilders.termsQuery("uri", request.getFilter()));
+                    .mustNot(QueryBuilders.termsQuery("uri", u));
             mustList.add(filterQuery);
         }
 
@@ -200,10 +203,10 @@ public class IntegrationService {
         if (mustList.size() > 0) {
 
             logger.info("Multiple matches:" + mustList.size());
-/*            mustList.forEach(o -> {
+            mustList.forEach(o -> {
                 System.out.println(o.toString());
             });
-            */
+            
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -253,6 +256,12 @@ public class IntegrationService {
         String stat = null;
         if (source.findPath("status") != null) {
             stat = source.findPath("status").findPath("value").asText();
+        } else {
+            // default is DRAFT
+            stat="DRAFT";
+        }
+        if (stat != null && !stat.isEmpty()) {
+            respItem.setStatus(stat);
         }
 
         String modifiedDate = null;
@@ -261,6 +270,7 @@ public class IntegrationService {
         }
         // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
         // Get uri and remove last part after /
+        // TODO! after 1 graph change, reve this part
         String uri = null;
         if (source.get("uri") != null) {
             uri = source.get("uri").asText();
@@ -268,9 +278,7 @@ public class IntegrationService {
             uri = uri.substring(0, uri.lastIndexOf("/")) + "/";
         }
         respItem.setUri(uri);
-        if (stat != null && !stat.isEmpty()) {
-            respItem.setStatus(stat);
-        }
+
         if (modifiedDate != null) {
             // Curently returns 2019-01-07T09:16:32.432+02:00
             // use only first 19 chars
@@ -325,7 +333,10 @@ public class IntegrationService {
                 }
             });
             respItem.setDescription(desc);
-        }
+            // Add hard-coded  language-list
+            List<String>lan=Stream.of("en","fi","sv").collect(Collectors.toList());
+            respItem.setLanguage(lan);
+        }        
         return respItem;
     }
 
