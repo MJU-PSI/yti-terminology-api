@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
@@ -13,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -77,5 +80,20 @@ public final class ElasticRequestUtils {
             }
         }
         return null;
+    }
+
+    public static QueryBuilder createStatusAndContributorQuery(Set<String> privilegedOrganizations) {
+        // Content must either be in some other state than INCOMPLETE, or the user must match a contributor organization.
+        QueryBuilder statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery("status", "INCOMPLETE"));
+        QueryBuilder privilegeQuery;
+        if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
+            privilegeQuery = QueryBuilders.boolQuery()
+                .should(statusQuery)
+                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .minimumShouldMatch(1);
+        } else {
+            privilegeQuery = statusQuery;
+        }
+        return privilegeQuery;
     }
 }

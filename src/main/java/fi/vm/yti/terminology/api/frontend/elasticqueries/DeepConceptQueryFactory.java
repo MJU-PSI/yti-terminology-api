@@ -6,12 +6,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -52,7 +53,9 @@ public class DeepConceptQueryFactory {
     }
 
     public SearchRequest createQuery(String query,
-                                     String prefLang) {
+                                     String prefLang,
+                                     boolean superUser,
+                                     Set<String> incompleteFromTermonologies) {
 
         MultiMatchQueryBuilder multiMatch = QueryBuilders.multiMatchQuery(query, "label.*")
             .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
@@ -61,9 +64,17 @@ public class DeepConceptQueryFactory {
             multiMatch = multiMatch.field("label." + prefLang, 10);
         }
 
+        // Block INCOMPLETE concepts from being shown to users who are not contributors of the terminology. Needed when the terminology itself is in some visible state.
+        QueryBuilder withIncompleteHandling = superUser ? multiMatch : QueryBuilders.boolQuery()
+            .must(multiMatch)
+            .must(QueryBuilders.boolQuery()
+                .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery("status", "INCOMPLETE")))
+                .should(QueryBuilders.termsQuery("vocabulary.id", incompleteFromTermonologies))
+                .minimumShouldMatch(1));
+
         SearchRequest sr = new SearchRequest("concepts")
             .source(new SearchSourceBuilder()
-                .query(multiMatch)
+                .query(withIncompleteHandling)
                 .size(0)
                 .aggregation(AggregationBuilders.terms("group_by_terminology")
                     .field("vocabulary.id")
@@ -76,6 +87,7 @@ public class DeepConceptQueryFactory {
                         .highlighter(new HighlightBuilder().preTags("<b>").postTags("</b>").field("label.*")))
                     .subAggregation(AggregationBuilders.max("best_concept_hit")
                         .script(topHitScript))));
+        // log.debug("Deep Concept Query request: " + sr.toString());
         return sr;
     }
 
