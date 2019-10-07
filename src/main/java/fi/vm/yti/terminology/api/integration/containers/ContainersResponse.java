@@ -6,29 +6,31 @@ import java.util.List;
 
 import javax.validation.Valid;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import fi.vm.yti.terminology.api.util.JsonUtils;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "uri", "prefLabel", "description", "status", "modified" })
 public class ContainersResponse implements Serializable {
 
     @JsonProperty("uri")
-    private String uri;
+    private String uri = null;
     @JsonProperty("prefLabel")
     @Valid
-    private PrefLabel prefLabel;
+    private PrefLabel prefLabel = null;
     @JsonProperty("description")
+    @JsonInclude(Include.NON_EMPTY)
     @Valid
-    private Description description;
+    private Description description = null;
     @JsonProperty("status")
-    private String status;
+    private String status = null;
     @JsonProperty("modified")
-    private String modified;
+    private String modified = null;
 
-    private List<String> language;
+    private List<String> language = null;
 
     private final static long serialVersionUID = 306028529823257143L;
 

@@ -61,7 +61,7 @@ public class IntegrationController {
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
     ResponseEntity<String> containers(
-            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false, defaultValue = "fi") String language,
+            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false) Set<String> language,
             @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,

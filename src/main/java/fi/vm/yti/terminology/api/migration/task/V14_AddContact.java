@@ -42,7 +42,9 @@ public class V14_AddContact implements MigrationTask {
         // Print textAttributes
 
         String domainName = meta.getDomain().getId().name();
+        System.out.println("DomainName:"+domainName);
         if (domainName.equals("TerminologicalVocabulary")) {
+            System.out.println("Add  info-texts for contact:"+domainName);
             meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 20));
             updateTextAttributeDescription(meta, "contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta."

@@ -3,10 +3,11 @@ package fi.vm.yti.terminology.api.integration.containers;
 
 import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({
     "fi",
     "sv",

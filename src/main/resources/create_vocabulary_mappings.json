@@ -73,6 +73,27 @@
       "properties": {
         "id": {
           "type": "keyword"
+        },
+        "code": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "createdBy": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "createdDate": {
+          "type": "date"
         }
       }
     }

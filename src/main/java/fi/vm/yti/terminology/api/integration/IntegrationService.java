@@ -163,10 +163,8 @@ public class IntegrationService {
         if (request.getFilter() != null) {
             String u = request.getFilter().toString();
             request.getFilter().forEach(o->{
-               System.out.println("Filter out:"+o);
                QueryBuilder fq = QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery("uri", o+"*"));
                mustList.add(fq);
-
             }
             );
             /*
@@ -176,6 +174,18 @@ public class IntegrationService {
             mustList.add(filterQuery);
             */
         }
+
+        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
+            QueryBuilder langQuery = null;
+            Set<String> lq = request.getLanguage();
+            logger.info("Lang query set");
+            // add actual status filtering
+            langQuery = QueryBuilders.boolQuery().should(QueryBuilders.termsQuery("properties.language.value", lq))
+                    .minimumShouldMatch(1);
+            mustList.add(langQuery);
+        }
+
+
 
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             QueryBuilder statusQuery = null;
@@ -234,17 +244,21 @@ public class IntegrationService {
             sourceBuilder.size(10000);
         }
 
-        String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.description",
-                "lastModifiedDate", "properties.status", "uri", "references.contributor.id" };
-        sourceBuilder.fetchSource(includeFields, null);
+        String[] includeFields = new String[] { "id", "properties.prefLabel","properties.language", "properties.description",
+               "lastModifiedDate", "properties.status", "uri", "references.contributor.id" };
+       sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
+        /*
         if (request.getLanguage() != null) {
-            // addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label",
-            // sourceBuilder);
+            request.getLanguage().forEach(o-> {
+                addLanguagePrefLabelSort(o, "url", "url",
+                sourceBuilder);   
+            }
+            );
         }
-
+*/
         if (logger.isDebugEnabled()) {
             logger.debug("SearchRequest=" + sr);
             logger.debug(sr.source().toString());
@@ -260,6 +274,7 @@ public class IntegrationService {
      */
     private ContainersResponse parseContainerResponse(JsonNode source) {
         ContainersResponse respItem = new ContainersResponse();
+//        logger.info("Parse incoming:\n"+JsonUtils.prettyPrintJsonAsString(source));
         // Some vocabularies has no status at all
         String stat = null;
         if (source.findPath("status") != null) {
@@ -341,9 +356,25 @@ public class IntegrationService {
                 }
             });
             respItem.setDescription(desc);
+         
+            List<String> languageList = new ArrayList<String>();
             // Add hard-coded  language-list
-            List<String>lan=Stream.of("en","fi","sv").collect(Collectors.toList());
-            respItem.setLanguage(lan);
+            JsonNode lang = source.findPath("language");
+            if (lang != null) {
+                Description d = new Description();
+                lang.forEach(de -> {
+                    String val = null;
+                    if (de.findPath("value") != null) {
+                        val = de.findPath("value").asText();
+                        val = Jsoup.clean(val, Whitelist.none());
+                        languageList.add(val);
+                    }
+                });
+                if(logger.isDebugEnabled()){
+                    logger.debug("Vocabulary LANGS="+languageList);
+                }
+                respItem.setLanguage(languageList);
+            }
         }        
         return respItem;
     }
