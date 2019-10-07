@@ -4,13 +4,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.MatchPhrasePrefixQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.SearchHit;
@@ -35,6 +38,7 @@ import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 public class TerminologyQueryFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
+
     public static final int DEFAULT_PAGE_SIZE = 10;
     public static final int DEFAULT_PAGE_FROM = 0;
 
@@ -44,22 +48,30 @@ public class TerminologyQueryFactory {
         this.objectMapper = objectMapper;
     }
 
-    public SearchRequest createQuery(TerminologySearchRequest request) {
-        return createQuery(request.getQuery(), Collections.EMPTY_SET, pageSize(request), pageFrom(request));
+    public SearchRequest createQuery(TerminologySearchRequest request,
+                                     boolean superUser,
+                                     Set<String> privilegedOrganizations) {
+        return createQuery(request.getQuery(), Collections.EMPTY_SET, pageSize(request), pageFrom(request), superUser, privilegedOrganizations);
     }
 
     public SearchRequest createQuery(TerminologySearchRequest request,
-                                     Collection<String> additionalTerminologyIds) {
-        return createQuery(request.getQuery(), additionalTerminologyIds, pageSize(request), pageFrom(request));
+                                     Collection<String> additionalTerminologyIds,
+                                     boolean superUser,
+                                     Set<String> privilegedOrganizations) {
+        return createQuery(request.getQuery(), additionalTerminologyIds, pageSize(request), pageFrom(request), superUser, privilegedOrganizations);
     }
 
     private SearchRequest createQuery(String query,
                                       Collection<String> additionalTerminologyIds,
                                       int pageSize,
-                                      int pageFrom) {
+                                      int pageFrom,
+                                      boolean superUser,
+                                      Set<String> privilegedOrganizations) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
             .from(pageFrom)
             .size(pageSize);
+
+        QueryBuilder incompleteQuery = statusAndContributorQuery(privilegedOrganizations);
 
         MatchPhrasePrefixQueryBuilder labelQuery = null;
         if (!query.isEmpty()) {
@@ -73,21 +85,41 @@ public class TerminologyQueryFactory {
         }
 
         if (idQuery != null && labelQuery != null) {
-            sourceBuilder.query(QueryBuilders.boolQuery()
+            sourceBuilder.query(combineIncompleteQuery(QueryBuilders.boolQuery()
                 .should(labelQuery)
                 .should(idQuery)
-                .minimumShouldMatch(1));
+                .minimumShouldMatch(1), incompleteQuery, superUser));
         } else if (idQuery != null) {
-            sourceBuilder.query(idQuery);
+            sourceBuilder.query(combineIncompleteQuery(idQuery, incompleteQuery, superUser));
         } else if (labelQuery != null) {
-            sourceBuilder.query(labelQuery);
+            sourceBuilder.query(combineIncompleteQuery(labelQuery, incompleteQuery, superUser));
         } else {
-            sourceBuilder.query(QueryBuilders.matchAllQuery());
+            if (superUser) {
+                sourceBuilder.query(QueryBuilders.matchAllQuery());
+            } else {
+                sourceBuilder.query(incompleteQuery);
+            }
         }
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
+        // log.debug("Terminology Query request: " + sr.toString());
         return sr;
+    }
+
+    public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
+        return new SearchRequest("vocabularies")
+            .source(new SearchSourceBuilder()
+                .query(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .fetchSource(false));
+    }
+
+    public Set<String> parseMatchingTerminologiesResponse(SearchResponse response) {
+        Set<String> ret = new HashSet<>();
+        for (SearchHit hit : response.getHits()) {
+            ret.add(hit.getId());
+        }
+        return ret;
     }
 
     public TerminologySearchResponse parseResponse(SearchResponse response,
@@ -178,5 +210,31 @@ public class TerminologyQueryFactory {
             return from.intValue();
         }
         return DEFAULT_PAGE_FROM;
+    }
+
+    private QueryBuilder combineIncompleteQuery(QueryBuilder query,
+                                                QueryBuilder incompleteQuery,
+                                                boolean superUser) {
+        if (superUser) {
+            return query;
+        }
+        return QueryBuilders.boolQuery()
+            .must(incompleteQuery)
+            .must(query);
+    }
+
+    private QueryBuilder statusAndContributorQuery(Set<String> privilegedOrganizations) {
+        // Content must either be in some other state than INCOMPLETE, or the user must match a contributor organization.
+        QueryBuilder statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
+        QueryBuilder privilegeQuery;
+        if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
+            privilegeQuery = QueryBuilders.boolQuery()
+                .should(statusQuery)
+                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .minimumShouldMatch(1);
+        } else {
+            privilegeQuery = statusQuery;
+        }
+        return privilegeQuery;
     }
 }
