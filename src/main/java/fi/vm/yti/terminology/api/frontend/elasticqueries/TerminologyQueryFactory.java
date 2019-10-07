@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -108,6 +109,7 @@ public class TerminologyQueryFactory {
     }
 
     public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
+        log.info("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
                 .query(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations)));
@@ -128,6 +130,7 @@ public class TerminologyQueryFactory {
                 log.error("Cannot parse matching terminologies response", e);
             }
         }
+        log.info("Matching terminologies [" + ret.stream().collect(Collectors.joining(", ")) + "]");
         return ret;
     }
 
