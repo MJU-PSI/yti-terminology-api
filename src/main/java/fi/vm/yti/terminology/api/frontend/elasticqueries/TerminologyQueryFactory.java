@@ -71,7 +71,7 @@ public class TerminologyQueryFactory {
             .from(pageFrom)
             .size(pageSize);
 
-        QueryBuilder incompleteQuery = ElasticRequestUtils.createStatusAndContributorQuery(privilegedOrganizations);
+        QueryBuilder incompleteQuery = statusAndContributorQuery(privilegedOrganizations);
 
         MatchPhrasePrefixQueryBuilder labelQuery = null;
         if (!query.isEmpty()) {
@@ -221,5 +221,20 @@ public class TerminologyQueryFactory {
         return QueryBuilders.boolQuery()
             .must(incompleteQuery)
             .must(query);
+    }
+
+    private QueryBuilder statusAndContributorQuery(Set<String> privilegedOrganizations) {
+        // Content must either be in some other state than INCOMPLETE, or the user must match a contributor organization.
+        QueryBuilder statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
+        QueryBuilder privilegeQuery;
+        if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
+            privilegeQuery = QueryBuilders.boolQuery()
+                .should(statusQuery)
+                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .minimumShouldMatch(1);
+        } else {
+            privilegeQuery = statusQuery;
+        }
+        return privilegeQuery;
     }
 }

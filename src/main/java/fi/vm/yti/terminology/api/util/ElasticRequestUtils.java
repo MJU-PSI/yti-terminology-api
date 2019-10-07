@@ -81,19 +81,4 @@ public final class ElasticRequestUtils {
         }
         return null;
     }
-
-    public static QueryBuilder createStatusAndContributorQuery(Set<String> privilegedOrganizations) {
-        // Content must either be in some other state than INCOMPLETE, or the user must match a contributor organization.
-        QueryBuilder statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery("status", "INCOMPLETE"));
-        QueryBuilder privilegeQuery;
-        if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
-            privilegeQuery = QueryBuilders.boolQuery()
-                .should(statusQuery)
-                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
-                .minimumShouldMatch(1);
-        } else {
-            privilegeQuery = statusQuery;
-        }
-        return privilegeQuery;
-    }
 }
