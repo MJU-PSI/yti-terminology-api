@@ -109,7 +109,7 @@ public class TerminologyQueryFactory {
     }
 
     public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
-        log.info("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
+        //log.debug("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
                 .size(1000)
@@ -131,7 +131,7 @@ public class TerminologyQueryFactory {
                 log.error("Cannot parse matching terminologies response", e);
             }
         }
-        log.info("Matching terminologies [" + ret.stream().collect(Collectors.joining(", ")) + "]");
+        //log.debug("Matching terminologies [" + ret.stream().collect(Collectors.joining(", ")) + "]");
         return ret;
     }
 
