@@ -38,7 +38,7 @@ import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 
 public class TerminologyQueryFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(TerminologyQueryFactory.class);
 
     public static final int DEFAULT_PAGE_SIZE = 10;
     public static final int DEFAULT_PAGE_FROM = 0;
@@ -112,6 +112,7 @@ public class TerminologyQueryFactory {
         log.info("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
+                .size(1000)
                 .query(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations)));
         // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing also.
         //.fetchSource(false));
