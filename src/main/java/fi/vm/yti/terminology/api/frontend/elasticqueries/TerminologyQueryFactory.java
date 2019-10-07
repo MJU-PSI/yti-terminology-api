@@ -103,21 +103,30 @@ public class TerminologyQueryFactory {
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
-        // log.debug("Terminology Query request: " + sr.toString());
+        //log.debug("Terminology Query request: " + sr.toString());
         return sr;
     }
 
     public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
-        return new SearchRequest("vocabularies")
+        SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
-                .query(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
-                .fetchSource(false));
+                .query(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations)));
+        // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing also.
+        //.fetchSource(false));
+        //log.debug("Matching terminologies request: " + sr.toString());
+        return sr;
     }
 
     public Set<String> parseMatchingTerminologiesResponse(SearchResponse response) {
         Set<String> ret = new HashSet<>();
         for (SearchHit hit : response.getHits()) {
-            ret.add(hit.getId());
+            try {
+                JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
+                ret.add(terminology.get("type").get("graph").get("id").textValue());
+                //ret.add(hit.getId());
+            } catch(Exception e) {
+                log.error("Cannot parse matching terminologies response", e);
+            }
         }
         return ret;
     }
@@ -230,7 +239,7 @@ public class TerminologyQueryFactory {
         if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
             privilegeQuery = QueryBuilders.boolQuery()
                 .should(statusQuery)
-                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .should(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations))
                 .minimumShouldMatch(1);
         } else {
             privilegeQuery = statusQuery;
