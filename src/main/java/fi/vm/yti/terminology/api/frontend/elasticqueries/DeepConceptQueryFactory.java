@@ -59,7 +59,7 @@ public class DeepConceptQueryFactory {
                                      Set<String> incompleteFromTermonologies) {
 
         MultiMatchQueryBuilder multiMatch = QueryBuilders.multiMatchQuery(query, "label.*")
-            .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
+            .type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
             .minimumShouldMatch("90%");
         if (prefLang != null && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(prefLang).matches()) {
             multiMatch = multiMatch.field("label." + prefLang, 10);
