@@ -162,17 +162,15 @@ public class IntegrationService {
          */
         if (request.getFilter() != null) {
             String u = request.getFilter().toString();
-            request.getFilter().forEach(o->{
-               QueryBuilder fq = QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery("uri", o+"*"));
-               mustList.add(fq);
-            }
-            );
+            request.getFilter().forEach(o -> {
+                QueryBuilder fq = QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery("uri", o + "*"));
+                mustList.add(fq);
+            });
             /*
-            u="http://uri.suomi.fi/terminology/rak/";
-            QueryBuilder filterQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.termsQuery("uri", u));
-            mustList.add(filterQuery);
-            */
+             * u="http://uri.suomi.fi/terminology/rak/"; QueryBuilder filterQuery =
+             * QueryBuilders.boolQuery() .mustNot(QueryBuilders.termsQuery("uri", u));
+             * mustList.add(filterQuery);
+             */
         }
 
         if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
@@ -185,10 +183,7 @@ public class IntegrationService {
             mustList.add(langQuery);
         }
 
-
-
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            QueryBuilder statusQuery = null;
             Set<String> sq = request.getStatus();
             logger.info("Status query set");
 
@@ -196,25 +191,26 @@ public class IntegrationService {
                 // remove incomplete if not specifially asked
                 sq.remove("INCOMPLETE");
             }
+
+            BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
             // add actual status filtering
-            statusQuery = QueryBuilders.boolQuery().should(QueryBuilders.termsQuery("status", sq))
-                    .minimumShouldMatch(1);
-            mustList.add(statusQuery);
+            sq.forEach(o -> {
+                statusBoolQuery.should(QueryBuilders.matchQuery("properties.status.value", o));
+            });
+
+            statusBoolQuery.minimumShouldMatch(1);
+            mustList.add(statusBoolQuery);
         } else {
             QueryBuilder statusQuery = null;
             logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
             if (!request.getIncludeIncomplete()) {
-                statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery("status", "INCOMPLETE"))
+                statusQuery = QueryBuilders.boolQuery()
+                        .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"))
                         .minimumShouldMatch(1);
                 mustList.add(statusQuery);
             }
         }
 
-        /*
-         * if (request.getStatus() != null) { QueryBuilder statusQuery =
-         * QueryBuilders.boolQuery() .should(QueryBuilders.termsQuery("status",
-         * request.getStatus())).minimumShouldMatch(1); mustList.add(statusQuery); }
-         */
         // Don't return items without URI
         mustList.add(QueryBuilders.existsQuery("uri"));
 
@@ -224,7 +220,7 @@ public class IntegrationService {
             mustList.forEach(o -> {
                 System.out.println(o.toString());
             });
-            
+
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -244,21 +240,17 @@ public class IntegrationService {
             sourceBuilder.size(10000);
         }
 
-        String[] includeFields = new String[] { "id", "properties.prefLabel","properties.language", "properties.description",
-               "lastModifiedDate", "properties.status", "uri", "references.contributor.id" };
-       sourceBuilder.fetchSource(includeFields, null);
+        String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
+                "properties.description", "lastModifiedDate", "properties.status.value", "uri",
+                "references.contributor.id" };
+        sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
         /*
-        if (request.getLanguage() != null) {
-            request.getLanguage().forEach(o-> {
-                addLanguagePrefLabelSort(o, "url", "url",
-                sourceBuilder);   
-            }
-            );
-        }
-*/
+         * if (request.getLanguage() != null) { request.getLanguage().forEach(o-> {
+         * addLanguagePrefLabelSort(o, "url", "url", sourceBuilder); } ); }
+         */
         if (logger.isDebugEnabled()) {
             logger.debug("SearchRequest=" + sr);
             logger.debug(sr.source().toString());
@@ -274,14 +266,16 @@ public class IntegrationService {
      */
     private ContainersResponse parseContainerResponse(JsonNode source) {
         ContainersResponse respItem = new ContainersResponse();
-//        logger.info("Parse incoming:\n"+JsonUtils.prettyPrintJsonAsString(source));
+        if(logger.isDebugEnabled()){
+            logger.debug("Parse incoming:\n" + JsonUtils.prettyPrintJsonAsString(source));
+        }
         // Some vocabularies has no status at all
         String stat = null;
         if (source.findPath("status") != null) {
             stat = source.findPath("status").findPath("value").asText();
         } else {
             // default is DRAFT
-            stat="DRAFT";
+            stat = "DRAFT";
         }
         if (stat != null && !stat.isEmpty()) {
             respItem.setStatus(stat);
@@ -356,9 +350,9 @@ public class IntegrationService {
                 }
             });
             respItem.setDescription(desc);
-         
+
             List<String> languageList = new ArrayList<String>();
-            // Add hard-coded  language-list
+            // Add hard-coded language-list
             JsonNode lang = source.findPath("language");
             if (lang != null) {
                 Description d = new Description();
@@ -370,12 +364,12 @@ public class IntegrationService {
                         languageList.add(val);
                     }
                 });
-                if(logger.isDebugEnabled()){
-                    logger.debug("Vocabulary LANGS="+languageList);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Vocabulary LANGS=" + languageList);
                 }
                 respItem.setLanguage(languageList);
             }
-        }        
+        }
         return respItem;
     }
 
@@ -391,11 +385,12 @@ public class IntegrationService {
                 id = g.getId();
             }
         }
-        if (id == null) {
+        // Uri given and id not found, genuine 404 Not Found error
+        if (id == null && request.getContainer() != null && !request.getContainer().isEmpty()) {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
-        // Id resolved, fetch vocabulary and filter out vocabularies without URI
 
+        // Id resolved, fetch vocabulary and filter out vocabularies without UR
         SearchRequest sr = createResourcesQuery(request, id);
         if (logger.isDebugEnabled()) {
             logger.debug("HandleVocabularies() query=" + sr.source().toString());
@@ -508,7 +503,8 @@ public class IntegrationService {
          * codeSchemeUuids)); } boolQueryBuilder.minimumShouldMatch(1);
          * builder.must(boolQueryBuilder); }
          */
-        // Match vocabularyId which is mandatory
+
+        // Match vocabularyId or if missing, use other matches
         if (vocabularyId != null) {
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
         }

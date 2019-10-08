@@ -98,7 +98,7 @@ public class IntegrationController {
             @ApiResponse(code = 404, message = "Service not found"),
             @ApiResponse(code = 500, message = "Internal server error") })
     ResponseEntity<String> resources(
-            @ApiParam(value = "Container URL") @RequestParam(value = "container", required = true) String container,
+            @ApiParam(value = "Container URL") @RequestParam(value = "container", required = false) String container,
             @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
             @ApiParam(value = "Status") @RequestParam(value = "status", required = false) Set<String> status,
             @ApiParam(value = "After") @RequestParam(value = "after", required = false) Date after,

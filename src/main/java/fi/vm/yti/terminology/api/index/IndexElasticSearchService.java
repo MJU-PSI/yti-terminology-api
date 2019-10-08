@@ -137,29 +137,6 @@ public class IndexElasticSearchService {
 
             // resolve organization info from references.contributor
             if (jn != null) {
-                // Get status and put it in the root level
-                String status = null;
-                JsonNode j = null;
-                if (jn.path("properties") != null) {
-                    j = jn.path("properties").path("status");
-                    if (j.isMissingNode()) {
-                        j = null;
-                    }
-                }
-                if (j != null) {
-                    if (j.isArray()) {
-                        // iterate through status values
-                        for (final JsonNode objNode : j) {
-                            if (objNode.get("value") != null) {
-                                status = objNode.get("value").asText();
-                            }
-                        }
-                    }
-                }
-                // Add status into the root level
-                if (status != null) {
-                    ((ObjectNode) jn).put("status", status);
-                }
                 vocabularies.add(jn);
             }
         });
