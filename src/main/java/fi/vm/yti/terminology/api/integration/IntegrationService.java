@@ -404,6 +404,10 @@ public class IntegrationService {
         meta.setAfter(request.getAfter());
         meta.setPageSize(request.getPageSize());
         meta.setFrom(request.getPageFrom());
+        // If we ask all from all vocabularies, set default pagesize as 1000
+        if(id == null && request.getPageSize() != null && request.getPageSize() < 1) {
+            meta.setPageSize(1000);
+        }
         // Response item list
         List<ContainersResponse> resp = new ArrayList<>();
         if (r != null) {
@@ -570,6 +574,10 @@ public class IntegrationService {
         String stat = null;
         String modifiedDate = null;
         String uri = null;
+        String container=null;
+
+        logger.debug("parseResponse:\n"+JsonUtils.prettyPrintJsonAsString(source));
+
         if (source.get("status") != null) {
             stat = source.get("status").asText();
         } else {
@@ -582,6 +590,9 @@ public class IntegrationService {
         }
         if (source.get("uri") != null) {
             uri = source.get("uri").asText();
+            //container is 
+            // Remove code from uri so
+            container = uri.substring(0, uri.lastIndexOf("/")) + "/";
         } else {
             logger.warn("Resource response missing URI");
         }
@@ -589,6 +600,9 @@ public class IntegrationService {
         ContainersResponse respItem = new ContainersResponse();
         respItem.setUri(uri);
         respItem.setStatus(stat);
+        if(container!= null && !container.isEmpty()){
+            respItem.setContainer(container);
+        }
         if (modifiedDate != null) {
             // Curently returns 2019-01-07T09:16:32.432+02:00
             // use only first 19 chars

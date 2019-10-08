@@ -18,6 +18,8 @@ public class ContainersResponse implements Serializable {
 
     @JsonProperty("uri")
     private String uri = null;
+    @JsonProperty("container")
+    private String container = null;
     @JsonProperty("prefLabel")
     @Valid
     private PrefLabel prefLabel = null;
@@ -49,9 +51,10 @@ public class ContainersResponse implements Serializable {
      * @param uri
      * @param modified
      */
-    public ContainersResponse(String uri, PrefLabel prefLabel, Description description, String status, String modified) {
+    public ContainersResponse(String uri, String container,  PrefLabel prefLabel, Description description, String status, String modified) {
         super();
         this.uri = uri;
+        this.container = container;
         this.prefLabel = prefLabel;
         this.description = description;
         this.status = status;
@@ -67,6 +70,22 @@ public class ContainersResponse implements Serializable {
     public void setUri(String uri) {
         this.uri = uri;
     }
+    /**
+     * @return String return the container URI
+     */
+    @JsonProperty("container")
+    public String getContainer() {
+        return container;
+    }
+
+    /**
+     * @param container the container to set
+     */
+    @JsonProperty("container")
+    public void setContainer(String container) {
+        this.container = container;
+    }
+
 
     @JsonProperty("prefLabel")
     public PrefLabel getPrefLabel() {
@@ -121,6 +140,7 @@ public class ContainersResponse implements Serializable {
     @Override
     public String toString() {
         String value = "{\"uri\":\""+this.uri+"\","+
+        "\"container\":\""+this.container+"\","+
         "\"language\":\""+this.language+"\","+
         "\"prefLabel\":\""+this.prefLabel+"\","+
         "\"description\":\""+this.description+"\","+ 
