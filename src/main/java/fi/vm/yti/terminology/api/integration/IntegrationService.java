@@ -416,7 +416,7 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    System.out.println("resources-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+//                    System.out.println("resources-Response=" + JsonUtils.prettyPrintJsonAsString(source));
 
                     ContainersResponse node = parseResourceResponse(source);
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
@@ -555,7 +555,7 @@ public class IntegrationService {
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
         // Add label sorting according to label
-        if (request.getLanguage() != null) {
+        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
             addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
         }
         // if (logger.isDebugEnabled()) {
