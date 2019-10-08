@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -37,7 +38,7 @@ import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 
 public class TerminologyQueryFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(DeepConceptQueryFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(TerminologyQueryFactory.class);
 
     public static final int DEFAULT_PAGE_SIZE = 10;
     public static final int DEFAULT_PAGE_FROM = 0;
@@ -103,22 +104,34 @@ public class TerminologyQueryFactory {
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
-        // log.debug("Terminology Query request: " + sr.toString());
+        //log.debug("Terminology Query request: " + sr.toString());
         return sr;
     }
 
     public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
-        return new SearchRequest("vocabularies")
+        //log.debug("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
+        SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
-                .query(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
-                .fetchSource(false));
+                .size(1000)
+                .query(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations)));
+        // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing also.
+        //.fetchSource(false));
+        //log.debug("Matching terminologies request: " + sr.toString());
+        return sr;
     }
 
     public Set<String> parseMatchingTerminologiesResponse(SearchResponse response) {
         Set<String> ret = new HashSet<>();
         for (SearchHit hit : response.getHits()) {
-            ret.add(hit.getId());
+            try {
+                JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
+                ret.add(terminology.get("type").get("graph").get("id").textValue());
+                //ret.add(hit.getId());
+            } catch(Exception e) {
+                log.error("Cannot parse matching terminologies response", e);
+            }
         }
+        //log.debug("Matching terminologies [" + ret.stream().collect(Collectors.joining(", ")) + "]");
         return ret;
     }
 
@@ -230,7 +243,7 @@ public class TerminologyQueryFactory {
         if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
             privilegeQuery = QueryBuilders.boolQuery()
                 .should(statusQuery)
-                .should(QueryBuilders.termsQuery("contributor", privilegedOrganizations))
+                .should(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations))
                 .minimumShouldMatch(1);
         } else {
             privilegeQuery = statusQuery;
