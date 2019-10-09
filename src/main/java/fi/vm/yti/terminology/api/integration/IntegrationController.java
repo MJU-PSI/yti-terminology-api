@@ -99,8 +99,11 @@ public class IntegrationController {
             @ApiResponse(code = 500, message = "Internal server error") })
     ResponseEntity<String> resources(
             @ApiParam(value = "Container URL") @RequestParam(value = "container", required = false) String container,
+            @ApiParam(value = "Required URI list in CSL format") @RequestParam(value = "uri", required = false) Set<String> uri,
             @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
             @ApiParam(value = "Status") @RequestParam(value = "status", required = false) Set<String> status,
+            @ApiParam(value = "Boolean whether include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
+            @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
             @ApiParam(value = "After") @RequestParam(value = "after", required = false) Date after,
             @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
             @ApiParam(value = "Search") @RequestParam(value = "searchTerm", required = false) String searchTerm,
@@ -119,6 +122,9 @@ public class IntegrationController {
         request.setSearchTerm(searchTerm);
         request.setPageSize(pageSize);
         request.setPageFrom(from);
+        request.setIncludeIncomplete(incomplete);
+        request.setIncludeIncompleteFrom(includeIncompleteFrom);
+        request.setUri(uri);
         return integrationService.handleResources(request);
     }
 

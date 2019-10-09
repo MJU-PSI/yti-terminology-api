@@ -114,8 +114,7 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    // System.out.println("containers-Response=" +
-                    // JsonUtils.prettyPrintJsonAsString(source));
+                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -243,14 +242,18 @@ public class IntegrationService {
         String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
                 "properties.description", "lastModifiedDate", "properties.status.value", "uri",
                 "references.contributor.id" };
-        sourceBuilder.fetchSource(includeFields, null);
+        // sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
-        /*
-         * if (request.getLanguage() != null) { request.getLanguage().forEach(o-> {
-         * addLanguagePrefLabelSort(o, "url", "url", sourceBuilder); } ); }
-         */
+
+        if (request.getLanguage() != null) {
+            request.getLanguage().forEach(o -> {
+                System.out.println("Add sort language:" + o);
+                addLanguagePrefLabelSort(o, "uri", "uri", sourceBuilder);
+            });
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("SearchRequest=" + sr);
             logger.debug(sr.source().toString());
@@ -266,7 +269,7 @@ public class IntegrationService {
      */
     private ContainersResponse parseContainerResponse(JsonNode source) {
         ContainersResponse respItem = new ContainersResponse();
-        if(logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             logger.debug("Parse incoming:\n" + JsonUtils.prettyPrintJsonAsString(source));
         }
         // Some vocabularies has no status at all
@@ -389,9 +392,11 @@ public class IntegrationService {
         if (id == null && request.getContainer() != null && !request.getContainer().isEmpty()) {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
+        System.out.println("URI-LIST=" + request.getUri());
 
         // Id resolved, fetch vocabulary and filter out vocabularies without UR
         SearchRequest sr = createResourcesQuery(request, id);
+        System.out.println("URI-LIST=" + request.getUri());
         if (logger.isDebugEnabled()) {
             logger.debug("HandleVocabularies() query=" + sr.source().toString());
         }
@@ -405,7 +410,7 @@ public class IntegrationService {
         meta.setPageSize(request.getPageSize());
         meta.setFrom(request.getPageFrom());
         // If we ask all from all vocabularies, set default pagesize as 1000
-        if(id == null && request.getPageSize() != null && request.getPageSize() < 1) {
+        if (id == null && request.getPageSize() != null && request.getPageSize() < 1) {
             meta.setPageSize(1000);
         }
         // Response item list
@@ -437,26 +442,17 @@ public class IntegrationService {
             // Empty result list
             meta.setResultCount(0);
         }
-        System.out.println("total META=" + meta.getTotalResults());
-        System.out.println("current block  META=" + meta.getResultCount());
-
-        /**
-         * Elastic query, returns 10k results from index
-         * 
-         * { "query" : { "bool":{ "must": { "match": {
-         * "vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713" } }, "filter": {
-         * "exists": { "field": "uri"} } } }, "size":"10000",
-         * "_source":["id","label","definition","modified", "status","uri"] }
-         * 
-         * GET /_search
-         */
+        if (logger.isDebugEnabled()) {
+            logger.debug("total result count=" + meta.getTotalResults());
+            logger.debug("current block  result count=" + meta.getResultCount());
+        }
 
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
         wrapper.setResults(resp);
         /*
          * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
-         * System.out.println(" marrer.write=" + mapper.writeValueAsString(wrapper)); }
+         * System.out.println(" mapper.write=" + mapper.writeValueAsString(wrapper)); }
          * catch (JsonProcessingException jpe) { }
          */
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
@@ -472,20 +468,13 @@ public class IntegrationService {
      * @return
      */
     private SearchRequest createResourcesQuery(IntegrationResourceRequest request, UUID vocabularyId) {
-        /*
-         * { "query" : { "bool":{ "must": { "match": {
-         * "vocabulary.id":"cd8fed1b-7f1c-4e2d-b307-a7662286f713" } }, "filter": {
-         * "exists": { "field": "uri"} } } }, "size":"10000",
-         * "_source":["id","properties.prefLabel","properties.description",
-         * "lastModifiedDate","properties.status","uri"]
-         */
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         LuceneQueryFactory luceneQueryFactory = new LuceneQueryFactory();
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
-        // if searh-term is given, match for all labels
+        // if search-term is given, match for all labels
         if (request.getSearchTerm() != null) {
             logger.info("Additional SearchTerm=" + request.getSearchTerm());
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
@@ -495,22 +484,26 @@ public class IntegrationService {
             boolQueryBuilder
                     .should(luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*"));
             boolQueryBuilder.minimumShouldMatch(1);
-            // mustList.add(boolQueryBuilder);
-            logger.info("Additional lucene query=" + boolQueryBuilder.toString());
         }
-        /**
-         * if (searchTerm != null && !searchTerm.isEmpty()) { final BoolQueryBuilder
-         * boolQueryBuilder = boolQuery();
-         * boolQueryBuilder.should(luceneQueryFactory.buildPrefixSuffixQuery(searchTerm).field("prefLabel.*"));
-         * boolQueryBuilder.should(luceneQueryFactory.buildPrefixSuffixQuery(searchTerm).field("codeValue"));
-         * if (!codeSchemeUuids.isEmpty()) { boolQueryBuilder.should(termsQuery("id",
-         * codeSchemeUuids)); } boolQueryBuilder.minimumShouldMatch(1);
-         * builder.must(boolQueryBuilder); }
-         */
 
         // Match vocabularyId or if missing, use other matches
         if (vocabularyId != null) {
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
+        }
+
+        System.out.println("Add uriQuery:" + request.getUri());
+        if (request.getUri() != null && !request.getUri().isEmpty()) {
+            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
+            // add actual status filtering
+            // Add individual uris into the query
+            request.getUri().forEach(o -> {
+                uriBoolQuery.should(QueryBuilders.matchQuery("uri", o));
+            });
+            uriBoolQuery.minimumShouldMatch(1);
+            mustList.add(uriBoolQuery);
+
+            // Just ensure that it accept also INCOMPLETE states
+            request.setIncludeIncomplete(true);
         }
 
         if (request.getAfter() != null) {
@@ -525,9 +518,32 @@ public class IntegrationService {
         }
 
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            QueryBuilder statusQuery = QueryBuilders.boolQuery()
-                    .should(QueryBuilders.termsQuery("status", request.getStatus())).minimumShouldMatch(1);
-            mustList.add(statusQuery);
+            Set<String> sq = request.getStatus();
+            if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
+                // remove incomplete if not specifially asked
+                sq.remove("INCOMPLETE");
+            }
+
+            BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+            if (!sq.isEmpty()) {
+                // add actual status filtering
+                sq.forEach(o -> {
+                    statusBoolQuery.should(QueryBuilders.matchQuery("status", o));
+                });
+            } else {
+                // return no INCOMPLETE = false but asked so ensure that ve return nothing
+                statusBoolQuery.should(QueryBuilders.matchQuery("status", "RETURN_NONE"));
+            }
+            statusBoolQuery.minimumShouldMatch(1);
+            mustList.add(statusBoolQuery);
+        } else {
+            QueryBuilder statusQuery = null;
+            // Status empty, so use default and filter out incomplete. if flag is not set
+            if (!request.getIncludeIncomplete()) {
+                statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("status", "INCOMPLETE"))
+                        .minimumShouldMatch(1);
+                mustList.add(statusQuery);
+            }
         }
 
         // if search-term is given, match for all labels containing it
@@ -574,9 +590,9 @@ public class IntegrationService {
         String stat = null;
         String modifiedDate = null;
         String uri = null;
-        String container=null;
+        String container = null;
 
-        logger.debug("parseResponse:\n"+JsonUtils.prettyPrintJsonAsString(source));
+        logger.debug("parseResponse:\n" + JsonUtils.prettyPrintJsonAsString(source));
 
         if (source.get("status") != null) {
             stat = source.get("status").asText();
@@ -590,7 +606,7 @@ public class IntegrationService {
         }
         if (source.get("uri") != null) {
             uri = source.get("uri").asText();
-            //container is 
+            // container is
             // Remove code from uri so
             container = uri.substring(0, uri.lastIndexOf("/")) + "/";
         } else {
@@ -600,7 +616,7 @@ public class IntegrationService {
         ContainersResponse respItem = new ContainersResponse();
         respItem.setUri(uri);
         respItem.setStatus(stat);
-        if(container!= null && !container.isEmpty()){
+        if (container != null && !container.isEmpty()) {
             respItem.setContainer(container);
         }
         if (modifiedDate != null) {

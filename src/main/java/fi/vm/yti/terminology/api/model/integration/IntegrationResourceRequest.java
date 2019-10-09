@@ -26,6 +26,10 @@ public class IntegrationResourceRequest {
     private Set<String> status;
     private Date after;
     private Set<String> filter;
+    private Set<String> uri;
+    private boolean includeIncomplete;
+    private Set<String> includeIncompleteFrom;                                      
+
     private Integer pageSize;
     private Integer pageFrom;
 
@@ -33,18 +37,24 @@ public class IntegrationResourceRequest {
 
     public IntegrationResourceRequest(final String container,
                                       final String searchTerm,
+                                      final Set<String> uri,
                                       final String language,
                                       final Set<String> status,
                                       final Date after,
                                       final Set<String> filter,
+                                      final boolean includeIncomplete,
+                                      final Set<String> includeIncompleteFrom,                                      
                                       final Integer pageSize,
                                       final Integer pageFrom) {
         this.searchTerm = searchTerm;
         this.language = language;
         this.container = container;
         this.status = status;
+        this.uri = uri;
         this.after = after;
         this.filter = filter;
+        this.includeIncomplete = includeIncomplete;
+        this.includeIncompleteFrom = includeIncompleteFrom;
         this.pageSize = pageSize;
         this.pageFrom = pageFrom;
     }
@@ -77,6 +87,14 @@ public class IntegrationResourceRequest {
         return status;
     }
 
+    public void setUri(final Set<String> uri) {
+        this.uri = uri;
+    }
+
+    public Set<String> getUri() {
+        return uri;
+    }
+
     public void setStatus(final Set<String> status) {
         this.status = status;
     }
@@ -95,6 +113,26 @@ public class IntegrationResourceRequest {
 
     public void setFilter(final Set<String> filter) {
         this.filter = filter;
+    }
+
+    /**
+     * @return boolean return the includeIncomplete
+     */
+    public boolean getIncludeIncomplete() {
+        return includeIncomplete;
+    }
+
+    public void setIncludeIncomplete(final boolean includeIncomplete) {
+        this.includeIncomplete = includeIncomplete;
+    }
+
+
+    public Set<String> getIncludeIncompleteFrom() {
+        return includeIncompleteFrom;
+    }
+
+    public void setIncludeIncompleteFrom(final Set<String> incompl) {
+        this.includeIncompleteFrom = incompl;
     }
 
     public Integer getPageSize() {
@@ -119,9 +157,12 @@ public class IntegrationResourceRequest {
             "searchTerm='" + searchTerm + '\'' +
             ", language='" + language + '\'' +
             ", container='" + container + '\'' +
+            ", uri='" + uri + '\'' +
             ", status='" + status + '\'' +
             ", after='" + after + '\'' +
             ", filter=" + filter +
+            ", includeIncomplete=" + includeIncomplete +
+            ", includeIncompleteFrom=" + includeIncompleteFrom +
             ", pageSize=" + pageSize +
             ", pageFrom=" + pageFrom +
             '}';
