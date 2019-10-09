@@ -65,6 +65,7 @@ public class IntegrationController {
             @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
+            @ApiParam(value = "URI of the requested containers in CSL format.") @RequestParam(value = "uri", required = false) Set<String> uri,
             @ApiParam(value = "Boolean whether include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
             @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
             @ApiParam(value = "After date filtering parameter, results will be codes with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) Date after) {
@@ -77,6 +78,7 @@ public class IntegrationController {
         containersRequest.setPageSize(pageSize);
         containersRequest.setPageFrom(from);
         containersRequest.setStatus(statusEnum);
+        containersRequest.setUri(uri);
         containersRequest.setAfter(after);
         containersRequest.setIncludeIncomplete(incomplete);
         containersRequest.setIncludeIncompleteFrom(includeIncompleteFrom);

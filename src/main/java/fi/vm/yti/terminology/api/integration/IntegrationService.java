@@ -114,7 +114,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+                    // System.out.println("containers-Response=" +
+                    // JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -182,6 +183,25 @@ public class IntegrationService {
             mustList.add(langQuery);
         }
 
+        if (request.getUri() != null && !request.getUri().isEmpty()) {
+            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
+            // add actual status filtering
+            // Add individual uris into the query
+            request.getUri().forEach(o -> {
+                if (!o.endsWith("/")) {
+                    o = o + "/";
+                }
+                uriBoolQuery.should(QueryBuilders.wildcardQuery("uri", o + "*"));
+            });
+            uriBoolQuery.minimumShouldMatch(1);
+            mustList.add(uriBoolQuery);
+            // Just ensure that it accept also INCOMPLETE states
+            request.setIncludeIncomplete(true);
+        } else {
+            // Don't return items without URI
+            mustList.add(QueryBuilders.existsQuery("uri"));
+        }
+
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             Set<String> sq = request.getStatus();
             logger.info("Status query set");
@@ -210,16 +230,14 @@ public class IntegrationService {
             }
         }
 
-        // Don't return items without URI
-        mustList.add(QueryBuilders.existsQuery("uri"));
-
         if (mustList.size() > 0) {
 
-            logger.info("Multiple matches:" + mustList.size());
-            mustList.forEach(o -> {
-                System.out.println(o.toString());
-            });
-
+            if (logger.isDebugEnabled()) {
+                logger.info("Multiple matches:" + mustList.size());
+                mustList.forEach(o -> {
+                    logger.debug(o.toString());
+                });
+            }
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -242,7 +260,7 @@ public class IntegrationService {
         String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
                 "properties.description", "lastModifiedDate", "properties.status.value", "uri",
                 "references.contributor.id" };
-        // sourceBuilder.fetchSource(includeFields, null);
+        sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
@@ -392,11 +410,9 @@ public class IntegrationService {
         if (id == null && request.getContainer() != null && !request.getContainer().isEmpty()) {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
-        System.out.println("URI-LIST=" + request.getUri());
 
         // Id resolved, fetch vocabulary and filter out vocabularies without UR
         SearchRequest sr = createResourcesQuery(request, id);
-        System.out.println("URI-LIST=" + request.getUri());
         if (logger.isDebugEnabled()) {
             logger.debug("HandleVocabularies() query=" + sr.source().toString());
         }
@@ -425,7 +441,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-//                    System.out.println("resources-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+                    // System.out.println("resources-Response=" +
+                    // JsonUtils.prettyPrintJsonAsString(source));
 
                     ContainersResponse node = parseResourceResponse(source);
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
@@ -459,12 +476,10 @@ public class IntegrationService {
     }
 
     /**
-     * { "searchTerm":"string", "language":"string", "container":"string", "status":
-     * [ "string" ], "after":"2019-09-11T09:27:29.964Z", "filter":[ "string" ],
-     * "pageSize":0, "pageFrom":0 }
      * 
      * @param request
-     * @param vocabularyId
+     * @param vocabularyId if null, search wil arget all vocabularies. Notice that
+     *                     return objevt contains source vocabulary uri
      * @return
      */
     private SearchRequest createResourcesQuery(IntegrationResourceRequest request, UUID vocabularyId) {
@@ -491,7 +506,6 @@ public class IntegrationService {
             mustList.add(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
         }
 
-        System.out.println("Add uriQuery:" + request.getUri());
         if (request.getUri() != null && !request.getUri().isEmpty()) {
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
             // add actual status filtering

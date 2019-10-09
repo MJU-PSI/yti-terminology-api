@@ -10,6 +10,7 @@ public class IntegrationContainerRequest {
     private boolean includeIncomplete;
     private Set<String> includeIncompleteFrom;
     private Set<String> status;
+    private Set<String> uri;
     private Date after;
     private Set<String> filter;
     private Integer pageSize;
@@ -24,6 +25,7 @@ public class IntegrationContainerRequest {
                                       final Set<String> status,
                                       final Date after,
                                       final Set<String> filter,
+                                      final Set<String> uri,
                                       final Integer pageSize,
                                       final Integer pageFrom) {
         this.searchTerm = searchTerm;
@@ -31,6 +33,7 @@ public class IntegrationContainerRequest {
         this.includeIncomplete = includeIncomplete;
         this.includeIncompleteFrom = includeIncompleteFrom;
         this.status = status;
+        this.uri = uri;
         this.after = after;
         this.filter = filter;
         this.pageSize = pageSize;
@@ -84,6 +87,14 @@ public class IntegrationContainerRequest {
 
     public void setStatus(final Set<String> status) {
         this.status = status;
+    }
+
+    public Set<String> getUri() {
+        return uri;
+    }
+
+    public void setUri(final Set<String> uri) {
+        this.uri = uri;
     }
 
     public Date getAfter() {
