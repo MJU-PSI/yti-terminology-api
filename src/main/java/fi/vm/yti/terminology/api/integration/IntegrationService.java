@@ -57,8 +57,6 @@ import static java.util.Collections.emptyMap;
 public class IntegrationService {
     private static final Logger logger = LoggerFactory.getLogger(IntegrationService.class);
     private static final Set<String> sortLanguages = new HashSet<>(Arrays.asList("fi", "en", "sv"));
-    private final TermedRequester termedRequester;
-    private final FrontendGroupManagementService groupManagementService;
     private final FrontendTermedService termedService;
     private final IndexElasticSearchService elasticSearchService;
     private final AuthenticatedUserProvider userProvider;
@@ -75,8 +73,6 @@ public class IntegrationService {
     public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
             AuthenticatedUserProvider userProvider, @Value("${search.index.name}") String indexName) {
-        this.termedRequester = termedRequester;
-        this.groupManagementService = groupManagementService;
         this.termedService = frontendTermedService;
         this.elasticSearchService = elasticSearchService;
         this.userProvider = userProvider;
@@ -230,14 +226,29 @@ public class IntegrationService {
             }
         }
 
+        if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+            BoolQueryBuilder includeBoolQuery = QueryBuilders.boolQuery();
+            // Just ensure that it accept also INCOMPLETE states
+            request.setIncludeIncomplete(true);
+
+            request.getIncludeIncompleteFrom().forEach(o -> {
+                System.out.println("Add incomplete from org:" + request.getIncludeIncompleteFrom());
+                includeBoolQuery.should(QueryBuilders.wildcardQuery("references.contributor.id", o));
+            });
+            includeBoolQuery.minimumShouldMatch(1);
+            boolQuery.should().add(includeBoolQuery);
+        }
         if (mustList.size() > 0) {
 
-            if (logger.isDebugEnabled()) {
-                logger.info("Multiple matches:" + mustList.size());
-                mustList.forEach(o -> {
-                    logger.debug(o.toString());
-                });
-            }
+            // if (logger.isDebugEnabled()) {
+            logger.info("Multiple matches:" + mustList.size());
+            mustList.forEach(o -> {
+                logger.info(o.toString());
+            });
+            boolQuery.should().forEach(o -> {
+                logger.info(o.toString());
+            });
+            // }
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -388,7 +399,7 @@ public class IntegrationService {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Vocabulary LANGS=" + languageList);
                 }
-                respItem.setLanguage(languageList);
+                respItem.setLanguages(languageList);
             }
         }
         return respItem;
@@ -719,18 +730,26 @@ public class IntegrationService {
      * @param vocabularityId
      * @return
      */
-    ResponseEntity<String> handleConceptSuggestion(String terminologyUri, ConceptSuggestion incomingConcept) {
+    ResponseEntity<String> handleConceptSuggestion(ConceptSuggestion incomingConcept) {
         if (logger.isDebugEnabled())
             logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
         UUID activeVocabulary;
+        UUID terminologyUri = incomingConcept.getTerminologyUri();
+
+        // Check that mandatory id exists
+        if (terminologyUri == null) {
+            return new ResponseEntity<>("Created Concept suggestion failed. Mandatory terminology id missing. \n",
+                    HttpStatus.NOT_FOUND);
+        }
+
         // Concept reference-map
         Map<String, List<Identifier>> conceptReferences = new HashMap<>();
 
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
         // Filter given code as result
-        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(terminologyUri)).map(o -> {
+        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(terminologyUri.toString())).map(o -> {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
@@ -743,7 +762,7 @@ public class IntegrationService {
             // It may be UUID, so try to convert that
             // Try if it is UUID
             try {
-                activeVocabulary = UUID.fromString(terminologyUri);
+                activeVocabulary = terminologyUri;
             } catch (IllegalArgumentException ex) {
                 // Not UUID, error.
                 return new ResponseEntity<>(
@@ -767,7 +786,7 @@ public class IntegrationService {
         // Create new Concept
         GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
         if (term != null && concept != null) {
-            incomingConcept.setVocabulary(vocabularyNode.getId());
+            incomingConcept.setTerminologyUri(vocabularyNode.getId());
             if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
                 incomingConcept.setCreator(userProvider.getUser().getId().toString());
             }

@@ -20,13 +20,15 @@ public final class ConceptSuggestion {
     private Attribute definition=null;
     private String creator=null;
     private UUID identifier=null;
+    private UUID terminologyId=null;
+    private String uri=null;
 
     public void setCreator(String creator) {
         this.creator = creator;
     }
 
-    public void setVocabulary(UUID vocabulary) {
-        this.vocabulary = vocabulary;
+    public void setTerminologyUri(UUID terminologyId) {
+        this.terminologyId = terminologyId;
     }
 
     public void setUri(String uri) {
@@ -37,8 +39,8 @@ public final class ConceptSuggestion {
         this.identifier = id;
     }
 
-    private UUID vocabulary=null;
-    private String uri=null;
+
+  
 
     // Jackson constructor
     private ConceptSuggestion() {
@@ -73,8 +75,8 @@ public final class ConceptSuggestion {
         return creator;
     }
 
-    public UUID getVocabulary() {
-        return vocabulary;
+    public UUID getTerminologyUri() {
+        return terminologyId;
     }
 
     public String getUri() {
@@ -91,13 +93,12 @@ public final class ConceptSuggestion {
         if (!(o instanceof ConceptSuggestion)) return false;
         final ConceptSuggestion that = (ConceptSuggestion) o;
         return Objects.equals(prefLabel, that.prefLabel) &&
-            Objects.equals(vocabulary, that.vocabulary) &&
+            Objects.equals(terminologyId, that.terminologyId) &&
             Objects.equals(uri, that.uri);
     }
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(prefLabel, vocabulary, uri);
+        return Objects.hash(prefLabel, terminologyId, uri);
     }
 }

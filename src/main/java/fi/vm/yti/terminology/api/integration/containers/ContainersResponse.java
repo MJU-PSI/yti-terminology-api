@@ -32,7 +32,7 @@ public class ContainersResponse implements Serializable {
     @JsonProperty("modified")
     private String modified = null;
 
-    private List<String> language = null;
+    private List<String> languages = null;
 
     private final static long serialVersionUID = 306028529823257143L;
 
@@ -127,21 +127,21 @@ public class ContainersResponse implements Serializable {
         this.modified = modified;
     }
 
-    @JsonProperty("language")
-    public List<String> getLanguage() {
-        return language;
+    @JsonProperty("languages")
+    public List<String> getLanguages() {
+        return languages;
     }
 
-    @JsonProperty("language")
-    public void setLanguage(List<String> language) {
-        this.language = language;
+    @JsonProperty("languages")
+    public void setLanguages(List<String> languages) {
+        this.languages = languages;
     }
 
     @Override
     public String toString() {
         String value = "{\"uri\":\""+this.uri+"\","+
         "\"container\":\""+this.container+"\","+
-        "\"language\":\""+this.language+"\","+
+        "\"languages\":\""+this.languages+"\","+
         "\"prefLabel\":\""+this.prefLabel+"\","+
         "\"description\":\""+this.description+"\","+ 
         "\"status\":\""+this.status+"\","+
