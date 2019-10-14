@@ -796,6 +796,8 @@ public class IntegrationService {
             GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
             incomingConcept.setUri(createdConcept.getUri());
             incomingConcept.setIdentifier(createdConcept.getId());
+            incomingConcept.setCreatedDate(createdConcept.getCreatedDate());
+
         }
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(incomingConcept), HttpStatus.OK);
     }

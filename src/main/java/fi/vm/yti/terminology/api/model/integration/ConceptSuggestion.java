@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import fi.vm.yti.terminology.api.model.termed.*;
 
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ public final class ConceptSuggestion {
     private UUID identifier=null;
     private String terminologyUri=null;
     private String uri=null;
+    private Date createdDate;
 
     public void setCreator(String creator) {
         this.creator = creator;
@@ -38,9 +40,6 @@ public final class ConceptSuggestion {
     public void setIdentifier(UUID id) {
         this.identifier = id;
     }
-
-
-  
 
     // Jackson constructor
     private ConceptSuggestion() {
@@ -101,4 +100,33 @@ public final class ConceptSuggestion {
     public int hashCode() {
         return Objects.hash(prefLabel, terminologyUri, uri);
     }
+
+    /**
+     * @param prefLabel the prefLabel to set
+     */
+    public void setPrefLabel(Attribute prefLabel) {
+        this.prefLabel = prefLabel;
+    }
+
+    /**
+     * @param definition the definition to set
+     */
+    public void setDefinition(Attribute definition) {
+        this.definition = definition;
+    }
+
+    /**
+     * @return Date return the created
+     */
+    public Date getCreatedDate() {
+        return createdDate;
+    }
+
+    /**
+     * @param created the created to set
+     */
+    public void setCreatedDate(Date created) {
+        this.createdDate = created;
+    }
+
 }
