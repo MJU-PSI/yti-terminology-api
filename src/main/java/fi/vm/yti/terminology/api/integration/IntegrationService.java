@@ -240,15 +240,15 @@ public class IntegrationService {
         }
         if (mustList.size() > 0) {
 
-            // if (logger.isDebugEnabled()) {
-            logger.info("Multiple matches:" + mustList.size());
-            mustList.forEach(o -> {
-                logger.info(o.toString());
-            });
-            boolQuery.should().forEach(o -> {
-                logger.info(o.toString());
-            });
-            // }
+            if (logger.isDebugEnabled()) {
+                logger.info("Multiple matches:" + mustList.size());
+                mustList.forEach(o -> {
+                    logger.info(o.toString());
+                });
+                boolQuery.should().forEach(o -> {
+                    logger.info(o.toString());
+                });
+            }
             sourceBuilder.query(boolQuery);
         } else {
             logger.info("ALL matches");
@@ -278,7 +278,7 @@ public class IntegrationService {
 
         if (request.getLanguage() != null) {
             request.getLanguage().forEach(o -> {
-                System.out.println("Add sort language:" + o);
+                // System.out.println("Add sort language:" + o);
                 addLanguagePrefLabelSort(o, "uri", "uri", sourceBuilder);
             });
         }
@@ -304,7 +304,9 @@ public class IntegrationService {
         // Some vocabularies has no status at all
         String stat = "DRAFT";
         if (source.findPath("status") != null && !source.findPath("status").isTextual()) {
-            stat = source.findPath("status").findPath("value").asText();
+            if (!source.findPath("status").findPath("value").isNull()
+                    && !source.findPath("status").findPath("value").asText().isEmpty())
+                stat = source.findPath("status").findPath("value").asText();
         }
         respItem.setStatus(stat);
 
@@ -745,7 +747,8 @@ public class IntegrationService {
         List<Graph> vocs = termedService.getGraphs();
         // Filter given code as result
         List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(terminologyUri)).map(o -> {
-//            List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(terminologyUri.toString())).map(o -> {
+            // List<IdCode> vocabularies = vocs.stream().filter(o ->
+            // o.getCode().equalsIgnoreCase(terminologyUri.toString())).map(o -> {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
@@ -755,9 +758,9 @@ public class IntegrationService {
             // found, set UUID
             activeVocabulary = vocabularies.get(0).id;
         } else {
-                 return new ResponseEntity<>(
-                        "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
-                        HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(
+                    "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
+                    HttpStatus.NOT_FOUND);
         }
 
         // Try to fetch it just to ensure it exist
