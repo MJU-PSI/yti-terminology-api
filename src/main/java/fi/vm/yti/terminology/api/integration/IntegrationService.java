@@ -714,11 +714,11 @@ public class IntegrationService {
      * Initialize cached META-model. - Read given vocabularity for meta-types, cache
      * them
      *
-     * @param vocabularityId UUID of the vocabularity
+     * @param vocabularyId UUID of the vocabularity
      */
-    private void initMetaModel(UUID vocabularityId) {
+    private void initMetaModel(UUID vocabularyId) {
         // Get metamodel types for given vocabularity
-        List<MetaNode> metaTypes = termedService.getTypes(vocabularityId);
+        List<MetaNode> metaTypes = termedService.getTypes(vocabularyId);
         metaTypes.forEach(t -> {
             typeMap.put(t.getId(), t);
         });
@@ -735,11 +735,11 @@ public class IntegrationService {
             logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
         UUID activeVocabulary;
-        UUID terminologyUri = incomingConcept.getTerminologyUri();
+        String terminologyUri = incomingConcept.getTerminologyUri();
 
         // Check that mandatory id exists
         if (terminologyUri == null) {
-            return new ResponseEntity<>("Created Concept suggestion failed. Mandatory terminology id missing. \n",
+            return new ResponseEntity<>("Created Concept suggestion failed. Mandatory terminology URI is missing.\n",
                     HttpStatus.NOT_FOUND);
         }
 
@@ -749,7 +749,8 @@ public class IntegrationService {
         // Get vocabularies and match code with name
         List<Graph> vocs = termedService.getGraphs();
         // Filter given code as result
-        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(terminologyUri.toString())).map(o -> {
+        List<IdCode> vocabularies = vocs.stream().filter(o -> o.getUri().equalsIgnoreCase(terminologyUri)).map(o -> {
+//            List<IdCode> vocabularies = vocs.stream().filter(o -> o.getCode().equalsIgnoreCase(terminologyUri.toString())).map(o -> {
             return new IdCode(o.getCode(), o.getId());
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
@@ -759,16 +760,9 @@ public class IntegrationService {
             // found, set UUID
             activeVocabulary = vocabularies.get(0).id;
         } else {
-            // It may be UUID, so try to convert that
-            // Try if it is UUID
-            try {
-                activeVocabulary = terminologyUri;
-            } catch (IllegalArgumentException ex) {
-                // Not UUID, error.
-                return new ResponseEntity<>(
+                 return new ResponseEntity<>(
                         "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
                         HttpStatus.NOT_FOUND);
-            }
         }
 
         // Try to fetch it just to ensure it exist
@@ -786,7 +780,7 @@ public class IntegrationService {
         // Create new Concept
         GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
         if (term != null && concept != null) {
-            incomingConcept.setTerminologyUri(vocabularyNode.getId());
+            incomingConcept.setTerminologyUri(vocabularyNode.getUri());
             if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
                 incomingConcept.setCreator(userProvider.getUser().getId().toString());
             }
