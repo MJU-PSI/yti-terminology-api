@@ -302,16 +302,11 @@ public class IntegrationService {
             logger.debug("Parse incoming:\n" + JsonUtils.prettyPrintJsonAsString(source));
         }
         // Some vocabularies has no status at all
-        String stat = null;
-        if (source.findPath("status") != null) {
+        String stat = "DRAFT";
+        if (source.findPath("status") != null && !source.findPath("status").isTextual()) {
             stat = source.findPath("status").findPath("value").asText();
-        } else {
-            // default is DRAFT
-            stat = "DRAFT";
         }
-        if (stat != null && !stat.isEmpty()) {
-            respItem.setStatus(stat);
-        }
+        respItem.setStatus(stat);
 
         String modifiedDate = null;
         if (source.get("lastModifiedDate") != null) {
