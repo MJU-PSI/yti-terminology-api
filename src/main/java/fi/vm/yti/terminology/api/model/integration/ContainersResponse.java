@@ -1,5 +1,5 @@
 
-package fi.vm.yti.terminology.api.integration.containers;
+package fi.vm.yti.terminology.api.model.integration;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import fi.vm.yti.terminology.api.util.JsonUtils;
+import fi.vm.yti.terminology.api.model.integration.containers.*;
 
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "uri", "prefLabel", "description", "status", "modified" })

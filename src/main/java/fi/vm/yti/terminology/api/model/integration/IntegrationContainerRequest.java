@@ -6,7 +6,7 @@ import java.util.Set;
 public class IntegrationContainerRequest {
 
     private String searchTerm;
-    private Set<String> language;
+    private String language;
     private boolean includeIncomplete;
     private Set<String> includeIncompleteFrom;
     private Set<String> status;
@@ -19,7 +19,7 @@ public class IntegrationContainerRequest {
     public IntegrationContainerRequest(){}
 
     public IntegrationContainerRequest(final String searchTerm,
-                                      final Set<String> language,
+                                      final String language,
                                       final boolean includeIncomplete,
                                       final Set<String> includeIncompleteFrom,                                      
                                       final Set<String> status,
@@ -50,14 +50,14 @@ public class IntegrationContainerRequest {
     /**
      * @return String return the language
      */
-    public Set<String> getLanguage() {
+    public String getLanguage() {
         return language;
     }
 
     /**
      * @param language the language to set
      */
-    public void setLanguage(Set<String> language) {
+    public void setLanguage(String language) {
         this.language = language;
     }
 

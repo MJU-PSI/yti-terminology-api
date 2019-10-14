@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fi.vm.yti.terminology.api.model.integration.ConceptSuggestion;
+import fi.vm.yti.terminology.api.model.integration.ConceptSuggestionRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
 import io.swagger.annotations.ApiParam;
@@ -50,7 +50,7 @@ public class IntegrationController {
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
     @RequestMapping(value = "/terminology/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(@Context HttpServletRequest req,
-            @RequestBody ConceptSuggestion incomingConcept) {
+            @RequestBody ConceptSuggestionRequest incomingConcept) {
         if (req != null) {
             logger.debug("ConceptSuggestion incoming reaquest from" + req.getRemoteHost());
         }
@@ -60,7 +60,7 @@ public class IntegrationController {
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
     ResponseEntity<String> containers(
-            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false) Set<String> language,
+            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false) String language,
             @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,

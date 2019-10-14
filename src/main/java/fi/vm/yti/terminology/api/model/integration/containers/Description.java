@@ -1,18 +1,19 @@
 
-package fi.vm.yti.terminology.api.integration.containers;
+package fi.vm.yti.terminology.api.model.integration.containers;
 
 import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({
     "fi",
     "sv",
     "en"
 })
-public class PrefLabel implements Serializable
+public class Description implements Serializable
 {
 
     @JsonProperty("fi")
@@ -21,13 +22,13 @@ public class PrefLabel implements Serializable
     private String sv;
     @JsonProperty("en")
     private String en;
-    private final static long serialVersionUID = 5139726622575406541L;
+    private final static long serialVersionUID = -4140189429255523970L;
 
     /**
      * No args constructor for use in serialization
      * 
      */
-    public PrefLabel() {
+    public Description() {
     }
 
     /**
@@ -36,7 +37,7 @@ public class PrefLabel implements Serializable
      * @param sv
      * @param en
      */
-    public PrefLabel(String fi, String sv, String en) {
+    public Description(String fi, String sv, String en) {
         super();
         this.fi = fi;
         this.sv = sv;
@@ -72,4 +73,5 @@ public class PrefLabel implements Serializable
     public void setEn(String en) {
         this.en = en;
     }
+
 }
