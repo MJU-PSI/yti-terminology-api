@@ -5,11 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.junit.Assert.*;
 
 public class ConceptSuggestionTest {
-   String jsonString="{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"creator\":\"45778009-804c-4aba-a836-f5c911ea5ef1\",\"vocabulary\":\"55778009-804c-4aba-a836-f5c911ea5ef1\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\"}";
+   String jsonString="{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"creator\":\"45778009-804c-4aba-a836-f5c911ea5ef1\",\"terminologyUri\":\"http://uri.suomi.fi/terminology/kira/\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\"}";
 
     private ConceptSuggestion cs =null;
     @org.junit.Before
     public void setUp() throws Exception {
+        System.out.println("incoming"+jsonString);
         ObjectMapper mapper = new ObjectMapper();
         cs = mapper.readValue(jsonString,ConceptSuggestion.class);
         assertNotNull(cs);
@@ -53,13 +54,12 @@ public class ConceptSuggestionTest {
     }
 
     @org.junit.Test
-    public void getVocabulary() {
-        if(cs != null && cs.getVocabulary() != null ){
-            System.out.println(" Vocabularity UUID value="+cs.getVocabulary().toString());
-            assertEquals("55778009-804c-4aba-a836-f5c911ea5ef1",cs.getVocabulary().toString());
+    public void getterminologyUri() {
+        if(cs != null && cs.getTerminologyUri() != null ){
+            assertEquals("http://uri.suomi.fi/terminology/kira/",cs.getTerminologyUri());
         }
         else
-            fail("GetVocabulary test Failed");
+            fail("GetTerminologyUri test Failed");
     }
 
     @org.junit.Test

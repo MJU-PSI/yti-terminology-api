@@ -732,7 +732,7 @@ public class IntegrationService {
      */
     ResponseEntity<String> handleConceptSuggestion(ConceptSuggestion incomingConcept) {
         if (logger.isDebugEnabled())
-            logger.debug("POST /vocabulary/{vocabularyId}/concept requested. creating Concept for "
+            logger.debug("POST /vocabulary/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
         UUID activeVocabulary;
         String terminologyUri = incomingConcept.getTerminologyUri();
