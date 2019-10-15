@@ -794,6 +794,8 @@ public class IntegrationService {
             // Fetch created concept and get it's URI, set it to the returned json
             // Return also it's UUID
             GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
+            outgoingResponse .setDefinition(incomingConcept.getDefinition());
+            outgoingResponse .setPrefLabel(incomingConcept.getPrefLabel());
             outgoingResponse .setUri(createdConcept.getUri());
             outgoingResponse .setIdentifier(createdConcept.getId());
             outgoingResponse .setCreated(createdConcept.getCreatedDate());
