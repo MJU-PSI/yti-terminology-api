@@ -10,15 +10,15 @@ import static org.junit.Assert.*;
 import java.util.Date;
 
 public class ConceptSuggestionTest {
-   String jsonString="{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"creator\":\"45778009-804c-4aba-a836-f5c911ea5ef1\",\"terminologyUri\":\"http://uri.suomi.fi/terminology/kira/\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\"}";
+   String jsonString="{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"creator\":\"45778009-804c-4aba-a836-f5c911ea5ef1\",\"terminologyUri\":\"http://uri.suomi.fi/terminology/kira/\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\", \"created\":\"2019-09-17T09:54:30.139\"}";
 
     private ConceptSuggestionResponse cs =null;
     @org.junit.Before
     public void setUp() throws Exception {
         System.out.println("incoming"+jsonString);
         ObjectMapper mapper = new ObjectMapper();
-//        cs = mapper.readValue(jsonString,ConceptSuggestionResponse.class);
-cs = new ConceptSuggestionResponse();
+        cs = mapper.readValue(jsonString,ConceptSuggestionResponse.class);
+/*cs = new ConceptSuggestionResponse();
 cs.setCreator("45778009-804c-4aba-a836-f5c911ea5ef1");
 cs.setUri("http://uri.suomi.fi/terminology/kira/");
 cs.setTerminologyUri("http://uri.suomi.fi/terminology/kira/");
@@ -27,7 +27,7 @@ cs.setDefinition(desc);
 
 Attribute prefLabel = new Attribute("fi","esimerkki");
 cs.setPrefLabel(prefLabel);
-
+*/
 System.err.println(mapper.writeValueAsString(cs));
         assertNotNull(cs);
     }
@@ -89,4 +89,16 @@ System.err.println(mapper.writeValueAsString(cs));
         else
             fail("GetUri test Failed");
     }
+    @org.junit.Test
+    public void getCreated() {
+        String expected="http://uri.suomi.fi/terminology/kira/";
+        System.out.println("test getUri");
+        if(cs != null && cs.getTerminologyUri() != null ){
+            System.out.println(" Uri value="+cs.getTerminologyUri());
+            assertEquals(expected,cs.getTerminologyUri());
+        }
+        else
+            fail("GetUri test Failed");
+    }
+
 }

@@ -23,7 +23,7 @@ public final class ConceptSuggestionResponse {
     private String terminologyUri = null;
     private String uri = null;
     // '2019-09-17T09:54:30.139'
-    @JsonFormat(pattern="yyyy-MM-ddTHH:mm:ss.SSS")
+    @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
     private Date created;
 
     public void setCreator(String creator) {
