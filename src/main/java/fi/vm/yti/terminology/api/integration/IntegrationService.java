@@ -170,7 +170,7 @@ public class IntegrationService {
              */
         }
 
-        if (request.getLanguage() != null && !request.getLanguage().isEmpty() ){
+        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
             QueryBuilder langQuery = null;
             String lq = request.getLanguage();
             logger.info("Lang query set");
@@ -278,8 +278,8 @@ public class IntegrationService {
         // Add label sorting according to label
 
         if (request.getLanguage() != null) {
-                // System.out.println("Add sort language:" + o);
-                addLanguagePrefLabelSort(request.getLanguage(), "uri", "uri", sourceBuilder);
+            // System.out.println("Add sort language:" + o);
+            addLanguagePrefLabelSort(request.getLanguage(), "uri", "uri", sourceBuilder);
         }
 
         if (logger.isDebugEnabled()) {
@@ -778,9 +778,9 @@ public class IntegrationService {
         // Create new Concept
         GenericNode concept = CreateConcept(vocabularyNode, incomingConcept, conceptReferences);
         if (term != null && concept != null) {
-            outgoingResponse .setTerminologyUri(vocabularyNode.getUri());
+            outgoingResponse.setTerminologyUri(vocabularyNode.getUri());
             if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
-                outgoingResponse .setCreator(userProvider.getUser().getId().toString());
+                outgoingResponse.setCreator(userProvider.getUser().getId().toString());
             }
             // Publish them to server
             List<GenericNode> addNodeList = new ArrayList<>();
@@ -794,13 +794,13 @@ public class IntegrationService {
             // Fetch created concept and get it's URI, set it to the returned json
             // Return also it's UUID
             GenericNode createdConcept = termedService.getConceptNode(activeVocabulary, concept.getId());
-            outgoingResponse .setDefinition(incomingConcept.getDefinition());
-            outgoingResponse .setPrefLabel(incomingConcept.getPrefLabel());
-            outgoingResponse .setUri(createdConcept.getUri());
-            outgoingResponse .setIdentifier(createdConcept.getId());
-            outgoingResponse .setCreated(createdConcept.getCreatedDate());
+            outgoingResponse.setTerminologyUri(incomingConcept.getTerminologyUri());
+            outgoingResponse.setDefinition(incomingConcept.getDefinition());
+            outgoingResponse.setPrefLabel(incomingConcept.getPrefLabel());
+            outgoingResponse.setUri(createdConcept.getUri());
+            outgoingResponse.setCreated(createdConcept.getCreatedDate());
         }
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(outgoingResponse ), HttpStatus.OK);
+        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(outgoingResponse), HttpStatus.OK);
     }
 
     private GenericNode CreateTerm(GenericNodeInlined vocabulary, ConceptSuggestionRequest incoming,

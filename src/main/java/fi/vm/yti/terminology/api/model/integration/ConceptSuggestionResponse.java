@@ -4,7 +4,6 @@ import fi.vm.yti.terminology.api.model.termed.*;
 
 import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -19,7 +18,6 @@ public final class ConceptSuggestionResponse {
     private Attribute prefLabel = null;
     private Attribute definition = null;
     private String creator = null;
-    private UUID identifier = null;
     private String terminologyUri = null;
     private String uri = null;
     // '2019-09-17T09:54:30.139'
@@ -36,10 +34,6 @@ public final class ConceptSuggestionResponse {
 
     public void setUri(String uri) {
         this.uri = uri;
-    }
-
-    public void setIdentifier(UUID id) {
-        this.identifier = id;
     }
 
     public ConceptSuggestionResponse() {
@@ -79,10 +73,6 @@ public final class ConceptSuggestionResponse {
 
     public String getUri() {
         return uri;
-    }
-
-    public UUID getIdentifier() {
-        return identifier;
     }
 
     @Override
