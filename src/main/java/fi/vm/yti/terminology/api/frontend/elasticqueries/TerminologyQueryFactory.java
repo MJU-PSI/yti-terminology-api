@@ -113,7 +113,7 @@ public class TerminologyQueryFactory {
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
                 .size(1000)
-                .query(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations)));
+                .query(QueryBuilders.termsQuery("references.contributor.id", privilegedOrganizations)));
         // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing also.
         //.fetchSource(false));
         //log.debug("Matching terminologies request: " + sr.toString());
@@ -243,7 +243,7 @@ public class TerminologyQueryFactory {
         if (privilegedOrganizations != null && !privilegedOrganizations.isEmpty()) {
             privilegeQuery = QueryBuilders.boolQuery()
                 .should(statusQuery)
-                .should(QueryBuilders.termsQuery("references.contributor.id.keyword", privilegedOrganizations))
+                .should(QueryBuilders.termsQuery("references.contributor.id", privilegedOrganizations))
                 .minimumShouldMatch(1);
         } else {
             privilegeQuery = statusQuery;
