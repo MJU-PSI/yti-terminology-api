@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.model.integration;
 import java.util.Date;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 public class IntegrationContainerRequest {
 
     private String searchTerm;
@@ -11,7 +13,7 @@ public class IntegrationContainerRequest {
     private Set<String> includeIncompleteFrom;
     private Set<String> status;
     private Set<String> uri;
-    private Date after;
+    private String after;
     private Set<String> filter;
     private Integer pageSize;
     private Integer pageFrom;
@@ -23,7 +25,7 @@ public class IntegrationContainerRequest {
                                       final boolean includeIncomplete,
                                       final Set<String> includeIncompleteFrom,                                      
                                       final Set<String> status,
-                                      final Date after,
+                                      final String after,
                                       final Set<String> filter,
                                       final Set<String> uri,
                                       final Integer pageSize,
@@ -97,11 +99,11 @@ public class IntegrationContainerRequest {
         this.uri = uri;
     }
 
-    public Date getAfter() {
+    public String getAfter() {
         return after;
     }
 
-    public void setAfter(final Date after) {
+    public void setAfter(final String after) {
         this.after = after;
     }
 

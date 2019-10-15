@@ -87,8 +87,8 @@ public class IntegrationService {
 
         SearchRequest sr = createVocabularyQuery(request);
         if (logger.isDebugEnabled()) {
-            logger.debug("HandleVocabularies() query=" + sr.source().toString());
-        }
+            logger.debug("HandleContainers() query=" + sr.source().toString());
+       }
 
         JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
 
@@ -111,8 +111,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    // System.out.println("containers-Response=" +
-                    // JsonUtils.prettyPrintJsonAsString(source));
+//                     System.out.println("containers-Response=" +
+//                     JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -130,13 +130,7 @@ public class IntegrationService {
          * catch (JsonProcessingException jpe) { }
          */
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper),
-                HttpStatus.OK);/**
-                                * Elastic query, returns 10k results from index and filter out items without
-                                * URI
-                                */
-        // String query = "{ \"query\" : {\"bool\":{\"must\": {\"match_all\" :
-        // {}},\"filter\": {\"exists\": { \"field\": \"uri\"}
-        // }}},\"size\":\"10000\",\"_source\":[\"id\",\"properties.prefLabel\",\"properties.description\",\"lastModifiedDate\",\"properties.status\",\"uri\"]}";
+                HttpStatus.OK);
     }
 
     private SearchRequest createVocabularyQuery(IntegrationContainerRequest request) {
@@ -150,7 +144,7 @@ public class IntegrationService {
         // mustList.add(QueryBuilders.matchAllQuery());
 
         if (request.getAfter() != null) {
-            mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
+            mustList.add(QueryBuilders.rangeQuery("lastModifiedDate").gte(request.getAfter()).to("now"));
         }
         // Add mandatory filter: "filter": {"exists": { "field": "uri"} }
         /*
@@ -230,8 +224,6 @@ public class IntegrationService {
         if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
             BoolQueryBuilder includeBoolQuery = QueryBuilders.boolQuery();
             // Just ensure that it accept also INCOMPLETE states
-            request.setIncludeIncomplete(true);
-
             request.getIncludeIncompleteFrom().forEach(o -> {
                 System.out.println("Add incomplete from org:" + request.getIncludeIncompleteFrom());
                 includeBoolQuery.should(QueryBuilders.wildcardQuery("references.contributor.id", o));

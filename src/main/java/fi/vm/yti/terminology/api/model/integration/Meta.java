@@ -117,6 +117,15 @@
        } else {
           this.after = null;
        }
+    }
+
+    public void setAfter(String afterStr) {
+      after = parseAfterFromString(afterStr);
+       if (after != null) {
+          this.after = new Date(after.getTime());
+       } else {
+          this.after = null;
+       }
  
     }
  
