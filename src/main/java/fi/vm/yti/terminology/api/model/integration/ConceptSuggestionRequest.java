@@ -1,10 +1,7 @@
 package fi.vm.yti.terminology.api.model.integration;
 
 import fi.vm.yti.terminology.api.model.termed.*;
-
-import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 
 public final class ConceptSuggestionRequest {
     /*
@@ -16,7 +13,6 @@ public final class ConceptSuggestionRequest {
     private Attribute prefLabel = null;
     private Attribute definition = null;
     private String creator = null;
-    private UUID identifier = null;
     private String terminologyUri = null;
 
     public void setCreator(String creator) {
@@ -25,10 +21,6 @@ public final class ConceptSuggestionRequest {
 
     public void setTerminologyUri(String terminologyUri) {
         this.terminologyUri = terminologyUri;
-    }
-
-    public void setIdentifier(UUID id) {
-        this.identifier = id;
     }
 
     // Jackson constructor
@@ -60,10 +52,6 @@ public final class ConceptSuggestionRequest {
 
     public String getTerminologyUri() {
         return terminologyUri;
-    }
-
-    public UUID getIdentifier() {
-        return identifier;
     }
 
     @Override
