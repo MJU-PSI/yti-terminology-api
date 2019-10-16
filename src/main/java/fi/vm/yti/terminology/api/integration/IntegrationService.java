@@ -88,7 +88,7 @@ public class IntegrationService {
         SearchRequest sr = createVocabularyQuery(request);
         if (logger.isDebugEnabled()) {
             logger.debug("HandleContainers() query=" + sr.source().toString());
-       }
+        }
 
         JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
 
@@ -111,8 +111,8 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-//                     System.out.println("containers-Response=" +
-//                     JsonUtils.prettyPrintJsonAsString(source));
+                    // System.out.println("containers-Response=" +
+                    // JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -129,8 +129,7 @@ public class IntegrationService {
          * System.out.println(" mapper.write=" + mapper.writeValueAsString(wrapper)); }
          * catch (JsonProcessingException jpe) { }
          */
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper),
-                HttpStatus.OK);
+        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
     }
 
     private SearchRequest createVocabularyQuery(IntegrationContainerRequest request) {
@@ -211,26 +210,28 @@ public class IntegrationService {
             statusBoolQuery.minimumShouldMatch(1);
             mustList.add(statusBoolQuery);
         } else {
-            QueryBuilder statusQuery = null;
+            // Not specific status given so don't include incomplete
+            QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                    .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
             logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
             if (!request.getIncludeIncomplete()) {
-                statusQuery = QueryBuilders.boolQuery()
-                        .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"))
-                        .minimumShouldMatch(1);
+                // Another case, we have includeIncompleteFrom list so add those
+                if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+                    BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+                    for (String o : request.getIncludeIncompleteFrom()) {
+                        statusBoolQuery.should(statusQuery)
+                                .should(QueryBuilders.matchQuery("references.contributor.id", o)).minimumShouldMatch(1);
+                    }
+                    ;
+                    statusQuery = statusBoolQuery;
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug("statusQuery=" + statusQuery.toString());
+                }
                 mustList.add(statusQuery);
             }
         }
 
-        if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
-            BoolQueryBuilder includeBoolQuery = QueryBuilders.boolQuery();
-            // Just ensure that it accept also INCOMPLETE states
-            request.getIncludeIncompleteFrom().forEach(o -> {
-                System.out.println("Add incomplete from org:" + request.getIncludeIncompleteFrom());
-                includeBoolQuery.should(QueryBuilders.wildcardQuery("references.contributor.id", o));
-            });
-            includeBoolQuery.minimumShouldMatch(1);
-            boolQuery.should().add(includeBoolQuery);
-        }
         if (mustList.size() > 0) {
 
             if (logger.isDebugEnabled()) {
