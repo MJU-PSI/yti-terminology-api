@@ -31,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.activemq.filter.function.regexMatchFunction;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -85,7 +86,7 @@ public class IntegrationService {
         if (logger.isDebugEnabled())
             logger.debug("GET /containers requested. status=" + request.getStatus());
 
-        SearchRequest sr = createVocabularyQuery(request);
+        SearchRequest sr = createContainersQuery(request);
         if (logger.isDebugEnabled()) {
             logger.debug("HandleContainers() query=" + sr.source().toString());
         }
@@ -111,8 +112,7 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    // System.out.println("containers-Response=" +
-                    // JsonUtils.prettyPrintJsonAsString(source));
+                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
                     logger.error("r-hit=" + hit);
@@ -132,7 +132,7 @@ public class IntegrationService {
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
     }
 
-    private SearchRequest createVocabularyQuery(IntegrationContainerRequest request) {
+    private SearchRequest createContainersQuery(IntegrationContainerRequest request) {
         // String query, Set<String> status, Date after, Integer pageSize, Integer
         // pageFrom, QueryBuilder privilegeQuery,Set<String> filter
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
@@ -140,27 +140,16 @@ public class IntegrationService {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
 
-        // mustList.add(QueryBuilders.matchAllQuery());
-
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("lastModifiedDate").gte(request.getAfter()).to("now"));
         }
-        // Add mandatory filter: "filter": {"exists": { "field": "uri"} }
-        /*
-         * QueryBuilder urlExistQuery = QueryBuilders.boolQuery()
-         * .must(QueryBuilders.existsQuery("url")); mustList.add(urlExistQuery);
-         */
+
         if (request.getFilter() != null) {
             String u = request.getFilter().toString();
             request.getFilter().forEach(o -> {
                 QueryBuilder fq = QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery("uri", o + "*"));
                 mustList.add(fq);
             });
-            /*
-             * u="http://uri.suomi.fi/terminology/rak/"; QueryBuilder filterQuery =
-             * QueryBuilders.boolQuery() .mustNot(QueryBuilders.termsQuery("uri", u));
-             * mustList.add(filterQuery);
-             */
         }
 
         if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
@@ -192,47 +181,49 @@ public class IntegrationService {
             mustList.add(QueryBuilders.existsQuery("uri"));
         }
 
-        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            Set<String> sq = request.getStatus();
-            logger.info("Status query set");
+        if (!request.getIncludeIncomplete()) {
+            if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+                Set<String> sq = request.getStatus();
+                logger.info("Status query set");
 
-            if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
-                // remove incomplete if not specifially asked
-                sq.remove("INCOMPLETE");
-            }
+                if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
+                    // remove incomplete if not specifially asked
+                    sq.remove("INCOMPLETE");
+                }
 
-            BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
-            // add actual status filtering
-            sq.forEach(o -> {
-                statusBoolQuery.should(QueryBuilders.matchQuery("properties.status.value", o));
-            });
+                BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+                // add actual status filtering
+                sq.forEach(o -> {
+                    statusBoolQuery.should(QueryBuilders.matchQuery("properties.status.value", o));
+                });
 
-            statusBoolQuery.minimumShouldMatch(1);
-            mustList.add(statusBoolQuery);
-        } else {
-            // Not specific status given so don't include incomplete
-            QueryBuilder statusQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
-            logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
-            if (!request.getIncludeIncomplete()) {
-                // Another case, we have includeIncompleteFrom list so add those
-                if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
-                    BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
-                    for (String o : request.getIncludeIncompleteFrom()) {
-                        statusBoolQuery.should(statusQuery)
-                                .should(QueryBuilders.matchQuery("references.contributor.id", o)).minimumShouldMatch(1);
+                statusBoolQuery.minimumShouldMatch(1);
+                mustList.add(statusBoolQuery);
+            } else {
+                // Not specific status given so don't include incomplete
+                QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                        .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
+                logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
+                if (!request.getIncludeIncomplete()) {
+                    // Another case, we have includeIncompleteFrom list so add those
+                    if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+                        BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+                        for (String o : request.getIncludeIncompleteFrom()) {
+                            statusBoolQuery.should(statusQuery)
+                                    .should(QueryBuilders.matchQuery("references.contributor.id", o))
+                                    .minimumShouldMatch(1);
+                        }
+                        statusQuery = statusBoolQuery;
                     }
-                    ;
-                    statusQuery = statusBoolQuery;
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("statusQuery=" + statusQuery.toString());
+                    }
+                    mustList.add(statusQuery);
                 }
-                if (logger.isDebugEnabled()) {
-                    logger.debug("statusQuery=" + statusQuery.toString());
-                }
-                mustList.add(statusQuery);
             }
         }
-
-        if (mustList.size() > 0) {
+        if (mustList.size() > 0)
+        {
 
             if (logger.isDebugEnabled()) {
                 logger.info("Multiple matches:" + mustList.size());
@@ -293,6 +284,7 @@ public class IntegrationService {
         if (logger.isDebugEnabled()) {
             logger.debug("Parse incoming:\n" + JsonUtils.prettyPrintJsonAsString(source));
         }
+
         // Some vocabularies has no status at all
         String stat = "DRAFT";
         if (source.findPath("status") != null && !source.findPath("status").isTextual()) {
@@ -411,7 +403,8 @@ public class IntegrationService {
             return new ResponseEntity<>("{}", HttpStatus.NOT_FOUND);
         }
 
-        // Id resolved, fetch vocabulary and filter out vocabularies without UR
+        resolveOrganizations(request);
+        // Id resolved, fetch vocabulary and filter out vocabularies without URI
         SearchRequest sr = createResourcesQuery(request, id);
         if (logger.isDebugEnabled()) {
             logger.debug("HandleVocabularies() query=" + sr.source().toString());
@@ -419,8 +412,9 @@ public class IntegrationService {
 
         JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
         // Use highLevel API result so
-        logger.debug("raw json-result:" + r);
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("raw json-result:" + r);
+        }
         Meta meta = new Meta();
         meta.setAfter(request.getAfter());
         meta.setPageSize(request.getPageSize());
@@ -441,9 +435,6 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    // System.out.println("resources-Response=" +
-                    // JsonUtils.prettyPrintJsonAsString(source));
-
                     ContainersResponse node = parseResourceResponse(source);
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
                         resp.add(node);
@@ -473,6 +464,58 @@ public class IntegrationService {
          * catch (JsonProcessingException jpe) { }
          */
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
+    }
+
+    private SearchRequest createOrganizatioQuery(String organizationId) {
+
+        logger.info("Resolve terminologies for id:" + organizationId);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(
+                QueryBuilders.boolQuery().must(QueryBuilders.termQuery("references.contributor.id", organizationId)));
+        sourceBuilder.size(10000);
+        String[] includeFields = new String[] { "id", "uri", "type.graph.id" };
+        sourceBuilder.fetchSource(includeFields, null);
+
+        SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
+        JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
+//        JsonUtils.prettyPrintJson(r);
+
+        if (logger.isDebugEnabled()) {
+            logger.info("SearchRequest=" + sr);
+            logger.debug(sr.source().toString());
+        }
+        return sr;
+    }
+
+    private void resolveOrganizations(IntegrationResourceRequest request) {
+        if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+            // we got list of user's organizations, resolve those vocabularies they point
+            // and collect id-list for filtered query
+            Set<String> orgTerminologyList = new HashSet<>();
+            request.getIncludeIncompleteFrom().forEach(o -> {
+                logger.info("Resolve terminologies for organizational id:" + request.getIncludeIncompleteFrom());
+                SearchRequest sr = createOrganizatioQuery(o);
+                JsonNode r = elasticSearchService.freeSearchFromIndex(sr);
+                if (r != null) {
+                    r = r.get("hits");
+                    r = r.get("hits");
+                    if (r != null) {
+                        r.forEach(hit -> {
+                            JsonNode source = hit.get("_source");
+                            if (source != null) {
+                                // Get id from response and store it
+                                if (source.get("type") != null && source.get("type").get("graph") != null
+                                        && source.get("type").get("graph").get("id") != null) {
+                                    orgTerminologyList.add(source.get("type").get("graph").get("id").asText());
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            request.setIncludeIncompleteFrom(orgTerminologyList);
+            logger.info("terminologyIdList: " + request.getIncludeIncompleteFrom());
+        }
     }
 
     /**
@@ -536,26 +579,52 @@ public class IntegrationService {
             if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
                 // remove incomplete if not specifially asked
                 sq.remove("INCOMPLETE");
+                logger.info("renove INCOMPLETE from list");
+            }
+            BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+            // add actual status filtering
+            sq.forEach(o -> {
+                statusBoolQuery.should(QueryBuilders.matchQuery("status", o));
+            });
+            // Now statusquery is set without incomplete
+            // Handle INCOMPLETE here. default value is to remove them
+            QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                    .mustNot(QueryBuilders.matchQuery("status", "INCOMPLETE")).minimumShouldMatch(1);
+            if (!request.getIncludeIncomplete()) {
+                // Another case, we have includeIncompleteFrom list so add those exceptions
+                if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+                    logger.info("Handling includeIncompleteFrom");
+                    BoolQueryBuilder sqr = QueryBuilders.boolQuery();
+                    for (String o : request.getIncludeIncompleteFrom()) {
+                        sqr.should(statusQuery).should(QueryBuilders.matchQuery("vocabulary.id", o));
+                    }
+                    statusQuery = sqr;
+                    logger.info("Handling includeIncompleteFrom  subquery:" + statusQuery.toString());
+                }
+                // Replace exclude query with vocabulary.id match
+                statusBoolQuery.should(statusQuery);
             }
 
-            BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
-            if (!sq.isEmpty()) {
-                // add actual status filtering
-                sq.forEach(o -> {
-                    statusBoolQuery.should(QueryBuilders.matchQuery("status", o));
-                });
-            } else {
-                // return no INCOMPLETE = false but asked so ensure that ve return nothing
-                statusBoolQuery.should(QueryBuilders.matchQuery("status", "RETURN_NONE"));
-            }
-            statusBoolQuery.minimumShouldMatch(1);
+            logger.info("statusBoolQuery:" + statusBoolQuery.toString());
             mustList.add(statusBoolQuery);
         } else {
-            QueryBuilder statusQuery = null;
-            // Status empty, so use default and filter out incomplete. if flag is not set
+            // Not specific status given so don't include incomplete
+            QueryBuilder statusQuery = QueryBuilders.boolQuery()
+                    .mustNot(QueryBuilders.matchQuery("status", "INCOMPLETE"));
+            logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
             if (!request.getIncludeIncomplete()) {
-                statusQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("status", "INCOMPLETE"))
-                        .minimumShouldMatch(1);
+                // Another case, we have includeIncompleteFrom list so add those
+                if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
+                    BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
+                    for (String o : request.getIncludeIncompleteFrom()) {
+                        statusBoolQuery.should(statusQuery).should(QueryBuilders.matchQuery("vocabulary.id", o))
+                                .minimumShouldMatch(1);
+                    }                    
+                    statusQuery = statusBoolQuery;
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug("statusQuery=" + statusQuery.toString());
+                }
                 mustList.add(statusQuery);
             }
         }
@@ -585,17 +654,17 @@ public class IntegrationService {
             sourceBuilder.size(10000);
         }
         String[] includeFields = new String[] { "id", "label", "definition", "modified", "status", "uri" };
-        sourceBuilder.fetchSource(includeFields, null);
+        // sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
         // Add label sorting according to label
         if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
             addLanguagePrefLabelSort(request.getLanguage(), "sortByLabel.fi", "label", sourceBuilder);
         }
-        // if (logger.isDebugEnabled()) {
-        logger.info("SearchRequest=" + sr);
-        logger.debug(sr.source().toString());
-        // }
+        if (logger.isDebugEnabled()) {
+            logger.info("SearchRequest=" + sr);
+            logger.debug(sr.source().toString());
+        }
         return sr;
     }
 
@@ -606,7 +675,7 @@ public class IntegrationService {
         String uri = null;
         String container = null;
 
-        logger.debug("parseResponse:\n" + JsonUtils.prettyPrintJsonAsString(source));
+        // logger.info("parseResponse:\n" + JsonUtils.prettyPrintJsonAsString(source));
 
         if (source.get("status") != null) {
             stat = source.get("status").asText();

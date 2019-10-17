@@ -132,7 +132,7 @@ public class IndexElasticSearchService {
         // Get graphs
         List<UUID> graphs = termedApiService.fetchAllAvailableVocabularyGraphIds();
         // Get vocabularies under graphs
-        graphs.forEach(o -> {            
+        graphs.forEach(o -> {
             JsonNode jn = termedApiService.getTerminologyVocabularyNode(o);
 
             // resolve organization info from references.contributor
@@ -522,7 +522,9 @@ public class IndexElasticSearchService {
         JsonNode obj = null;
         try {
             response = esHiLvClient.search(sr, RequestOptions.DEFAULT);
-            log.info("Search result count=" + response.getHits().getTotalHits());
+            if (log.isDebugEnabled()) {
+                log.debug("Search result count=" + response.getHits().getTotalHits());
+            }
             // setResultCounts(meta, response);
             // String -> JSON
             obj = objectMapper.readTree(response.toString());
