@@ -156,9 +156,9 @@ public class IntegrationService {
     }
 
     private SearchRequest createContainersQuery(IntegrationContainerRequest request) {
-        // String query, Set<String> status, Date after, Integer pageSize, Integer
-        // pageFrom, QueryBuilder privilegeQuery,Set<String> filter
+
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        LuceneQueryFactory luceneQueryFactory = new LuceneQueryFactory();
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
@@ -175,78 +175,66 @@ public class IntegrationService {
             });
         }
 
-        //if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
-        //    QueryBuilder langQuery = null;
-        //    String lq = request.getLanguage();
-        //    logger.info("Lang query set");
-        //    langQuery = QueryBuilders.boolQuery().should(QueryBuilders.termsQuery("properties.language.value", lq))
-        //        .minimumShouldMatch(1);
-        //    mustList.add(langQuery);
-        //}
-
+        Set<String> terminologyNsUris = null;
         if (request.getUri() != null && !request.getUri().isEmpty()) {
+            terminologyNsUris = new HashSet<>();
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
-            // add actual status filtering
-            // Add individual uris into the query
-            request.getUri().forEach(o -> {
-                if (!o.endsWith("/")) {
-                    o = o + "/";
+            for(String uriFromRequest : request.getUri()) {
+                if (!uriFromRequest.endsWith("/")) {
+                    uriFromRequest = uriFromRequest + "/";
                 }
-                uriBoolQuery.should(QueryBuilders.prefixQuery("uri", o));
-            });
+                if (namespacePattern.matcher(uriFromRequest).matches()) {
+                    uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
+                } else {
+                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
+                }
+                terminologyNsUris.add(uriFromRequest);
+            }
             uriBoolQuery.minimumShouldMatch(1);
             mustList.add(uriBoolQuery);
-
-            if (CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS) {
-                request.setIncludeIncomplete(true);
-                request.setIncludeIncompleteFrom(Collections.emptySet());
-            }
         } else {
             // Don't return items without URI
             mustList.add(QueryBuilders.existsQuery("uri"));
         }
 
-        if (!request.getIncludeIncomplete()) {
-            if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-                Set<String> sq = request.getStatus();
-                logger.info("Status query set");
-
-                if (request.getStatus().contains("INCOMPLETE") && !request.getIncludeIncomplete()) {
-                    // remove incomplete if not specifially asked
-                    sq.remove("INCOMPLETE");
-                }
-
-                BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
-                // add actual status filtering
-                sq.forEach(o -> {
-                    statusBoolQuery.should(QueryBuilders.matchQuery("properties.status.value", o));
-                });
-
-                statusBoolQuery.minimumShouldMatch(1);
-                mustList.add(statusBoolQuery);
-            } else {
-                // Not specific status given so don't include incomplete
-                QueryBuilder statusQuery = QueryBuilders.boolQuery()
-                    .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
-                logger.info("Status empty, so use default and filter out incomplete. if flag is not set");
-                if (!request.getIncludeIncomplete()) {
-                    // Another case, we have includeIncompleteFrom list so add those
-                    if (request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty()) {
-                        BoolQueryBuilder statusBoolQuery = QueryBuilders.boolQuery();
-                        for (String o : request.getIncludeIncompleteFrom()) {
-                            statusBoolQuery.should(statusQuery)
-                                .should(QueryBuilders.matchQuery("references.contributor.id", o))
-                                .minimumShouldMatch(1);
-                        }
-                        statusQuery = statusBoolQuery;
-                    }
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("statusQuery=" + statusQuery.toString());
-                    }
-                    mustList.add(statusQuery);
+        // Checks regarding the "visibility" of INCOMPLETE containers (terminologies)
+        {
+            // NOTE: If "from" set is given then it kind of overrides the "super user" parameter includeIncomplete.
+            final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty();
+            final boolean directContainersGiven = terminologyNsUris != null && !terminologyNsUris.isEmpty();
+            final boolean superUserGiven = request.getIncludeIncomplete();
+            final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven) || (directContainersGiven && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS);
+            if (!bypassAllChecks) {
+                if (incompleteFromSetGiven) {
+                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible.
+                    mustList.add(QueryBuilders.boolQuery()
+                        .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE")))
+                        .should(QueryBuilders.termsQuery("references.contributor.id", request.getIncludeIncompleteFrom()))
+                        .minimumShouldMatch(1));
+                } else {
+                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible.
+                    mustNotList.add(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
                 }
             }
         }
+
+        // NOTE: Status INCOMPLETE has some specific handling earlier.
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+            // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible. (E.g., cannot use terms query.)
+            BoolQueryBuilder statusQuery = QueryBuilders.boolQuery().minimumShouldMatch(1);
+            for (String status: request.getStatus()) {
+                statusQuery.should(QueryBuilders.matchQuery("properties.status.value", status));
+            }
+            mustList.add(statusQuery);
+        }
+
+        // if search-term is given, match for all labels
+        if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
+            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("properties.prefLabel.value");
+            mustList.add(labelQuery);
+        }
+
         if (mustList.size() > 0 || mustNotList.size() > 0) {
             sourceBuilder.query(boolQuery);
         } else {
@@ -526,7 +514,7 @@ public class IntegrationService {
         }
 
         // if search-term is given, match for all labels
-        if (request.getSearchTerm() != null) {
+        if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
             logger.info("Additional SearchTerm=" + request.getSearchTerm());
             QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");
             mustList.add(labelQuery);

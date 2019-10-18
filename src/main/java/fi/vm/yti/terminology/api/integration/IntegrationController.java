@@ -62,6 +62,7 @@ public class IntegrationController {
             @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
             @ApiParam(value = "URI of the requested containers in CSL format.") @RequestParam(value = "uri", required = false) Set<String> uri,
+            @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Boolean whether to include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
             @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
             @ApiParam(value = "After date filtering parameter, results will be containers with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after) {
@@ -75,6 +76,7 @@ public class IntegrationController {
         containersRequest.setPageFrom(from);
         containersRequest.setStatus(statusEnum);
         containersRequest.setUri(uri);
+        containersRequest.setSearchTerm(searchTerm);
         containersRequest.setAfter(after);
         containersRequest.setIncludeIncomplete(incomplete);
         containersRequest.setIncludeIncompleteFrom(includeIncompleteFrom);
@@ -104,7 +106,7 @@ public class IntegrationController {
             @ApiParam(value = "User organizations filtering parameter, for filtering resources from incomplete containers") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
             @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) Date after,
             @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
-            @ApiParam(value = "Search") @RequestParam(value = "searchTerm", required = false) String searchTerm,
+            @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,
             @ApiParam(value = "From") @RequestParam(value = "from", required = false) Integer from) {
 
