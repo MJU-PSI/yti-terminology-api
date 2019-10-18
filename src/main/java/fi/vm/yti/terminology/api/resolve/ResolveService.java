@@ -34,8 +34,8 @@ public class ResolveService {
     private final TermedRequester termedRequester;
     private final String namespaceRoot;
 
-    private static final Pattern PREFIX_PATTERN = Pattern.compile("^(?<prefix>\\w+)/$");
-    private static final Pattern PREFIX_AND_RESOURCE_PATTERN = Pattern.compile("^(?<prefix>\\w+)/(?<resource>[\\w\\-]+)$");
+    private static final Pattern PREFIX_PATTERN = Pattern.compile("^(?<prefix>[^/]+)/$");
+    private static final Pattern PREFIX_AND_RESOURCE_PATTERN = Pattern.compile("^(?<prefix>[^/]+)/(?<resource>[\\w\\-]+)$");
 
     @Autowired
     ResolveService(TermedRequester termedRequester,
