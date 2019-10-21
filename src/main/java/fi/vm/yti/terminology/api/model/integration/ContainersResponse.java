@@ -3,15 +3,14 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 import javax.validation.Valid;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
-import fi.vm.yti.terminology.api.util.JsonUtils;
-import fi.vm.yti.terminology.api.model.integration.containers.*;
 
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "uri", "prefLabel", "description", "status", "modified" })
@@ -23,11 +22,11 @@ public class ContainersResponse implements Serializable {
     private String container = null;
     @JsonProperty("prefLabel")
     @Valid
-    private PrefLabel prefLabel = null;
+    private Map<String,String> prefLabel = null;
     @JsonProperty("description")
     @JsonInclude(Include.NON_EMPTY)
     @Valid
-    private Description description = null;
+    private Map<String, String> description = null;
     @JsonProperty("status")
     private String status = null;
     @JsonProperty("modified")
@@ -52,7 +51,8 @@ public class ContainersResponse implements Serializable {
      * @param uri
      * @param modified
      */
-    public ContainersResponse(String uri, String container,  PrefLabel prefLabel, Description description, String status, String modified) {
+    public ContainersResponse(String uri, String container,  Map<String,String> prefLabel, Map<String,String> description, String status, String modified) {
+//    public ContainersResponse(String uri, String container,  PrefLabel prefLabel, Description description, String status, String modified) {
         super();
         this.uri = uri;
         this.container = container;
@@ -89,22 +89,22 @@ public class ContainersResponse implements Serializable {
 
 
     @JsonProperty("prefLabel")
-    public PrefLabel getPrefLabel() {
+    public Map<String, String> getPrefLabel() {
         return prefLabel;
     }
 
     @JsonProperty("prefLabel")
-    public void setPrefLabel(PrefLabel prefLabel) {
+    public void setPrefLabel(Map<String, String> prefLabel) {
         this.prefLabel = prefLabel;
     }
 
     @JsonProperty("description")
-    public Description getDescription() {
+    public Map<String, String> getDescription() {
         return description;
     }
 
     @JsonProperty("description")
-    public void setDescription(Description description) {
+    public void setDescription(Map<String, String> description) {
         this.description = description;
     }
 

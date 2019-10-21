@@ -1,16 +1,22 @@
 package fi.vm.yti.terminology.api.integration;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -30,8 +36,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -44,8 +48,6 @@ import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
 import fi.vm.yti.terminology.api.model.integration.Meta;
 import fi.vm.yti.terminology.api.model.integration.ResponseWrapper;
-import fi.vm.yti.terminology.api.model.integration.containers.Description;
-import fi.vm.yti.terminology.api.model.integration.containers.PrefLabel;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
@@ -55,21 +57,22 @@ import fi.vm.yti.terminology.api.model.termed.Identifier;
 import fi.vm.yti.terminology.api.model.termed.MetaNode;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 import fi.vm.yti.terminology.api.util.JsonUtils;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 
 @Service
 public class IntegrationService {
 
     /**
-     * Whether to ignore resource states in contributor checks regarding INCOMPLETE things. The differentiating case is when container
-     * (terminology) is in some other state (say DRAFT), the resource in question is INCOMPLETE, and given organizations do not match
-     * the containers contributors.
+     * Whether to ignore resource states in contributor checks regarding INCOMPLETE
+     * things. The differentiating case is when container (terminology) is in some
+     * other state (say DRAFT), the resource in question is INCOMPLETE, and given
+     * organizations do not match the containers contributors.
      */
     private final static boolean CONFIG_ONLY_CHECK_CONTAINER_STATE = true;
     /**
-     * Whether to bypass container level INCOMPLETE checks when containers or resources are queried with given container URI.
-     * NOTE that for resource queries th resources are (not) checked according to the {@link #CONFIG_ONLY_CHECK_CONTAINER_STATE} parameter.
+     * Whether to bypass container level INCOMPLETE checks when containers or
+     * resources are queried with given container URI. NOTE that for resource
+     * queries th resources are (not) checked according to the
+     * {@link #CONFIG_ONLY_CHECK_CONTAINER_STATE} parameter.
      */
     private final static boolean CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS = true;
 
@@ -89,13 +92,10 @@ public class IntegrationService {
     private HashMap<String, MetaNode> typeMap = new HashMap<>();
 
     @Autowired
-    public IntegrationService(TermedRequester termedRequester,
-                              FrontendGroupManagementService groupManagementService,
-                              FrontendTermedService frontendTermedService,
-                              IndexElasticSearchService elasticSearchService,
-                              AuthenticatedUserProvider userProvider,
-                              @Value("${search.index.name}") String indexName,
-                              @Value("${namespace.root}") String namespaceRoot) {
+    public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
+            FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
+            AuthenticatedUserProvider userProvider, @Value("${search.index.name}") String indexName,
+            @Value("${namespace.root}") String namespaceRoot) {
         this.termedService = frontendTermedService;
         this.elasticSearchService = elasticSearchService;
         this.userProvider = userProvider;
@@ -135,10 +135,11 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    System.out.println("containers-Response=" + JsonUtils.prettyPrintJsonAsString(source));
+                    // System.out.println("containers-Response=" +
+                    // JsonUtils.prettyPrintJsonAsString(source));
                     resp.add(parseContainerResponse(source));
                 } else {
-                    logger.error("r-hit=" + hit);
+                    logger.error("Missing containers source. Hits:" + hit);
                 }
             });
             meta.setResultCount(r.size());
@@ -179,7 +180,7 @@ public class IntegrationService {
         if (request.getUri() != null && !request.getUri().isEmpty()) {
             terminologyNsUris = new HashSet<>();
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
-            for(String uriFromRequest : request.getUri()) {
+            for (String uriFromRequest : request.getUri()) {
                 if (!uriFromRequest.endsWith("/")) {
                     uriFromRequest = uriFromRequest + "/";
                 }
@@ -200,20 +201,27 @@ public class IntegrationService {
 
         // Checks regarding the "visibility" of INCOMPLETE containers (terminologies)
         {
-            // NOTE: If "from" set is given then it kind of overrides the "super user" parameter includeIncomplete.
-            final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty();
+            // NOTE: If "from" set is given then it kind of overrides the "super user"
+            // parameter includeIncomplete.
+            final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null
+                    && !request.getIncludeIncompleteFrom().isEmpty();
             final boolean directContainersGiven = terminologyNsUris != null && !terminologyNsUris.isEmpty();
             final boolean superUserGiven = request.getIncludeIncomplete();
-            final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven) || (directContainersGiven && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS);
+            final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven)
+                    || (directContainersGiven && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS);
             if (!bypassAllChecks) {
                 if (incompleteFromSetGiven) {
-                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible.
+                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix
+                    // these when possible.
                     mustList.add(QueryBuilders.boolQuery()
-                        .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE")))
-                        .should(QueryBuilders.termsQuery("references.contributor.id", request.getIncludeIncompleteFrom()))
-                        .minimumShouldMatch(1));
+                            .should(QueryBuilders.boolQuery()
+                                    .mustNot(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE")))
+                            .should(QueryBuilders.termsQuery("references.contributor.id",
+                                    request.getIncludeIncompleteFrom()))
+                            .minimumShouldMatch(1));
                 } else {
-                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible.
+                    // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix
+                    // these when possible.
                     mustNotList.add(QueryBuilders.matchQuery("properties.status.value", "INCOMPLETE"));
                 }
             }
@@ -221,9 +229,10 @@ public class IntegrationService {
 
         // NOTE: Status INCOMPLETE has some specific handling earlier.
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix these when possible. (E.g., cannot use terms query.)
+            // NOTE: Structure and mapping of statuses are wrong on vocabularies index, fix
+            // these when possible. (E.g., cannot use terms query.)
             BoolQueryBuilder statusQuery = QueryBuilders.boolQuery().minimumShouldMatch(1);
-            for (String status: request.getStatus()) {
+            for (String status : request.getStatus()) {
                 statusQuery.should(QueryBuilders.matchQuery("properties.status.value", status));
             }
             mustList.add(statusQuery);
@@ -231,7 +240,8 @@ public class IntegrationService {
 
         // if search-term is given, match for all labels
         if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
-            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("properties.prefLabel.value");
+            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+                    .field("properties.prefLabel.value");
             mustList.add(labelQuery);
         }
 
@@ -254,16 +264,16 @@ public class IntegrationService {
             sourceBuilder.size(10000);
         }
 
-        String[] includeFields = new String[]{ "id", "properties.prefLabel", "properties.language",
-            "properties.description", "lastModifiedDate", "properties.status.value", "uri",
-            "references.contributor.id" };
-        sourceBuilder.fetchSource(includeFields, null);
+        String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
+                "properties.description", "lastModifiedDate", "properties.status.value", "uri",
+                "references.contributor.id" };
+        // sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
 
-        if (request.getLanguage() != null) {
-            // System.out.println("Add sort language:" + o);
+        if (request.getLanguage() != null && !request.getLanguage().isEmpty()) {
+            // System.out.println("Add sort language:" + request.getLanguage());
             addLanguagePrefLabelSort(request.getLanguage(), "uri", "uri", sourceBuilder);
         }
 
@@ -290,7 +300,7 @@ public class IntegrationService {
         String stat = "DRAFT";
         if (source.findPath("status") != null && !source.findPath("status").isTextual()) {
             if (!source.findPath("status").findPath("value").isNull()
-                && !source.findPath("status").findPath("value").asText().isEmpty())
+                    && !source.findPath("status").findPath("value").asText().isEmpty())
                 stat = source.findPath("status").findPath("value").asText();
         }
         respItem.setStatus(stat);
@@ -315,9 +325,10 @@ public class IntegrationService {
             // use only first 19 chars
             respItem.setModified(modifiedDate.substring(0, 19));
         }
+
         JsonNode label = source.findPath("prefLabel");
         if (label != null) {
-            PrefLabel plab = new PrefLabel();
+            Map<String, String> preflabs = new HashMap<>();
             label.forEach(lb -> {
                 String lan = null;
                 String val = null;
@@ -327,22 +338,16 @@ public class IntegrationService {
                 if (lb.findPath("value") != null) {
                     val = lb.findPath("value").asText();
                 }
-                if (lan != null) {
-                    if (lan.equalsIgnoreCase("fi")) {
-                        plab.setFi(val);
-                    } else if (lan.equalsIgnoreCase("en")) {
-                        plab.setEn(val);
-                    } else if (lan.equalsIgnoreCase("sv")) {
-                        plab.setSv(val);
-                    }
+                if (lan != null && val != null) {
+                    preflabs.put(lan, val);
                 }
             });
-            respItem.setPrefLabel(plab);
+            respItem.setPrefLabel(preflabs);
         }
 
         JsonNode description = source.findPath("description");
         if (description != null) {
-            Description desc = new Description();
+            Map<String, String> desc = new HashMap<>();
             description.forEach(de -> {
                 String lan = null;
                 String val = null;
@@ -353,14 +358,8 @@ public class IntegrationService {
                     val = de.findPath("value").asText();
                     val = Jsoup.clean(val, Whitelist.none());
                 }
-                if (lan != null) {
-                    if (lan.equalsIgnoreCase("fi")) {
-                        desc.setFi(val);
-                    } else if (lan.equalsIgnoreCase("en")) {
-                        desc.setEn(val);
-                    } else if (lan.equalsIgnoreCase("sv")) {
-                        desc.setSv(val);
-                    }
+                if (lan != null && val != null) {
+                    desc.put(lan, val);
                 }
             });
             respItem.setDescription(desc);
@@ -369,7 +368,6 @@ public class IntegrationService {
             // Add hard-coded language-list
             JsonNode lang = source.findPath("language");
             if (lang != null) {
-                Description d = new Description();
                 lang.forEach(de -> {
                     String val = null;
                     if (de.findPath("value") != null) {
@@ -389,7 +387,8 @@ public class IntegrationService {
 
     ResponseEntity<String> handleResources(IntegrationResourceRequest request) {
         if (logger.isDebugEnabled()) {
-            logger.debug("(GET/POST) /resources requested. URL=" + request.getContainer() + " UriSet=" + request.getFilter());
+            logger.debug("(GET/POST) /resources requested. URL=" + request.getContainer() + " UriSet="
+                    + request.getFilter());
         }
 
         SearchRequest sr = createResourcesQuery(request);
@@ -407,7 +406,8 @@ public class IntegrationService {
         meta.setPageSize(request.getPageSize());
         meta.setFrom(request.getPageFrom());
         // If we ask all from all vocabularies, set default pagesize as 1000
-        if ((request.getContainer() == null || request.getContainer().isEmpty()) && request.getPageSize() != null && request.getPageSize() < 1) {
+        if ((request.getContainer() == null || request.getContainer().isEmpty()) && request.getPageSize() != null
+                && request.getPageSize() < 1) {
             meta.setPageSize(1000);
         }
         // Response item list
@@ -472,26 +472,33 @@ public class IntegrationService {
                 mustList.add(QueryBuilders.prefixQuery("vocabulary.uri", terminologyNamespaceUri));
             } else {
                 logger.warn("Container parameter is probably invalid: " + request.getContainer());
-                mustList.add(QueryBuilders.termQuery("vocabulary.uri", terminologyNamespaceUri)); // basically will not match
+                mustList.add(QueryBuilders.termQuery("vocabulary.uri", terminologyNamespaceUri)); // basically will not
+                                                                                                  // match
             }
         }
 
-        // Checks regarding the "visibility" of INCOMPLETE containers (terminologies) and resources (concepts).
+        // Checks regarding the "visibility" of INCOMPLETE containers (terminologies)
+        // and resources (concepts).
         {
-            // NOTE: If "from" set is given then it kind of overrides the "super user" parameter includeIncomplete.
-            final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null && !request.getIncludeIncompleteFrom().isEmpty();
+            // NOTE: If "from" set is given then it kind of overrides the "super user"
+            // parameter includeIncomplete.
+            final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null
+                    && !request.getIncludeIncompleteFrom().isEmpty();
             final boolean directContainerUriGiven = terminologyNamespaceUri != null;
             final boolean superUserGiven = request.getIncludeIncomplete();
-            final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven) ||
-                (directContainerUriGiven && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS && CONFIG_ONLY_CHECK_CONTAINER_STATE);
+            final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven) || (directContainerUriGiven
+                    && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS && CONFIG_ONLY_CHECK_CONTAINER_STATE);
             if (!bypassAllChecks) {
                 if (incompleteFromSetGiven) {
                     Set<String> terminologyIds;
                     if (directContainerUriGiven) {
-                        // In this case the ID set should have at most one ID, but the same logic suffices
-                        terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(), Collections.singleton(terminologyNamespaceUri));
+                        // In this case the ID set should have at most one ID, but the same logic
+                        // suffices
+                        terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(),
+                                Collections.singleton(terminologyNamespaceUri));
                     } else {
-                        terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(), Collections.emptySet());
+                        terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(),
+                                Collections.emptySet());
                     }
                     BoolQueryBuilder statusQuery = QueryBuilders.boolQuery();
                     if (!directContainerUriGiven || !CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS) {
@@ -500,10 +507,8 @@ public class IntegrationService {
                     if (!CONFIG_ONLY_CHECK_CONTAINER_STATE) {
                         statusQuery.mustNot(QueryBuilders.termQuery("status", "INCOMPLETE"));
                     }
-                    mustList.add(QueryBuilders.boolQuery()
-                        .should(statusQuery)
-                        .should(QueryBuilders.termsQuery("vocabulary.id", terminologyIds))
-                        .minimumShouldMatch(1));
+                    mustList.add(QueryBuilders.boolQuery().should(statusQuery)
+                            .should(QueryBuilders.termsQuery("vocabulary.id", terminologyIds)).minimumShouldMatch(1));
                 } else {
                     mustNotList.add(QueryBuilders.termQuery("vocabulary.status", "INCOMPLETE"));
                     if (!CONFIG_ONLY_CHECK_CONTAINER_STATE) {
@@ -516,7 +521,8 @@ public class IntegrationService {
         // if search-term is given, match for all labels
         if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
             logger.info("Additional SearchTerm=" + request.getSearchTerm());
-            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm()).field("label.*");
+            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+                    .field("label.*");
             mustList.add(labelQuery);
         }
 
@@ -565,8 +571,8 @@ public class IntegrationService {
         } else {
             sourceBuilder.size(10000);
         }
-        String[] includeFields = new String[]{ "id", "label", "definition", "modified", "status", "uri" };
-        // sourceBuilder.fetchSource(includeFields, null);
+        String[] includeFields = new String[] { "id", "label", "definition", "modified", "status", "uri" };
+        sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
         // Add label sorting according to label
@@ -623,59 +629,43 @@ public class IntegrationService {
         }
         JsonNode label = source.get("label");
         if (label != null) {
-            PrefLabel plab = new PrefLabel();
-            // fi
-            JsonNode lan = label.get("fi");
-            if (lan != null) {
-                plab.setFi(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
+            Map<String, String> preflabs = new HashMap<>();
+            Iterator<String> i = label.fieldNames();
+            while (i.hasNext()) {
+                String lan = i.next();
+                JsonNode jn = label.get(lan);
+                if (jn != null) {
+                    preflabs.put(lan, Jsoup.clean(jn.get(0).asText(), Whitelist.none()));
+                }
             }
-            // en
-            lan = label.get("en");
-            if (lan != null) {
-                plab.setEn(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
-            }
-            // sv
-            lan = label.get("sv");
-            if (lan != null) {
-                plab.setSv(Jsoup.clean(lan.get(0).asText(), Whitelist.none()));
-            }
-            respItem.setPrefLabel(plab);
+            respItem.setPrefLabel(preflabs);
         }
 
         JsonNode description = source.get("definition");
         if (description != null) {
-            Description desc = new Description();
-            // fi
-            JsonNode d = description.get("fi");
-            if (d != null) {
-                desc.setFi(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
-            }
-            // en
-            d = label.get("en");
-            if (d != null) {
-                desc.setEn(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
-            }
-            // sv
-            d = label.get("sv");
-            if (d != null) {
-                desc.setSv(Jsoup.clean(d.get(0).asText(), Whitelist.none()));
+            Map<String, String> desc = new HashMap<>();
+            Iterator<String> i = description.fieldNames();
+            while (i.hasNext()) {
+                String lan = i.next();
+                JsonNode jn = description.get(lan);
+                if (jn != null) {
+                    desc.put(lan, Jsoup.clean(jn.get(0).asText(), Whitelist.none()));
+                }
             }
             respItem.setDescription(desc);
         }
         return respItem;
     }
 
-    private void addLanguagePrefLabelSort(final String language,
-                                          final String backupSortField,
-                                          final String sortFieldWithoutLanguage,
-                                          final SearchSourceBuilder searchBuilder) {
+    private void addLanguagePrefLabelSort(final String language, final String backupSortField,
+            final String sortFieldWithoutLanguage, final SearchSourceBuilder searchBuilder) {
         if (language != null && !language.isEmpty()) {
             searchBuilder.sort(SortBuilders.fieldSort("label." + language + ".keyword").order(SortOrder.ASC)
-                .unmappedType("keyword"));
+                    .unmappedType("keyword"));
             sortLanguages.forEach(sortLanguage -> {
                 if (!language.equalsIgnoreCase(sortLanguage)) {
                     searchBuilder.sort(SortBuilders.fieldSort("label." + sortLanguage + ".keyword").order(SortOrder.ASC)
-                        .unmappedType("keyword"));
+                            .unmappedType("keyword"));
                 }
             });
             searchBuilder.sort(backupSortField, SortOrder.ASC);
@@ -706,7 +696,7 @@ public class IntegrationService {
     ResponseEntity<String> handleConceptSuggestion(ConceptSuggestionRequest incomingConcept) {
         if (logger.isDebugEnabled())
             logger.debug("POST /vocabulary/concept requested. creating Concept for "
-                + JsonUtils.prettyPrintJsonAsString(incomingConcept));
+                    + JsonUtils.prettyPrintJsonAsString(incomingConcept));
         UUID activeVocabulary;
         String terminologyUri = incomingConcept.getTerminologyUri();
         ConceptSuggestionResponse outgoingResponse = new ConceptSuggestionResponse();
@@ -714,7 +704,7 @@ public class IntegrationService {
         // Check that mandatory id exists
         if (terminologyUri == null) {
             return new ResponseEntity<>("Created Concept suggestion failed. Mandatory terminology URI is missing.\n",
-                HttpStatus.NOT_FOUND);
+                    HttpStatus.NOT_FOUND);
         }
 
         // Concept reference-map
@@ -730,22 +720,22 @@ public class IntegrationService {
         }).collect(Collectors.toList());
         if (vocabularies.size() > 1) {
             return new ResponseEntity<>("Created Concept suggestion failed for " + terminologyUri
-                + ". Multiple matches for terminology. \n", HttpStatus.NOT_FOUND);
+                    + ". Multiple matches for terminology. \n", HttpStatus.NOT_FOUND);
         } else if (vocabularies.size() == 1) {
             // found, set UUID
             activeVocabulary = vocabularies.get(0).id;
         } else {
             return new ResponseEntity<>(
-                "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
-                HttpStatus.NOT_FOUND);
+                    "Created Concept suggestion failed for " + terminologyUri + ". Terminology not found. \n",
+                    HttpStatus.NOT_FOUND);
         }
 
         // Try to fetch it just to ensure it exist
         GenericNodeInlined vocabularyNode = termedService.getVocabulary(activeVocabulary);
         if (vocabularyNode == null) {
             return new ResponseEntity<>(
-                "Created Concept suggestion failed for UUID:" + terminologyUri + ". Terminology not found. \n",
-                HttpStatus.NOT_FOUND);
+                    "Created Concept suggestion failed for UUID:" + terminologyUri + ". Terminology not found. \n",
+                    HttpStatus.NOT_FOUND);
         }
 
         // get metamodel for vocabulary
@@ -765,7 +755,7 @@ public class IntegrationService {
             addNodeList.add(concept);
             GenericDeleteAndSave operation = new GenericDeleteAndSave(emptyList(), addNodeList);
             termedService.bulkChangeWithoutAuthorization(operation, true,
-                UUID.fromString(incomingConcept.getCreator()));
+                    UUID.fromString(incomingConcept.getCreator()));
             if (logger.isDebugEnabled())
                 logger.debug(JsonUtils.prettyPrintJsonAsString(operation));
             // Fetch created concept and get it's URI, set it to the returned json
@@ -780,9 +770,8 @@ public class IntegrationService {
         return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(outgoingResponse), HttpStatus.OK);
     }
 
-    private GenericNode CreateTerm(GenericNodeInlined vocabulary,
-                                   ConceptSuggestionRequest incoming,
-                                   Map<String, List<Identifier>> parentReferences) {
+    private GenericNode CreateTerm(GenericNodeInlined vocabulary, ConceptSuggestionRequest incoming,
+            Map<String, List<Identifier>> parentReferences) {
         GenericNode node = null;
         // Populate term
         Map<String, List<Attribute>> properties = new HashMap<>();
@@ -811,9 +800,7 @@ public class IntegrationService {
      * @param properties    Propertylist where attribute is added
      * @param att           Attribute to be added
      */
-    private void addProperty(String attributeName,
-                             Map<String, List<Attribute>> properties,
-                             Attribute att) {
+    private void addProperty(String attributeName, Map<String, List<Attribute>> properties, Attribute att) {
         if (!properties.containsKey(attributeName)) {
             List<Attribute> a = new ArrayList<>();
             a.add(att);
@@ -822,9 +809,8 @@ public class IntegrationService {
             properties.get(attributeName).add(att);
     }
 
-    private GenericNode CreateConcept(GenericNodeInlined vocabulary,
-                                      ConceptSuggestionRequest incoming,
-                                      Map<String, List<Identifier>> conceptReferences) {
+    private GenericNode CreateConcept(GenericNodeInlined vocabulary, ConceptSuggestionRequest incoming,
+            Map<String, List<Identifier>> conceptReferences) {
         GenericNode node = null;
         Map<String, List<Attribute>> properties = new HashMap<>();
         addProperty("definition", properties, incoming.getDefinition());
@@ -846,8 +832,7 @@ public class IntegrationService {
         String code;
         UUID id;
 
-        public IdCode(String code,
-                      UUID id) {
+        public IdCode(String code, UUID id) {
             this.code = code;
             this.id = id;
         }
@@ -871,29 +856,29 @@ public class IntegrationService {
     }
 
     /**
-     * Fetch ids for all terminologies that have contributor match with given organization ids.
+     * Fetch ids for all terminologies that have contributor match with given
+     * organization ids.
      *
      * @param organizationIds UUIDs for the organizations as strings
-     * @param onlyTheseNsUris If not empty then limit the result set to terminologies having these namespace URIs. NOTE: NS URIs, not IDs, nor node URIs!
+     * @param onlyTheseNsUris If not empty then limit the result set to
+     *                        terminologies having these namespace URIs. NOTE: NS
+     *                        URIs, not IDs, nor node URIs!
      * @return set of terminology UUIDs as strings
      */
     private Set<String> resolveTerminologiesMatchingOrganizations(Set<String> organizationIds,
-                                                                  Set<String> onlyTheseNsUris) {
+            Set<String> onlyTheseNsUris) {
         Set<String> ret = new HashSet<>();
         try {
             QueryBuilder query = QueryBuilders.termsQuery("references.contributor.id", organizationIds);
             if (onlyTheseNsUris != null && !onlyTheseNsUris.isEmpty()) {
-                BoolQueryBuilder compound = QueryBuilders.boolQuery()
-                    .must(query);
+                BoolQueryBuilder compound = QueryBuilders.boolQuery().must(query);
                 for (String nsUri : onlyTheseNsUris) {
                     compound.should(QueryBuilders.prefixQuery("uri", nsUri));
                 }
                 query = compound.minimumShouldMatch(1);
             }
             SearchRequest request = new SearchRequest("vocabularies")
-                .source(new SearchSourceBuilder()
-                    .query(query)
-                    .size(1000));
+                    .source(new SearchSourceBuilder().query(query).size(1000));
             // logger.debug("Matching terminologies request: " + request.toString());
             JsonNode response = elasticSearchService.freeSearchFromIndex(request);
             if (response != null) {
@@ -910,8 +895,9 @@ public class IntegrationService {
         } catch (Exception e) {
             logger.error("Error while resolving terminologies matching contributors.", e);
         }
-        logger.debug("Resolved " + ret.size() + " matching terminologies for " + organizationIds.size() + " organizations"
-            + (onlyTheseNsUris != null ? " (" + onlyTheseNsUris.size() + " limiting URIs)" : ""));
+        logger.debug(
+                "Resolved " + ret.size() + " matching terminologies for " + organizationIds.size() + " organizations"
+                        + (onlyTheseNsUris != null ? " (" + onlyTheseNsUris.size() + " limiting URIs)" : ""));
         return ret;
     }
 }
