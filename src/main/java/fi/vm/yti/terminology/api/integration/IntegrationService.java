@@ -267,7 +267,7 @@ public class IntegrationService {
         String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
                 "properties.description", "lastModifiedDate", "properties.status.value", "uri",
                 "references.contributor.id" };
-        // sourceBuilder.fetchSource(includeFields, null);
+        sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
         // Add label sorting according to label
