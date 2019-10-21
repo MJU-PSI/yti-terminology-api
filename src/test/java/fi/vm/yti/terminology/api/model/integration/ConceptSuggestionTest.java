@@ -2,7 +2,6 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fi.vm.yti.terminology.api.model.integration.containers.*;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 
 import static org.junit.Assert.*;
