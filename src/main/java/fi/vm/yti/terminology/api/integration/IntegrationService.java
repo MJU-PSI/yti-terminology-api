@@ -323,7 +323,7 @@ public class IntegrationService {
         if (modifiedDate != null) {
             // Curently returns 2019-01-07T09:16:32.432+02:00
             // use only first 19 chars
-            respItem.setModified(modifiedDate.substring(0, 19));
+            respItem.setModified(modifiedDate);
         }
 
         JsonNode label = source.findPath("prefLabel");
@@ -623,9 +623,7 @@ public class IntegrationService {
             respItem.setContainer(container);
         }
         if (modifiedDate != null) {
-            // Curently returns 2019-01-07T09:16:32.432+02:00
-            // use only first 19 chars
-            respItem.setModified(modifiedDate.substring(0, 19));
+            respItem.setModified(modifiedDate);
         }
         JsonNode label = source.get("label");
         if (label != null) {
