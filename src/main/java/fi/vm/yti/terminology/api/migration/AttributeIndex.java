@@ -550,7 +550,7 @@ public final class AttributeIndex {
     @NotNull
     public static AttributeMeta contact(TypeId domain, long index) {
         return new AttributeMeta(
-                "source",
+                "contact",
                 "http://uri.suomi.fi/datamodel/ns/st#contact",
                 index,
                 domain,
