@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.frontend;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -99,10 +100,10 @@ public class FrontendElasticSearchService {
     ConceptSearchResponse searchConcept(ConceptSearchRequest request) {
         request.setQuery(request.getQuery() != null ? request.getQuery().trim() : "");
         try {
-            boolean superUser = superUser();
-            Set<String> privilegedOrganizations = superUser ? Collections.emptySet() : readOrganizations();
-            Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations);
-            SearchRequest query = conceptQueryFactory.createQuery(request, superUser, incompleteFromTerminologies);
+            final boolean superUser = superUser();
+            SearchRequest query = conceptQueryFactory.createQuery(request, superUser, limit ->
+                superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(readOrganizations(), limit)
+            );
             SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
             return conceptQueryFactory.parseResponse(response, request.getPageFrom() != null ? request.getPageFrom().intValue() : 0);
         } catch (IOException e) {
@@ -119,7 +120,7 @@ public class FrontendElasticSearchService {
         Map<String, List<DeepSearchHitListDTO<?>>> deepSearchHits = null;
         if (request.isSearchConcepts() && !request.getQuery().isEmpty()) {
             try {
-                Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations);
+                Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations, null);
                 SearchRequest query = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang(), superUser, incompleteFromTerminologies);
                 SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
                 deepSearchHits = deepConceptQueryFactory.parseResponse(response);
@@ -156,12 +157,18 @@ public class FrontendElasticSearchService {
             .collect(Collectors.toSet());
     }
 
-    private Set<String> terminologiesMatchingOrganizations(Set<String> privilegedOrganizations) throws IOException {
-        if (privilegedOrganizations.isEmpty()) {
-            return Collections.emptySet();
+    private Set<String> terminologiesMatchingOrganizations(Collection<String> privilegedOrganizations,
+                                                           Collection<String> limitToThese) {
+        try {
+            if (privilegedOrganizations.isEmpty()) {
+                return Collections.emptySet();
+            }
+            SearchRequest sr = terminologyQueryFactory.createMatchingTerminologiesQuery(privilegedOrganizations, limitToThese);
+            SearchResponse response = esRestClient.search(sr, RequestOptions.DEFAULT);
+            return terminologyQueryFactory.parseMatchingTerminologiesResponse(response);
+        } catch (Exception e) {
+            logger.error("Failed to resolve terminologies based on contributors", e);
         }
-        SearchRequest sr = terminologyQueryFactory.createMatchingTerminologiesQuery(privilegedOrganizations);
-        SearchResponse response = esRestClient.search(sr, RequestOptions.DEFAULT);
-        return terminologyQueryFactory.parseMatchingTerminologiesResponse(response);
+        return Collections.emptySet();
     }
 }

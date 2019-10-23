@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +35,10 @@ import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySimpleDTO;
 import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 
 public class ConceptQueryFactory {
+    private final static boolean CONFIG_ONLY_CHECK_TERMINOLOGY_STATE = true;
+    private final static boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES = true;
+    private final static boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS = true;
+    private final static boolean CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS = true;
 
     private static final Logger log = LoggerFactory.getLogger(ConceptQueryFactory.class);
 
@@ -47,9 +53,9 @@ public class ConceptQueryFactory {
 
     public SearchRequest createQuery(ConceptSearchRequest request,
                                      boolean superUser,
-                                     Set<String> incompleteFromTerminologies) {
+                                     MatchingTerminologyResolver matchingTerminologyResolver) {
 
-        List<QueryBuilder> parts = new ArrayList<>();
+        List<QueryBuilder> mustParts = new ArrayList<>();
 
         if (request.getQuery() != null && !request.getQuery().isEmpty()) {
             MultiMatchQueryBuilder labelQuery = QueryBuilders.multiMatchQuery(request.getQuery(), "label.*")
@@ -58,53 +64,72 @@ public class ConceptQueryFactory {
             if (request.getSortLanguage() != null && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(request.getSortLanguage()).matches()) {
                 labelQuery = labelQuery.field("label." + request.getSortLanguage(), 10);
             }
-            parts.add(labelQuery);
+            mustParts.add(labelQuery);
         }
 
-        if (request.getConceptId() != null && request.getConceptId().length > 0) {
+        final boolean directConceptsGiven =  request.getConceptId() != null && request.getConceptId().length > 0;
+        if (directConceptsGiven) {
             QueryBuilder conceptIdQuery = QueryBuilders.termsQuery("id", request.getConceptId());
-            parts.add(conceptIdQuery);
+            mustParts.add(conceptIdQuery);
         }
 
-        if (request.getTerminologyId() != null && request.getTerminologyId().length > 0) {
+        final boolean directTerminologiesGiven = request.getTerminologyId() != null && request.getTerminologyId().length > 0;
+        if (directTerminologiesGiven) {
             QueryBuilder terminologyIdQuery = QueryBuilders.termsQuery("vocabulary.id", request.getTerminologyId());
-            parts.add(terminologyIdQuery);
+            mustParts.add(terminologyIdQuery);
         }
 
         if (request.getNotInTerminologyId() != null && request.getNotInTerminologyId().length > 0) {
             QueryBuilder notInTerminologyIdQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery("vocabulary.id", request.getNotInTerminologyId()));
-            parts.add(notInTerminologyIdQuery);
+            mustParts.add(notInTerminologyIdQuery);
         }
 
-        if (request.getBroaderConceptId() != null && request.getBroaderConceptId().length > 0) {
+        final boolean directBroaderGiven = request.getBroaderConceptId() != null && request.getBroaderConceptId().length > 0;
+        if (directBroaderGiven) {
             QueryBuilder broaderConceptIdQuery = QueryBuilders.termsQuery("broader", request.getBroaderConceptId());
-            parts.add(broaderConceptIdQuery);
+            mustParts.add(broaderConceptIdQuery);
         }
 
         if (request.getOnlyTopConcepts() != null && request.getOnlyTopConcepts()) {
             QueryBuilder onlyTopConceptsQuery = QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("broader"));
-            parts.add(onlyTopConceptsQuery);
+            mustParts.add(onlyTopConceptsQuery);
         }
 
         if (request.getStatus() != null && request.getStatus().length > 0) {
             QueryBuilder statusQuery = QueryBuilders.termsQuery("status", request.getStatus());
-            parts.add(statusQuery);
+            mustParts.add(statusQuery);
         }
 
-        // Block INCOMPLETE concepts from being shown to users who are not contributors of the terminology.
+        // Checks regarding data in INCOMPLETE state. Basic idea is to show INCOMPLETE things only to the contributors. But.
         if (!superUser) {
-            parts.add(QueryBuilders.boolQuery()
-                .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery("status", "INCOMPLETE")))
-                .should(QueryBuilders.termsQuery("vocabulary.id", incompleteFromTerminologies))
-                .minimumShouldMatch(1));
+            final boolean doNotCheckTerminologyState = (directTerminologiesGiven && CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES) ||
+                ((directConceptsGiven || directBroaderGiven) && CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS);
+            final boolean checkTerminologyState = !doNotCheckTerminologyState;
+            final boolean doNotCheckConceptState = CONFIG_ONLY_CHECK_TERMINOLOGY_STATE ||
+                ((directConceptsGiven || directBroaderGiven) && CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS);
+            final boolean checkConceptState = !doNotCheckConceptState;
+            if (checkConceptState || checkTerminologyState) {
+                Collection<String> incompleteFromTerminologies = matchingTerminologyResolver.resolveMatchingTerminologies(directTerminologiesGiven ? Arrays.asList(request.getTerminologyId()) : null);
+                QueryBuilder contributorQuery = QueryBuilders.termsQuery("vocabulary.id", incompleteFromTerminologies);
+                BoolQueryBuilder statusQuery = QueryBuilders.boolQuery();
+                if (checkConceptState) {
+                    statusQuery.mustNot(QueryBuilders.termQuery("status", "INCOMPLETE"));
+                }
+                if (checkTerminologyState) {
+                    statusQuery.mustNot(QueryBuilders.termQuery("vocabulary.status", "INCOMPLETE"));
+                }
+                mustParts.add(QueryBuilders.boolQuery().should(contributorQuery).should(statusQuery).minimumShouldMatch(1));
+            }
         }
 
         QueryBuilder combinedQuery = null;
-        if (parts.isEmpty()) {
+        if (mustParts.isEmpty()) {
             combinedQuery = QueryBuilders.matchAllQuery();
+        } else if (mustParts.size() == 1) {
+            combinedQuery = mustParts.get(0);
         } else {
             final BoolQueryBuilder tmp = QueryBuilders.boolQuery();
-            parts.forEach(tmp::must);
+            mustParts.forEach(tmp::must);
             combinedQuery = tmp;
         }
 
@@ -203,5 +228,11 @@ public class ConceptQueryFactory {
             return null;
         }
         return ret;
+    }
+
+    @FunctionalInterface
+    public interface MatchingTerminologyResolver {
+
+        Set<String> resolveMatchingTerminologies(Collection<String> limitToTheseTerminologyIds);
     }
 }
