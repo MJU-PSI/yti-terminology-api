@@ -27,8 +27,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.terminology.api.frontend.elasticqueries.ConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.DeepConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.TerminologyQueryFactory;
+import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchResponse;
 import fi.vm.yti.terminology.api.frontend.searchdto.DeepSearchHitListDTO;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
@@ -49,6 +52,7 @@ public class FrontendElasticSearchService {
     private final AuthenticatedUserProvider userProvider;
     private final TerminologyQueryFactory terminologyQueryFactory;
     private final DeepConceptQueryFactory deepConceptQueryFactory;
+    private final ConceptQueryFactory conceptQueryFactory;
 
     @Autowired
     public FrontendElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
@@ -56,6 +60,7 @@ public class FrontendElasticSearchService {
                                         @Value("${search.host.scheme}") String searchHostScheme,
                                         @Value("${search.index.name}") String indexName,
                                         @Value("${search.index.mapping.type}") String indexMappingType,
+                                        @Value("${namespace.root}") String namespaceRoot,
                                         ObjectMapper objectMapper,
                                         AuthenticatedUserProvider userProvider) {
         this.indexName = indexName;
@@ -66,6 +71,7 @@ public class FrontendElasticSearchService {
         this.userProvider = userProvider;
         this.terminologyQueryFactory = new TerminologyQueryFactory(objectMapper);
         this.deepConceptQueryFactory = new DeepConceptQueryFactory(objectMapper);
+        this.conceptQueryFactory = new ConceptQueryFactory(objectMapper, namespaceRoot);
     }
 
     @SuppressWarnings("Duplicates")
@@ -73,13 +79,8 @@ public class FrontendElasticSearchService {
         return searchFromIndex(query, "concepts");
     }
 
-    @SuppressWarnings("Duplicates")
-    String searchVocabulary(JsonNode query) {
-        return searchFromIndex(query, "vocabularies");
-    }
-
-    String searchFromIndex(JsonNode query,
-                           String index) {
+    private String searchFromIndex(JsonNode query,
+                                   String index) {
         Parameters params = new Parameters();
         params.add("source", query.toString());
         params.add("source_content_type", "application/json");
@@ -90,6 +91,20 @@ public class FrontendElasticSearchService {
             request.setEntity(body);
             Response response = esRestClient.getLowLevelClient().performRequest(request);
             return responseContentAsString(response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    ConceptSearchResponse searchConcept(ConceptSearchRequest request) {
+        request.setQuery(request.getQuery() != null ? request.getQuery().trim() : "");
+        try {
+            boolean superUser = superUser();
+            Set<String> privilegedOrganizations = superUser ? Collections.emptySet() : readOrganizations();
+            Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations);
+            SearchRequest query = conceptQueryFactory.createQuery(request, superUser, incompleteFromTerminologies);
+            SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
+            return conceptQueryFactory.parseResponse(response, request.getPageFrom() != null ? request.getPageFrom().intValue() : 0);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
