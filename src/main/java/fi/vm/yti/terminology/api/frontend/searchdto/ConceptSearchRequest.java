@@ -21,6 +21,27 @@ public class ConceptSearchRequest {
         }
     }
 
+    public static class Options {
+        public enum OperationMode {ALL_INCOMPLETE, CONTRIBUTOR_CHECK, NO_INCOMPLETE};
+
+        public OperationMode operationMode;
+        public Boolean onlyCheckTerminologyState;
+        public Boolean doNotCheckTerminologyStateForGivenTerminologies;
+        public Boolean doNotCheckTerminologyStateForGivenConcepts;
+        public Boolean doNotCheckConceptStateForGivenConcepts;
+
+        @Override
+        public String toString() {
+            return "Options{" +
+                "operationMode=" + operationMode +
+                ", onlyCheckTerminologyState=" + onlyCheckTerminologyState +
+                ", doNotCheckTerminologyStateForGivenTerminologies=" + doNotCheckTerminologyStateForGivenTerminologies +
+                ", doNotCheckTerminologyStateForGivenConcepts=" + doNotCheckTerminologyStateForGivenConcepts +
+                ", doNotCheckConceptStateForGivenConcepts=" + doNotCheckConceptStateForGivenConcepts +
+                '}';
+        }
+    }
+
     private String query;
     private String[] conceptId;
     private String[] terminologyId;
@@ -33,6 +54,7 @@ public class ConceptSearchRequest {
     private String sortLanguage;
     private Integer pageSize;
     private Integer pageFrom;
+    private Options options;
 
     public String getQuery() {
         return query;
@@ -130,6 +152,14 @@ public class ConceptSearchRequest {
         this.pageFrom = pageFrom;
     }
 
+    public Options getOptions() {
+        return options;
+    }
+
+    public void setOptions(final Options options) {
+        this.options = options;
+    }
+
     @Override
     public String toString() {
         return "ConceptSearchRequest{" +
@@ -145,6 +175,7 @@ public class ConceptSearchRequest {
             ", sortLanguage='" + sortLanguage + '\'' +
             ", pageSize=" + pageSize +
             ", pageFrom=" + pageFrom +
+            ", options=" + options +
             '}';
     }
 }
