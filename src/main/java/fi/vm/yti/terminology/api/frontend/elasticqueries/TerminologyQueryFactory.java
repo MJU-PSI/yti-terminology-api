@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.text.Text;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchPhrasePrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -109,14 +110,29 @@ public class TerminologyQueryFactory {
     }
 
     public SearchRequest createMatchingTerminologiesQuery(Set<String> privilegedOrganizations) {
-        //log.debug("Querying terminologies with contributors [" + privilegedOrganizations.stream().collect(Collectors.joining(", ")) + "]");
+        return createMatchingTerminologiesQuery(privilegedOrganizations, null);
+    }
+
+    public SearchRequest createMatchingTerminologiesQuery(final Collection<String> privilegedOrganizations, final Collection<String> limitToThese) {
+        // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing, and change id limit to terms query.
+        final QueryBuilder contribQuery = QueryBuilders.termsQuery("references.contributor.id", privilegedOrganizations);
+        QueryBuilder finalQuery = contribQuery;
+        if (limitToThese != null && !limitToThese.isEmpty()) {
+            // QueryBuilders.termsQuery("id", limitToThese);
+            final BoolQueryBuilder limitQuery = QueryBuilders.boolQuery().minimumShouldMatch(1);
+            for (String id : limitToThese) {
+                limitQuery.should(QueryBuilders.matchQuery("type.graph.id", id));
+            }
+            finalQuery = QueryBuilders.boolQuery()
+                .must(contribQuery)
+                .must(limitQuery);
+        }
+
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(new SearchSourceBuilder()
                 .size(1000)
-                .query(QueryBuilders.termsQuery("references.contributor.id", privilegedOrganizations)));
-        // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing also.
+                .query(finalQuery));
         //.fetchSource(false));
-        //log.debug("Matching terminologies request: " + sr.toString());
         return sr;
     }
 
@@ -125,13 +141,12 @@ public class TerminologyQueryFactory {
         for (SearchHit hit : response.getHits()) {
             try {
                 JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
-                ret.add(terminology.get("type").get("graph").get("id").textValue());
                 //ret.add(hit.getId());
+                ret.add(terminology.get("type").get("graph").get("id").textValue());
             } catch(Exception e) {
                 log.error("Cannot parse matching terminologies response", e);
             }
         }
-        //log.debug("Matching terminologies [" + ret.stream().collect(Collectors.joining(", ")) + "]");
         return ret;
     }
 

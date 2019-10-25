@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -47,7 +47,7 @@ public class DeepConceptQueryFactory {
     private static final FetchSourceContext sourceIncludes = new FetchSourceContext(true, new String[]{ "id", "uri", "status", "label", "vocabulary" }, new String[]{});
     private static final Script topHitScript = new Script(ScriptType.INLINE, Script.DEFAULT_SCRIPT_LANG, "_score", Collections.emptyMap());
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     public DeepConceptQueryFactory(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -56,7 +56,7 @@ public class DeepConceptQueryFactory {
     public SearchRequest createQuery(String query,
                                      String prefLang,
                                      boolean superUser,
-                                     Set<String> incompleteFromTermonologies) {
+                                     Set<String> incompleteFromTerminologies) {
 
         MultiMatchQueryBuilder multiMatch = QueryBuilders.multiMatchQuery(query, "label.*")
             .type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
@@ -70,7 +70,7 @@ public class DeepConceptQueryFactory {
             .must(multiMatch)
             .must(QueryBuilders.boolQuery()
                 .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery("status", "INCOMPLETE")))
-                .should(QueryBuilders.termsQuery("vocabulary.id", incompleteFromTermonologies))
+                .should(QueryBuilders.termsQuery("vocabulary.id", incompleteFromTerminologies))
                 .minimumShouldMatch(1));
 
         SearchRequest sr = new SearchRequest("concepts")
