@@ -17,17 +17,6 @@ public class ConceptSuggestionTest {
         System.out.println("incoming"+jsonString);
         ObjectMapper mapper = new ObjectMapper();
         cs = mapper.readValue(jsonString,ConceptSuggestionResponse.class);
-/*cs = new ConceptSuggestionResponse();
-cs.setCreator("45778009-804c-4aba-a836-f5c911ea5ef1");
-cs.setUri("http://uri.suomi.fi/terminology/kira/");
-cs.setTerminologyUri("http://uri.suomi.fi/terminology/kira/");
-Attribute desc = new Attribute("fi", "jotain");
-cs.setDefinition(desc);  
-
-Attribute prefLabel = new Attribute("fi","esimerkki");
-cs.setPrefLabel(prefLabel);
-*/
-System.err.println(mapper.writeValueAsString(cs));
         assertNotNull(cs);
     }
 
@@ -37,9 +26,7 @@ System.err.println(mapper.writeValueAsString(cs));
 
     @org.junit.Test
     public void getPrefLabel() {
-        System.out.println("test getPrefLabel");
         if(cs != null && cs.getPrefLabel() != null ){
-            System.out.println(" PrefLabel="+cs.getPrefLabel().getValue());
             assertEquals("esimerkki",cs.getPrefLabel().getValue());
         }
         else
@@ -50,7 +37,6 @@ System.err.println(mapper.writeValueAsString(cs));
     public void getDefinition() {
         System.out.println("test getDefinitionLabel");
         if(cs != null && cs.getDefinition() != null ){
-            System.out.println(" Definition value="+cs.getDefinition().getValue());
             assertEquals("jotain",cs.getDefinition().getValue());
         }
         else
@@ -59,9 +45,7 @@ System.err.println(mapper.writeValueAsString(cs));
 
     @org.junit.Test
     public void getCreator() {
-        System.out.println("test getCreator UUID");
         if(cs != null && cs.getCreator() != null ){
-            System.out.println(" Creator UUID value="+cs.getCreator().toString());
             assertEquals("45778009-804c-4aba-a836-f5c911ea5ef1",cs.getCreator().toString());
         }
         else
@@ -80,9 +64,7 @@ System.err.println(mapper.writeValueAsString(cs));
     @org.junit.Test
     public void getUri() {
         String expected="http://uri.suomi.fi/terminology/kira/";
-        System.out.println("test getUri");
         if(cs != null && cs.getTerminologyUri() != null ){
-            System.out.println(" Uri value="+cs.getTerminologyUri());
             assertEquals(expected,cs.getTerminologyUri());
         }
         else
@@ -91,9 +73,7 @@ System.err.println(mapper.writeValueAsString(cs));
     @org.junit.Test
     public void getCreated() {
         String expected="http://uri.suomi.fi/terminology/kira/";
-        System.out.println("test getUri");
         if(cs != null && cs.getTerminologyUri() != null ){
-            System.out.println(" Uri value="+cs.getTerminologyUri());
             assertEquals(expected,cs.getTerminologyUri());
         }
         else
