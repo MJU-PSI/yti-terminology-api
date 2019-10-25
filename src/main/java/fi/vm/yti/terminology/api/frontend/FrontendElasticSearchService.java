@@ -105,7 +105,7 @@ public class FrontendElasticSearchService {
                 superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(readOrganizations(), limit)
             );
             SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
-            return conceptQueryFactory.parseResponse(response, request.getPageFrom() != null ? request.getPageFrom().intValue() : 0);
+            return conceptQueryFactory.parseResponse(response, request);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

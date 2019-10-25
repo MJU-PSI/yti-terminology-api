@@ -162,7 +162,7 @@ public class ConceptQueryFactory {
     }
 
     public ConceptSearchResponse parseResponse(SearchResponse response,
-                                               int pageFrom) {
+                                               ConceptSearchRequest request) {
         if (response != null) {
             SearchHits hitsContainer = response.getHits();
             if (hitsContainer != null) {
@@ -208,13 +208,17 @@ public class ConceptQueryFactory {
                                 terminology = new TerminologySimpleDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, terminologyLabelMap);
                             }
 
+                            if (request.getHighlight() != null && request.getHighlight().booleanValue()) {
+                                ElasticRequestUtils.highlightLabel(labelMap, request.getQuery());
+                            }
+
                             concepts.add(new ConceptDTO(id, uri, status, labelMap, altLabelMap, definitionMap, modified, narrower, broader, terminology));
                         } catch (Exception e) {
                             log.error("Error while parsing a concept hit", e);
                         }
                     }
                 }
-                return new ConceptSearchResponse(total, pageFrom, concepts);
+                return new ConceptSearchResponse(total, request.getPageFrom() != null ? request.getPageFrom().intValue() : 0, concepts);
             }
         }
         return new ConceptSearchResponse();

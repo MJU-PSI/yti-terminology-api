@@ -1,12 +1,5 @@
 package fi.vm.yti.terminology.api.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,13 +8,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.client.Response;
+import org.jetbrains.annotations.NotNull;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class ElasticRequestUtils {
 
     public static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z]+(?:-[a-zA-Z0-9-]+)?");
+    public static final Pattern QUERY_SPLITTER_PATTERN = Pattern.compile("\\s+");
 
     private ElasticRequestUtils() {
         // prevent construction
@@ -39,14 +38,14 @@ public final class ElasticRequestUtils {
     public static @NotNull String responseContentAsString(@NotNull Response response) {
         try (InputStream is = response.getEntity().getContent()) {
             return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
-                    .collect(Collectors.joining("\n"));
+                .collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static Map<String, String> labelFromKeyValueNode(JsonNode labelNode) {
-        Map<String,String> ret = new HashMap<>();
+        Map<String, String> ret = new HashMap<>();
         if (labelNode != null) {
             Iterator<Map.Entry<String, JsonNode>> labelIter = labelNode.fields();
             while (labelIter.hasNext()) {
@@ -63,7 +62,7 @@ public final class ElasticRequestUtils {
     }
 
     public static Map<String, String> labelFromLangValueArray(JsonNode labelArray) {
-        Map<String,String> ret = new HashMap<>();
+        Map<String, String> ret = new HashMap<>();
         if (labelArray != null) {
             for (JsonNode label : labelArray) {
                 ret.put(label.get("lang").textValue(), label.get("value").textValue());
@@ -72,7 +71,8 @@ public final class ElasticRequestUtils {
         return !ret.isEmpty() ? ret : null;
     }
 
-    public static String getTextValueOrNull(JsonNode node, String fieldName) {
+    public static String getTextValueOrNull(JsonNode node,
+                                            String fieldName) {
         if (node != null) {
             JsonNode field = node.get(fieldName);
             if (field != null) {
@@ -80,5 +80,20 @@ public final class ElasticRequestUtils {
             }
         }
         return null;
+    }
+
+    public static void highlightLabel(Map<String, String> label, String query) {
+        if (query != null && label != null && !query.isEmpty() && !label.isEmpty()) {
+            String[] queryWords = QUERY_SPLITTER_PATTERN.split(query);
+            for(String word : queryWords) {
+                if (!word.isEmpty()) {
+                    String quoted = Pattern.quote(word);
+                    Pattern pattern = Pattern.compile(quoted + "\\b|\\b" + quoted, Pattern.CASE_INSENSITIVE);
+                    for (Map.Entry<String, String> entry : label.entrySet()) {
+                        entry.setValue(pattern.matcher(entry.getValue()).replaceAll("<b>$0</b>"));
+                    }
+                }
+            }
+        }
     }
 }
