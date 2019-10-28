@@ -82,17 +82,28 @@ public final class ElasticRequestUtils {
         return null;
     }
 
-    public static void highlightLabel(Map<String, String> label, String query) {
-        if (query != null && label != null && !query.isEmpty() && !label.isEmpty()) {
-            String[] queryWords = QUERY_SPLITTER_PATTERN.split(query);
-            for(String word : queryWords) {
-                if (!word.isEmpty()) {
-                    String quoted = Pattern.quote(word);
-                    Pattern pattern = Pattern.compile(quoted + "\\b|\\b" + quoted, Pattern.CASE_INSENSITIVE);
-                    for (Map.Entry<String, String> entry : label.entrySet()) {
-                        entry.setValue(pattern.matcher(entry.getValue()).replaceAll("<b>$0</b>"));
-                    }
-                }
+    public static Pattern createHighlightPattern(String queryString) {
+        if (queryString != null) {
+            String patternString = QUERY_SPLITTER_PATTERN.splitAsStream(queryString.trim())
+                .sorted((a, b) -> {
+                    int diff = b.length() - a.length();
+                    return diff != 0 ? diff : a.compareTo(b);
+                })
+                .map(Pattern::quote)
+                .map(quoted -> quoted + "\\b|\\b" + quoted)
+                .collect(Collectors.joining("|"));
+            if (!patternString.isEmpty()) {
+                return Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
+            }
+        }
+        return null;
+    }
+
+    public static void highlightLabel(Map<String, String> label,
+                                      Pattern highlightPattern) {
+        if (highlightPattern != null && label != null && !label.isEmpty()) {
+            for (Map.Entry<String, String> entry : label.entrySet()) {
+                entry.setValue(highlightPattern.matcher(entry.getValue()).replaceAll("<b>$0</b>"));
             }
         }
     }

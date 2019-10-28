@@ -170,6 +170,11 @@ public class ConceptQueryFactory {
                 final SearchHit[] hits = hitsContainer.getHits();
                 final List<ConceptDTO> concepts = new ArrayList<>();
                 if (hits != null) {
+                    Pattern highlightPattern = null;
+                    if (request.getHighlight() != null && request.getHighlight().booleanValue() && request.getQuery() != null && !request.getQuery().isEmpty()) {
+                        highlightPattern = ElasticRequestUtils.createHighlightPattern(request.getQuery());
+                    }
+
                     for (SearchHit hit : hits) {
                         try {
                             final JsonNode concept = objectMapper.readTree(hit.getSourceAsString());
@@ -208,8 +213,8 @@ public class ConceptQueryFactory {
                                 terminology = new TerminologySimpleDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, terminologyLabelMap);
                             }
 
-                            if (request.getHighlight() != null && request.getHighlight().booleanValue()) {
-                                ElasticRequestUtils.highlightLabel(labelMap, request.getQuery());
+                            if (highlightPattern != null) {
+                                ElasticRequestUtils.highlightLabel(labelMap, highlightPattern);
                             }
 
                             concepts.add(new ConceptDTO(id, uri, status, labelMap, altLabelMap, definitionMap, modified, narrower, broader, terminology));
