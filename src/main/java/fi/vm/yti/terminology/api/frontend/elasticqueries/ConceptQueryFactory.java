@@ -63,13 +63,7 @@ public class ConceptQueryFactory {
         List<QueryBuilder> mustNotParts = new ArrayList<>();
 
         if (request.getQuery() != null && !request.getQuery().isEmpty()) {
-            MultiMatchQueryBuilder labelQuery = QueryBuilders.multiMatchQuery(request.getQuery(), "label.*")
-                .type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
-                .minimumShouldMatch("90%");
-            if (request.getSortLanguage() != null && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(request.getSortLanguage()).matches()) {
-                labelQuery = labelQuery.field("label." + request.getSortLanguage(), 10);
-            }
-            mustParts.add(labelQuery);
+            mustParts.add(ElasticRequestUtils.buildPrefixSuffixQuery(request.getQuery()).field("label.*"));
         }
 
         final boolean directConceptsGiven = request.getConceptId() != null && request.getConceptId().length > 0;

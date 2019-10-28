@@ -123,7 +123,7 @@ public class FrontendElasticSearchService {
                 Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations, null);
                 SearchRequest query = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang(), superUser, incompleteFromTerminologies);
                 SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
-                deepSearchHits = deepConceptQueryFactory.parseResponse(response);
+                deepSearchHits = deepConceptQueryFactory.parseResponse(response, request);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
