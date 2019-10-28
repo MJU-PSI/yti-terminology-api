@@ -58,7 +58,7 @@ public final class ElasticRequestUtils {
                     final StandardQueryParser parser = new StandardQueryParser();
                     try {
                         parser.setAllowLeadingWildcard(true);
-                        LOG.info(" BuildLuceneQuery" + parsedQuery.toString());
+                        LOG.debug("Using Lucene query: '" + parsedQuery + "'");
                         return QueryBuilders.queryStringQuery(parser.parse(parsedQuery, "").toString());
                     } catch (final QueryNodeException e) {
                         // nop
