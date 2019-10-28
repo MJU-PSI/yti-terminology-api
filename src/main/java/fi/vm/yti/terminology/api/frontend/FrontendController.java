@@ -283,6 +283,7 @@ public class FrontendController {
         conf.dataModelUrl = this.serviceUrls.getDataModelUrl();
         conf.commentsUrl = this.serviceUrls.getCommentsUrl();
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
+        conf.messagingEnabled = this.serviceUrls.getMessagingEnabled();
         conf.env = this.serviceUrls.getEnv();
         conf.restrictFilterOptions = this.restrictFilterOptions;
 
