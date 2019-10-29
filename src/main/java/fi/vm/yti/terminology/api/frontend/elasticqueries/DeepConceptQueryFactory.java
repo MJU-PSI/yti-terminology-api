@@ -58,6 +58,7 @@ public class DeepConceptQueryFactory {
                                      boolean superUser,
                                      Set<String> incompleteFromTerminologies) {
 
+        // NOTE: In deep concept query the query should always be non-empty.
         QueryBuilder labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(query).field("label.*");
 
         // Block INCOMPLETE concepts from being shown to users who are not contributors of the terminology. Needed when the terminology itself is in some visible state.

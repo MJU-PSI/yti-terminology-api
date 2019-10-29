@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import fi.vm.yti.terminology.api.exception.InvalidQueryException;
+
 public final class ElasticRequestUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestUtils.class);
@@ -66,8 +68,8 @@ public final class ElasticRequestUtils {
                 }
             }
         }
-        LOG.error("Search term string disqualified: '" + searchTerm + "'");
-        return null;
+        LOG.warn("Search term string disqualified: '" + searchTerm + "'");
+        throw new InvalidQueryException();
     }
 
     public static @NotNull JsonNode responseContentAsJson(@NotNull ObjectMapper objectMapper,
