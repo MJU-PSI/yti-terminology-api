@@ -49,9 +49,7 @@
       "type": "keyword"
     },
     "modified": {
-      "type": "date",
-      "index": false
-    },
+      "type": "date"    },
     "broader": {
       "type": "keyword"
     },
