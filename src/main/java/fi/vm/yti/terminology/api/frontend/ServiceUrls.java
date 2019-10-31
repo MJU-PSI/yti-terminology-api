@@ -27,6 +27,8 @@ import javax.validation.constraints.NotNull;
         @NotNull
         private String env;
 
+        private boolean messagingEnabled;
+
         public String getCodeListUrl() {
             return codeListUrl;
         }
@@ -65,6 +67,14 @@ import javax.validation.constraints.NotNull;
 
         public void setEnv(String env) {
             this.env = env;
+        }
+
+        public boolean getMessagingEnabled() {
+            return messagingEnabled;
+        }
+
+        public void setMessagingEnabled(final boolean messagingEnabled) {
+            this.messagingEnabled = messagingEnabled;
         }
     }
 

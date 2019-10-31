@@ -3,26 +3,21 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchPhrasePrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,10 +70,9 @@ public class TerminologyQueryFactory {
 
         QueryBuilder incompleteQuery = statusAndContributorQuery(privilegedOrganizations);
 
-        MatchPhrasePrefixQueryBuilder labelQuery = null;
+        QueryBuilder labelQuery = null;
         if (!query.isEmpty()) {
-            labelQuery = QueryBuilders.matchPhrasePrefixQuery("properties.prefLabel.value", query);
-            sourceBuilder.highlighter(new HighlightBuilder().preTags("<b>").postTags("</b>").field("properties.prefLabel.value"));
+            labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(query).field("properties.prefLabel.value");
         }
 
         TermsQueryBuilder idQuery = null;
@@ -113,7 +107,8 @@ public class TerminologyQueryFactory {
         return createMatchingTerminologiesQuery(privilegedOrganizations, null);
     }
 
-    public SearchRequest createMatchingTerminologiesQuery(final Collection<String> privilegedOrganizations, final Collection<String> limitToThese) {
+    public SearchRequest createMatchingTerminologiesQuery(final Collection<String> privilegedOrganizations,
+                                                          final Collection<String> limitToThese) {
         // TODO: When terminology node ID starts to be "the" id then fetchSource(false) and modify parsing, and change id limit to terms query.
         final QueryBuilder contribQuery = QueryBuilders.termsQuery("references.contributor.id", privilegedOrganizations);
         QueryBuilder finalQuery = contribQuery;
@@ -143,7 +138,7 @@ public class TerminologyQueryFactory {
                 JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
                 //ret.add(hit.getId());
                 ret.add(terminology.get("type").get("graph").get("id").textValue());
-            } catch(Exception e) {
+            } catch (Exception e) {
                 log.error("Cannot parse matching terminologies response", e);
             }
         }
@@ -158,6 +153,7 @@ public class TerminologyQueryFactory {
         try {
             SearchHits hits = response.getHits();
             ret.setTotalHitCount(hits.getTotalHits());
+            Pattern highlightPattern = ElasticRequestUtils.createHighlightPattern(request.getQuery());
             for (SearchHit hit : hits) {
                 JsonNode terminology = objectMapper.readTree(hit.getSourceAsString());
                 // NOTE: terminology.get("id") would make more sense, but currently concepts contain only graph id => use it here also.
@@ -171,8 +167,7 @@ public class TerminologyQueryFactory {
                 Map<String, String> labelMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("prefLabel"));
                 Map<String, String> descriptionMap = ElasticRequestUtils.labelFromLangValueArray(properties.get("description"));
 
-                // TODO: Does not make sense if cannot make to highlight only matching chars
-                //handleHighlight(hit.getHighlightFields(), labelMap);
+                ElasticRequestUtils.highlightLabel(labelMap, highlightPattern);
 
                 JsonNode references = terminology.get("references");
                 JsonNode domainArray = references.get("inGroup");
@@ -201,27 +196,6 @@ public class TerminologyQueryFactory {
             log.error("Cannot parse terminology query response", e);
         }
         return ret;
-    }
-
-    private void handleHighlight(Map<String, HighlightField> highlightFields,
-                                 Map<String, String> labelMap) {
-        // TODO: Remove this .. err, interesting thing, when index contains things in "label: {fi: 'koira', se: 'hund'}" form
-        if (highlightFields != null) {
-            HighlightField field = highlightFields.get("properties.prefLabel.value");
-            if (field != null) {
-                Map<String, String> hmap = new HashMap<>();
-                for (Text fragment : field.getFragments()) {
-                    String highlightedLabel = fragment.string();
-                    String lowlightedLabel = highlightedLabel.replaceAll("</?b>", "");
-                    for (Map.Entry<String, String> entry : labelMap.entrySet()) {
-                        if (lowlightedLabel.equals(entry.getValue())) {
-                            hmap.put(entry.getKey(), highlightedLabel);
-                        }
-                    }
-                }
-                labelMap.putAll(hmap);
-            }
-        }
     }
 
     private int pageSize(TerminologySearchRequest request) {

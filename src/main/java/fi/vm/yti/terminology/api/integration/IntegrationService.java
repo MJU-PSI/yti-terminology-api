@@ -56,6 +56,7 @@ import fi.vm.yti.terminology.api.model.termed.Graph;
 import fi.vm.yti.terminology.api.model.termed.Identifier;
 import fi.vm.yti.terminology.api.model.termed.MetaNode;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
+import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 
 @Service
@@ -159,7 +160,6 @@ public class IntegrationService {
     private SearchRequest createContainersQuery(IntegrationContainerRequest request) {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        LuceneQueryFactory luceneQueryFactory = new LuceneQueryFactory();
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
@@ -240,7 +240,7 @@ public class IntegrationService {
 
         // if search-term is given, match for all labels
         if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
-            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+            QueryStringQueryBuilder labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("properties.prefLabel.value");
             mustList.add(labelQuery);
         }
@@ -456,7 +456,6 @@ public class IntegrationService {
     private SearchRequest createResourcesQuery(IntegrationResourceRequest request) {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        LuceneQueryFactory luceneQueryFactory = new LuceneQueryFactory();
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> mustList = boolQuery.must();
@@ -521,7 +520,7 @@ public class IntegrationService {
         // if search-term is given, match for all labels
         if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
             logger.info("Additional SearchTerm=" + request.getSearchTerm());
-            QueryStringQueryBuilder labelQuery = luceneQueryFactory.buildPrefixSuffixQuery(request.getSearchTerm())
+            QueryStringQueryBuilder labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
         }

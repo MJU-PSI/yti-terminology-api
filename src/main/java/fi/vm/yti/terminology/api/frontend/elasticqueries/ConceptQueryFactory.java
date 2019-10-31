@@ -63,13 +63,7 @@ public class ConceptQueryFactory {
         List<QueryBuilder> mustNotParts = new ArrayList<>();
 
         if (request.getQuery() != null && !request.getQuery().isEmpty()) {
-            MultiMatchQueryBuilder labelQuery = QueryBuilders.multiMatchQuery(request.getQuery(), "label.*")
-                .type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
-                .minimumShouldMatch("90%");
-            if (request.getSortLanguage() != null && ElasticRequestUtils.LANGUAGE_CODE_PATTERN.matcher(request.getSortLanguage()).matches()) {
-                labelQuery = labelQuery.field("label." + request.getSortLanguage(), 10);
-            }
-            mustParts.add(labelQuery);
+            mustParts.add(ElasticRequestUtils.buildPrefixSuffixQuery(request.getQuery()).field("label.*"));
         }
 
         final boolean directConceptsGiven = request.getConceptId() != null && request.getConceptId().length > 0;
@@ -162,7 +156,7 @@ public class ConceptQueryFactory {
     }
 
     public ConceptSearchResponse parseResponse(SearchResponse response,
-                                               int pageFrom) {
+                                               ConceptSearchRequest request) {
         if (response != null) {
             SearchHits hitsContainer = response.getHits();
             if (hitsContainer != null) {
@@ -170,6 +164,11 @@ public class ConceptQueryFactory {
                 final SearchHit[] hits = hitsContainer.getHits();
                 final List<ConceptDTO> concepts = new ArrayList<>();
                 if (hits != null) {
+                    Pattern highlightPattern = null;
+                    if (request.getHighlight() != null && request.getHighlight().booleanValue() && request.getQuery() != null && !request.getQuery().isEmpty()) {
+                        highlightPattern = ElasticRequestUtils.createHighlightPattern(request.getQuery());
+                    }
+
                     for (SearchHit hit : hits) {
                         try {
                             final JsonNode concept = objectMapper.readTree(hit.getSourceAsString());
@@ -208,13 +207,17 @@ public class ConceptQueryFactory {
                                 terminology = new TerminologySimpleDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, terminologyLabelMap);
                             }
 
+                            if (highlightPattern != null) {
+                                ElasticRequestUtils.highlightLabel(labelMap, highlightPattern);
+                            }
+
                             concepts.add(new ConceptDTO(id, uri, status, labelMap, altLabelMap, definitionMap, modified, narrower, broader, terminology));
                         } catch (Exception e) {
                             log.error("Error while parsing a concept hit", e);
                         }
                     }
                 }
-                return new ConceptSearchResponse(total, pageFrom, concepts);
+                return new ConceptSearchResponse(total, request.getPageFrom() != null ? request.getPageFrom().intValue() : 0, concepts);
             }
         }
         return new ConceptSearchResponse();

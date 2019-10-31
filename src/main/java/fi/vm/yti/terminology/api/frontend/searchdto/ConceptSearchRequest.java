@@ -54,6 +54,7 @@ public class ConceptSearchRequest {
     private String sortLanguage;
     private Integer pageSize;
     private Integer pageFrom;
+    private Boolean highlight;
     private Options options;
 
     public String getQuery() {
@@ -152,6 +153,14 @@ public class ConceptSearchRequest {
         this.pageFrom = pageFrom;
     }
 
+    public Boolean getHighlight() {
+        return highlight;
+    }
+
+    public void setHighlight(final Boolean highlight) {
+        this.highlight = highlight;
+    }
+
     public Options getOptions() {
         return options;
     }
@@ -175,6 +184,7 @@ public class ConceptSearchRequest {
             ", sortLanguage='" + sortLanguage + '\'' +
             ", pageSize=" + pageSize +
             ", pageFrom=" + pageFrom +
+            ", highlight=" + highlight +
             ", options=" + options +
             '}';
     }
