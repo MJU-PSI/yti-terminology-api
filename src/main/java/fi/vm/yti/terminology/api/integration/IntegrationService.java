@@ -165,6 +165,10 @@ public class IntegrationService {
         List<QueryBuilder> mustList = boolQuery.must();
         List<QueryBuilder> mustNotList = boolQuery.mustNot();
 
+        if (request.getBefore() != null) {
+            mustList.add(QueryBuilders.rangeQuery("lastModifiedDate").lt(request.getBefore()));
+        }
+
         if (request.getAfter() != null) {
             mustList.add(QueryBuilders.rangeQuery("lastModifiedDate").gte(request.getAfter()).to("now"));
         }
@@ -537,6 +541,10 @@ public class IntegrationService {
 
             // Just ensure that it accept also INCOMPLETE states
             request.setIncludeIncomplete(true);
+        }
+
+        if (request.getBefore() != null) {
+            mustList.add(QueryBuilders.rangeQuery("modified").lt(request.getBefore()));
         }
 
         if (request.getAfter() != null) {

@@ -24,6 +24,7 @@ public class IntegrationResourceRequest {
     private String language;
     private String container;
     private Set<String> status;
+    private String before;
     private String after;
     private Set<String> filter;
     private Set<String> uri;
@@ -40,6 +41,7 @@ public class IntegrationResourceRequest {
                                       final Set<String> uri,
                                       final String language,
                                       final Set<String> status,
+                                      final String before,
                                       final String after,
                                       final Set<String> filter,
                                       final boolean includeIncomplete,
@@ -51,6 +53,7 @@ public class IntegrationResourceRequest {
         this.container = container;
         this.status = status;
         this.uri = uri;
+        this.before = before;
         this.after = after;
         this.filter = filter;
         this.includeIncomplete = includeIncomplete;
@@ -159,6 +162,7 @@ public class IntegrationResourceRequest {
             ", container='" + container + '\'' +
             ", uri='" + uri + '\'' +
             ", status='" + status + '\'' +
+            ", before='" + before + '\'' +
             ", after='" + after + '\'' +
             ", filter=" + filter +
             ", includeIncomplete=" + includeIncomplete +
@@ -167,4 +171,26 @@ public class IntegrationResourceRequest {
             ", pageFrom=" + pageFrom +
             '}';
     }
+
+    /**
+     * @return String return the before
+     */
+    public String getBefore() {
+        return before;
+    }
+
+    /**
+     * @param before the before to set
+     */
+    public void setBefore(String before) {
+        this.before = before;
+    }
+
+    /**
+     * @return boolean return the includeIncomplete
+     */
+    public boolean isIncludeIncomplete() {
+        return includeIncomplete;
+    }
+
 }

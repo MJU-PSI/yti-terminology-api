@@ -65,6 +65,7 @@ public class IntegrationController {
             @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Boolean whether to include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
             @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
+            @ApiParam(value = "Before date filtering parameter, results will be containers with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
             @ApiParam(value = "After date filtering parameter, results will be containers with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after) {
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.containers.GET");
@@ -77,6 +78,7 @@ public class IntegrationController {
         containersRequest.setStatus(statusEnum);
         containersRequest.setUri(uri);
         containersRequest.setSearchTerm(searchTerm);
+        containersRequest.setBefore(before);
         containersRequest.setAfter(after);
         containersRequest.setIncludeIncomplete(incomplete);
         containersRequest.setIncludeIncompleteFrom(includeIncompleteFrom);
@@ -104,6 +106,7 @@ public class IntegrationController {
             @ApiParam(value = "Queried statuses in CSL format.") @RequestParam(value = "status", required = false) Set<String> status,
             @ApiParam(value = "Boolean whether to include resources from all incomplete conainers in the response.") @RequestParam(value = "includeIncomplete", required = false) boolean includeIncomplete,
             @ApiParam(value = "User organizations filtering parameter, for filtering resources from incomplete containers") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
+            @ApiParam(value = "Before date filtering parameter, results will be resources with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
             @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after,
             @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
             @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
@@ -117,6 +120,7 @@ public class IntegrationController {
         request.setContainer(container);
         request.setLanguage(lang);
         request.setStatus(status);
+        request.setBefore(before);
         request.setFilter(filter);
         request.setAfter(after);
         request.setSearchTerm(searchTerm);

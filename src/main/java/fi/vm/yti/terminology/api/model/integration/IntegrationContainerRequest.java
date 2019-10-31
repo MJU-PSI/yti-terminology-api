@@ -13,6 +13,7 @@ public class IntegrationContainerRequest {
     private Set<String> includeIncompleteFrom;
     private Set<String> status;
     private Set<String> uri;
+    private String before;
     private String after;
     private Set<String> filter;
     private Integer pageSize;
@@ -25,6 +26,7 @@ public class IntegrationContainerRequest {
                                       final boolean includeIncomplete,
                                       final Set<String> includeIncompleteFrom,                                      
                                       final Set<String> status,
+                                      final String before,
                                       final String after,
                                       final Set<String> filter,
                                       final Set<String> uri,
@@ -36,6 +38,7 @@ public class IntegrationContainerRequest {
         this.includeIncompleteFrom = includeIncompleteFrom;
         this.status = status;
         this.uri = uri;
+        this.before = before;
         this.after = after;
         this.filter = filter;
         this.pageSize = pageSize;
@@ -137,10 +140,33 @@ public class IntegrationContainerRequest {
             "searchTerm='" + searchTerm + '\'' +
             ", language='" + language + '\'' +
             ", status='" + status + '\'' +
+            ", before='" + before + '\'' +
             ", after='" + after + '\'' +
             ", filter=" + filter +
             ", pageSize=" + pageSize +
             ", pageFrom=" + pageFrom +
             '}';
     }
+
+    /**
+     * @return boolean return the includeIncomplete
+     */
+    public boolean isIncludeIncomplete() {
+        return includeIncomplete;
+    }
+
+    /**
+     * @return String return the before
+     */
+    public String getBefore() {
+        return before;
+    }
+
+    /**
+     * @param before the before to set
+     */
+    public void setBefore(String before) {
+        this.before = before;
+    }
+
 }
