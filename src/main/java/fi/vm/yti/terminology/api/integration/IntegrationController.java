@@ -104,7 +104,7 @@ public class IntegrationController {
             @ApiParam(value = "Queried statuses in CSL format.") @RequestParam(value = "status", required = false) Set<String> status,
             @ApiParam(value = "Boolean whether to include resources from all incomplete conainers in the response.") @RequestParam(value = "includeIncomplete", required = false) boolean includeIncomplete,
             @ApiParam(value = "User organizations filtering parameter, for filtering resources from incomplete containers") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
-            @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) Date after,
+            @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after,
             @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
             @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,

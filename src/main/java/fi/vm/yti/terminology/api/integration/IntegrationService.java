@@ -541,7 +541,7 @@ public class IntegrationService {
         }
 
         if (request.getAfter() != null) {
-            mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()));
+            mustList.add(QueryBuilders.rangeQuery("modified").gte(request.getAfter()).to("now"));
         }
 
         if (request.getFilter() != null) {

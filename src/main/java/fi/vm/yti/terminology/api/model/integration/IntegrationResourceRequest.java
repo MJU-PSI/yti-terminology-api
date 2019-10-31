@@ -24,7 +24,7 @@ public class IntegrationResourceRequest {
     private String language;
     private String container;
     private Set<String> status;
-    private Date after;
+    private String after;
     private Set<String> filter;
     private Set<String> uri;
     private boolean includeIncomplete;
@@ -40,7 +40,7 @@ public class IntegrationResourceRequest {
                                       final Set<String> uri,
                                       final String language,
                                       final Set<String> status,
-                                      final Date after,
+                                      final String after,
                                       final Set<String> filter,
                                       final boolean includeIncomplete,
                                       final Set<String> includeIncompleteFrom,                                      
@@ -99,11 +99,11 @@ public class IntegrationResourceRequest {
         this.status = status;
     }
 
-    public Date getAfter() {
+    public String getAfter() {
         return after;
     }
 
-    public void setAfter(final Date after) {
+    public void setAfter(final String after) {
         this.after = after;
     }
 
