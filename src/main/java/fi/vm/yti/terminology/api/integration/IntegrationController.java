@@ -26,7 +26,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
 @RestController
-@RequestMapping("/integration")
+@RequestMapping("/api/v1/integration")
 public class IntegrationController {
 
     private final IntegrationService integrationService;

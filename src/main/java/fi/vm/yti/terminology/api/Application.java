@@ -16,7 +16,6 @@ import java.util.concurrent.Executor;
 @EnableScheduling
 @EnableAsync
 @EnableJms
-@ComponentScan({"fi.vm.yti.terminology.api"})
 public class Application {
 
     public static void main(String[] args) {

@@ -10,7 +10,7 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @RestController
-@RequestMapping(value = "/synchronize")
+@RequestMapping(value = "/api/v1/synchronize")
 public class SynchronizationController {
 
     private final SynchronizationService synchronizationService;
@@ -24,7 +24,7 @@ public class SynchronizationController {
 
     @RequestMapping(method = GET, produces = TEXT_PLAIN_VALUE)
     public String synchronize() {
-        logger.info("GET /synchronize requested");
+        logger.info("GET /api/v1/synchronize requested");
         synchronizationService.synchronize();
         return "OK!";
     }

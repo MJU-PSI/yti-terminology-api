@@ -18,7 +18,7 @@ public class SwaggerConfig {
                 .groupName("frontend")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/frontend/**"))
+                .paths(PathSelectors.ant("/api/v1/frontend/**"))
                 .build();
     }
 
@@ -28,7 +28,7 @@ public class SwaggerConfig {
                 .groupName("reindex")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/reindex"))
+                .paths(PathSelectors.ant("/api/v1/reindex"))
                 .build();
     }
 
@@ -38,7 +38,7 @@ public class SwaggerConfig {
                 .groupName("synchronize")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/synchronize"))
+                .paths(PathSelectors.ant("/api/v1/synchronize"))
                 .build();
     }
 
@@ -48,7 +48,7 @@ public class SwaggerConfig {
                 .groupName("import")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/importapi/**"))
+                .paths(PathSelectors.ant("/api/v1/import/**"))
                 .build();
     }
 
@@ -58,7 +58,7 @@ public class SwaggerConfig {
                 .groupName("export")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/export/**"))
+                .paths(PathSelectors.ant("/api/v1/export/**"))
                 .build();
     }
 
@@ -68,7 +68,7 @@ public class SwaggerConfig {
                 .groupName("integration")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/integration/**"))
+                .paths(PathSelectors.ant("/api/v1/integration/**"))
                 .build();
     }
 
@@ -78,7 +78,7 @@ public class SwaggerConfig {
                 .groupName("publicapi")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/terminology/publicapi/**"))
+                .paths(PathSelectors.ant("/api/v1/terminology/public/**"))
                 .build();
     }
 }

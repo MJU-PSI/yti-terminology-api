@@ -10,7 +10,7 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @RestController
-@RequestMapping("/reindex")
+@RequestMapping("/api/v1/reindex")
 public class ReindexController {
 
     private final IndexElasticSearchService elasticSearchService;
@@ -24,7 +24,7 @@ public class ReindexController {
 
     @RequestMapping(method = GET, produces = TEXT_PLAIN_VALUE)
     public String reindex() {
-        logger.info("GET /reindex");
+        logger.info("GET /api/v1/reindex");
         this.elasticSearchService.reindex();
         return "OK!";
     }

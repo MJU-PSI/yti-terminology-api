@@ -36,7 +36,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
-@RequestMapping("/frontend")
+@RequestMapping("/api/v1/frontend")
 public class FrontendController {
 
     private final FrontendTermedService termedService;
