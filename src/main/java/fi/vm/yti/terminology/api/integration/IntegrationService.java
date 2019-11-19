@@ -138,7 +138,10 @@ public class IntegrationService {
                 if (source != null) {
                     // System.out.println("containers-Response=" +
                     // JsonUtils.prettyPrintJsonAsString(source));
-                    resp.add(parseContainerResponse(source));
+                    ContainersResponse cr = parseContainerResponse(source);
+                    // Set return type
+                    cr.setType("terminology");
+                    resp.add(cr);
                 } else {
                     logger.error("Missing containers source. Hits:" + hit);
                 }
@@ -427,6 +430,7 @@ public class IntegrationService {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
                     ContainersResponse node = parseResourceResponse(source);
+                    node.setType("consept");
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
                         resp.add(node);
                     } else {
@@ -445,7 +449,7 @@ public class IntegrationService {
             logger.debug("total result count=" + meta.getTotalResults());
             logger.debug("current block  result count=" + meta.getResultCount());
         }
-
+       
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
         wrapper.setResults(resp);
@@ -466,20 +470,29 @@ public class IntegrationService {
         List<QueryBuilder> mustNotList = boolQuery.mustNot();
 
         String terminologyNamespaceUri = null;
-        if (request.getContainer() != null && !request.getContainer().isEmpty()) {
-            terminologyNamespaceUri = request.getContainer();
-            if (!terminologyNamespaceUri.endsWith("/")) {
-                terminologyNamespaceUri = terminologyNamespaceUri + "/";
+        Set<String> terminologyNsUris = null;
+        if (request.getUri() != null && !request.getUri().isEmpty()) {
+            terminologyNsUris = new HashSet<>();
+            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
+            for (String uriFromRequest : request.getUri()) {
+                if (!uriFromRequest.endsWith("/")) {
+                    uriFromRequest = uriFromRequest + "/";
+                }
+                if (namespacePattern.matcher(uriFromRequest).matches()) {
+                    uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
+                } else {
+                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
+                }
+                terminologyNsUris.add(uriFromRequest);
             }
-            if (namespacePattern.matcher(terminologyNamespaceUri).matches()) {
-                mustList.add(QueryBuilders.prefixQuery("vocabulary.uri", terminologyNamespaceUri));
-            } else {
-                logger.warn("Container parameter is probably invalid: " + request.getContainer());
-                mustList.add(QueryBuilders.termQuery("vocabulary.uri", terminologyNamespaceUri)); // basically will not
-                                                                                                  // match
-            }
+            uriBoolQuery.minimumShouldMatch(1);
+            mustList.add(uriBoolQuery);
+        } else {
+            // Don't return items without URI
+            mustList.add(QueryBuilders.existsQuery("uri"));
         }
-
+        
         // Checks regarding the "visibility" of INCOMPLETE containers (terminologies)
         // and resources (concepts).
         {
@@ -527,20 +540,6 @@ public class IntegrationService {
             QueryStringQueryBuilder labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
-        }
-
-        if (request.getUri() != null && !request.getUri().isEmpty()) {
-            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
-            // add actual status filtering
-            // Add individual uris into the query
-            request.getUri().forEach(o -> {
-                uriBoolQuery.should(QueryBuilders.matchQuery("uri", o));
-            });
-            uriBoolQuery.minimumShouldMatch(1);
-            mustList.add(uriBoolQuery);
-
-            // Just ensure that it accept also INCOMPLETE states
-            request.setIncludeIncomplete(true);
         }
 
         if (request.getBefore() != null) {
