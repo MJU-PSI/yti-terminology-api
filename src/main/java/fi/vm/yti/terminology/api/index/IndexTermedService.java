@@ -40,7 +40,11 @@ public class IndexTermedService {
     }
 
 	public void deleteChangeListener(@NotNull String hookId) {
-        termedRequester.exchange("/hooks/" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class);
+        termedRequester.exchange("/hooks" + hookId, HttpMethod.DELETE, Parameters.empty(), String.class);
+    }
+
+    public void deleteChangeListeners() {
+        termedRequester.exchange("/hooks", HttpMethod.DELETE, Parameters.empty(), String.class);
     }
 
 	public @Nullable String registerChangeListener(@NotNull String url) {
