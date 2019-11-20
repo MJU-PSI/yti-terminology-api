@@ -449,7 +449,7 @@ public class IntegrationService {
             logger.debug("total result count=" + meta.getTotalResults());
             logger.debug("current block  result count=" + meta.getResultCount());
         }
-       
+
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
         wrapper.setResults(resp);
@@ -469,7 +469,27 @@ public class IntegrationService {
         List<QueryBuilder> mustList = boolQuery.must();
         List<QueryBuilder> mustNotList = boolQuery.mustNot();
 
-        String terminologyNamespaceUri = null;
+        // Containert filtering
+        Set<String> terminologyContainerUris = null;
+        if (request.getContainer() != null && !request.getContainer().isEmpty()) {
+            terminologyContainerUris = new HashSet<>();
+            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
+            for (String uriFromRequest : request.getContainer()) {
+                if (!uriFromRequest.endsWith("/")) {
+                    uriFromRequest = uriFromRequest + "/";
+                }
+                if (namespacePattern.matcher(uriFromRequest).matches()) {
+                    uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
+                } else {
+                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
+                }
+                terminologyContainerUris.add(uriFromRequest);
+            }
+            uriBoolQuery.minimumShouldMatch(1);
+            mustList.add(uriBoolQuery);
+        }
+        // Handle namespace uri list.
         Set<String> terminologyNsUris = null;
         if (request.getUri() != null && !request.getUri().isEmpty()) {
             terminologyNsUris = new HashSet<>();
@@ -488,11 +508,13 @@ public class IntegrationService {
             }
             uriBoolQuery.minimumShouldMatch(1);
             mustList.add(uriBoolQuery);
-        } else {
+        }
+         
+        if(request.getContainer() == null && request.getUri() ==null){
             // Don't return items without URI
             mustList.add(QueryBuilders.existsQuery("uri"));
         }
-        
+
         // Checks regarding the "visibility" of INCOMPLETE containers (terminologies)
         // and resources (concepts).
         {
@@ -500,7 +522,7 @@ public class IntegrationService {
             // parameter includeIncomplete.
             final boolean incompleteFromSetGiven = request.getIncludeIncompleteFrom() != null
                     && !request.getIncludeIncompleteFrom().isEmpty();
-            final boolean directContainerUriGiven = terminologyNamespaceUri != null;
+            final boolean directContainerUriGiven = terminologyNsUris != null;
             final boolean superUserGiven = request.getIncludeIncomplete();
             final boolean bypassAllChecks = (superUserGiven && !incompleteFromSetGiven) || (directContainerUriGiven
                     && CONFIG_DO_NOT_CHECK_STATE_OF_GIVEN_CONTAINERS && CONFIG_ONLY_CHECK_CONTAINER_STATE);
@@ -511,7 +533,7 @@ public class IntegrationService {
                         // In this case the ID set should have at most one ID, but the same logic
                         // suffices
                         terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(),
-                                Collections.singleton(terminologyNamespaceUri));
+                                terminologyNsUris);
                     } else {
                         terminologyIds = resolveTerminologiesMatchingOrganizations(request.getIncludeIncompleteFrom(),
                                 Collections.emptySet());
@@ -615,7 +637,7 @@ public class IntegrationService {
         }
         if (source.get("uri") != null) {
             uri = source.get("uri").asText();
-            // container is
+            // container is part of the uri
             // Remove code from uri so
             container = uri.substring(0, uri.lastIndexOf("/")) + "/";
         } else {
