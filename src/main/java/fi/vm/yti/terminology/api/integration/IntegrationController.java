@@ -1,10 +1,5 @@
 package fi.vm.yti.terminology.api.integration;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-
-import java.util.Date;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,55 +13,65 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.AuthorizationException;
+import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.model.integration.ConceptSuggestionRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
 @RequestMapping("/api/v1/integration")
 public class IntegrationController {
 
     private final IntegrationService integrationService;
+    private final AuthenticatedUserProvider userProvider;
 
     private static final Logger logger = LoggerFactory.getLogger(IntegrationController.class);
 
-    public IntegrationController(IntegrationService integrationService) {
+    public IntegrationController(IntegrationService integrationService,
+                                 AuthenticatedUserProvider userProvider) {
         this.integrationService = integrationService;
+        this.userProvider = userProvider;
     }
 
     /**
-     * 
-     * @param vocabularyId
-     * @param after
      * @param incomingConcept
      * @return
      */
-    @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list, pref-labels, descriptions, status and modified date")
+    @ApiResponse(code = 200, message = "Returns JSON with basic info of created suggestion, or an error string")
     @RequestMapping(value = "/terminology/conceptSuggestion", method = POST, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(@Context HttpServletRequest req,
-            @RequestBody ConceptSuggestionRequest incomingConcept) {
-        if (req != null) {
-            logger.debug("ConceptSuggestion incoming reaquest from" + req.getRemoteHost());
+                                             @RequestBody ConceptSuggestionRequest incomingConcept) {
+        logger.info("POST /api/v1/integration/terminology/conceptSuggestion from " + (req != null ? req.getRemoteHost() : "N/A"));
+        YtiUser user = userProvider.getUser();
+        if (!user.isAnonymous()) {
+            incomingConcept.setCreator(user.getId().toString());
+            return integrationService.handleConceptSuggestion(incomingConcept);
+        } else {
+            throw new AuthorizationException("Making concept suggestions require authorized user");
         }
-        return integrationService.handleConceptSuggestion(incomingConcept);
     }
 
     @ApiResponse(code = 200, message = "Returns JSON with Vocabulary-list.")
     @RequestMapping(value = "/containers", method = GET, produces = APPLICATION_JSON_VALUE)
     ResponseEntity<String> containers(
-            @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false) String language,
-            @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
-            @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
-            @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
-            @ApiParam(value = "URI of the requested containers in CSL format.") @RequestParam(value = "uri", required = false) Set<String> uri,
-            @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
-            @ApiParam(value = "Boolean whether to include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
-            @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
-            @ApiParam(value = "Before date filtering parameter, results will be containers with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
-            @ApiParam(value = "After date filtering parameter, results will be containers with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after) {
+        @ApiParam(value = "Language code for sorting results.") @RequestParam(value = "language", required = false) String language,
+        @ApiParam(value = "Pagination parameter for page size.") @RequestParam(value = "pageSize", required = true, defaultValue = "0") int pageSize,
+        @ApiParam(value = "Pagination parameter for start index.") @RequestParam(value = "from", required = false, defaultValue = "0") int from,
+        @ApiParam(value = "Status enumerations in CSL format.") @RequestParam(value = "status", required = false) Set<String> statusEnum,
+        @ApiParam(value = "URI of the requested containers in CSL format.") @RequestParam(value = "uri", required = false) Set<String> uri,
+        @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
+        @ApiParam(value = "Boolean whether to include incomplete states into the response.") @RequestParam(value = "includeIncomplete", required = false) boolean incomplete,
+        @ApiParam(value = "User organizations filtering parameter, for filtering incomplete resources") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
+        @ApiParam(value = "Before date filtering parameter, results will be containers with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
+        @ApiParam(value = "After date filtering parameter, results will be containers with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after) {
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.containers.GET");
         }
@@ -96,22 +101,22 @@ public class IntegrationController {
 
     @RequestMapping(value = "/resources", method = GET, produces = APPLICATION_JSON_VALUE)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Returns JSON with Concept-list."),
-            @ApiResponse(code = 400, message = "Invalid model supplied"),
-            @ApiResponse(code = 404, message = "Service not found"),
-            @ApiResponse(code = 500, message = "Internal server error") })
+        @ApiResponse(code = 400, message = "Invalid model supplied"),
+        @ApiResponse(code = 404, message = "Service not found"),
+        @ApiResponse(code = 500, message = "Internal server error") })
     ResponseEntity<String> resources(
-            @ApiParam(value = "Container URL list") @RequestParam(value = "container", required = false) Set<String> container,
-            @ApiParam(value = "Required URI list in CSL format") @RequestParam(value = "uri", required = false) Set<String> uri,
-            @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
-            @ApiParam(value = "Queried statuses in CSL format.") @RequestParam(value = "status", required = false) Set<String> status,
-            @ApiParam(value = "Boolean whether to include resources from all incomplete conainers in the response.") @RequestParam(value = "includeIncomplete", required = false) boolean includeIncomplete,
-            @ApiParam(value = "User organizations filtering parameter, for filtering resources from incomplete containers") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
-            @ApiParam(value = "Before date filtering parameter, results will be resources with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
-            @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after,
-            @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
-            @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
-            @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,
-            @ApiParam(value = "From") @RequestParam(value = "from", required = false) Integer from) {
+        @ApiParam(value = "Container URL list") @RequestParam(value = "container", required = false) Set<String> container,
+        @ApiParam(value = "Required URI list in CSL format") @RequestParam(value = "uri", required = false) Set<String> uri,
+        @ApiParam(value = "Language") @RequestParam(value = "language", required = false) String lang,
+        @ApiParam(value = "Queried statuses in CSL format.") @RequestParam(value = "status", required = false) Set<String> status,
+        @ApiParam(value = "Boolean whether to include resources from all incomplete conainers in the response.") @RequestParam(value = "includeIncomplete", required = false) boolean includeIncomplete,
+        @ApiParam(value = "User organizations filtering parameter, for filtering resources from incomplete containers") @RequestParam(value = "includeIncompleteFrom", required = false) Set<String> includeIncompleteFrom,
+        @ApiParam(value = "Before date filtering parameter, results will be resources with modified date before this ISO 8601 formatted date string.") @RequestParam(value = "before", required = false) String before,
+        @ApiParam(value = "After date filtering parameter, results will be resources with modified date after this ISO 8601 formatted date string.") @RequestParam(value = "after", required = false) String after,
+        @ApiParam(value = "Exclude filtering parameter, for ") @RequestParam(value = "filter", required = false) Set<String> filter,
+        @ApiParam(value = "Textual search query") @RequestParam(value = "searchTerm", required = false) String searchTerm,
+        @ApiParam(value = "Pagesize") @RequestParam(value = "pageSize", required = false) Integer pageSize,
+        @ApiParam(value = "From") @RequestParam(value = "from", required = false) Integer from) {
 
         if (logger.isDebugEnabled()) {
             logger.debug("integrationController.resources");

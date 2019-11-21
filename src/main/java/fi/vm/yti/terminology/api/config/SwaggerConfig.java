@@ -23,23 +23,13 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public Docket reindexApi() {
+    public Docket integrationApi() {
         return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("reindex")
-                .select()
-                .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/api/v1/reindex"))
-                .build();
-    }
-
-    @Bean
-    public Docket synchronizeApi() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("synchronize")
-                .select()
-                .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/api/v1/synchronize"))
-                .build();
+            .groupName("integration")
+            .select()
+            .apis(RequestHandlerSelectors.any())
+            .paths(PathSelectors.ant("/api/v1/integration/**"))
+            .build();
     }
 
     @Bean
@@ -63,22 +53,42 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public Docket integrationApi() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("integration")
-                .select()
-                .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/api/v1/integration/**"))
-                .build();
-    }
-
-    @Bean
     public Docket publicApi() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .groupName("publicapi")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.ant("/api/v1/terminology/public/**"))
+                .paths(PathSelectors.ant("/api/v1/public/**"))
                 .build();
+    }
+
+    @Bean
+    public Docket systemApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+            .groupName("system")
+            .select()
+            .apis(RequestHandlerSelectors.any())
+            .paths(PathSelectors.ant("/api/v1/system/**"))
+            .build();
+    }
+
+    @Bean
+    public Docket adminApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+            .groupName("admin")
+            .select()
+            .apis(RequestHandlerSelectors.any())
+            .paths(PathSelectors.ant("/api/v1/admin/**"))
+            .build();
+    }
+
+    @Bean
+    public Docket privateApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+            .groupName("private")
+            .select()
+            .apis(RequestHandlerSelectors.any())
+            .paths(PathSelectors.ant("/private/v1/**"))
+            .build();
     }
 }
