@@ -39,7 +39,7 @@ public class NotificationController {
         this.elasticSearchService = elasticSearchService;
     }
 
-    @RequestMapping
+    @RequestMapping("")
     public void notify(@RequestBody TermedNotification notification) {
         logger.info("/private/v1/notify requested with notification.user: " + notification.body.user + " and node identifier ids:");
         for (final Identifier ident: notification.body.nodes) {
