@@ -1,5 +1,10 @@
 package fi.vm.yti.terminology.api.integration;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+
+import java.util.Date;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +47,9 @@ public class IntegrationController {
     }
 
     /**
+     * 
+     * @param vocabularyId
+     * @param after
      * @param incomingConcept
      * @return
      */

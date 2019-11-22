@@ -141,7 +141,9 @@ public class IndexElasticSearchService {
             }
         });
         long end = System.currentTimeMillis();
-        log.info("Vocabulary Search took " + (end - start));
+        if (log.isDebugEnabled()) {
+            log.debug("Vocabulary Search took " + (end - start));
+        }
         if (vocabularies.isEmpty()) {
             return; // Nothing to do
         }
@@ -300,10 +302,11 @@ public class IndexElasticSearchService {
     }
 
     private void reindexGraph(@NotNull UUID graphId, boolean waitForRefresh) {
-        log.info("Trying to index concepts of graph " + graphId);
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
+        if (concepts != null && !concepts.isEmpty()) {
         bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), waitForRefresh);
-        log.info("Indexed " + concepts.size() + " concepts");
+            log.info("Graph:" + graphId + " Indexed " + concepts.size() + " concepts");
+        }
     }
 
     private void deleteIndex() {
@@ -421,8 +424,14 @@ public class IndexElasticSearchService {
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
 
         if (isSuccess(response)) {
-            log.info("Successfully added/updated concepts documents to elasticsearch index: " + updateConcepts.size());
-            log.info("Successfully deleted concepts  documents from elasticsearch index: " + deleteConceptsIds.size());
+            if (updateConcepts.size() > 0 && log.isDebugEnabled()) {
+                log.debug("Successfully added/updated concepts documents to elasticsearch index: "
+                        + updateConcepts.size());
+            }
+            if (deleteConceptsIds.size() > 0 && log.isDebugEnabled()) {
+                log.debug("Successfully deleted concepts  documents from elasticsearch index: "
+                        + deleteConceptsIds.size());
+            }
         } else {
             log.warn("Unable to add or update concepts document to elasticsearch index: " + updateConcepts.size());
             log.warn("Unable to delete concepts document from elasticsearch index: " + deleteConceptsIds.size());

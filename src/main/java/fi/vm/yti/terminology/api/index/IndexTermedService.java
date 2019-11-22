@@ -104,7 +104,7 @@ public class IndexTermedService {
                     .map(conceptId -> Concept.createFromAllNodeResult(conceptId, vocabularyNodeId.get(), allNodesResult))
                     .collect(toList());
         } else {
-            log.warn("Vocabulary not found for graph: " + graphId);
+            log.warn("Concepts not found for graph: " + graphId);
             return emptyList();
         }
 	}
@@ -187,7 +187,9 @@ public class IndexTermedService {
         long start = System.currentTimeMillis();
         JsonNode json = getFullVocabularyNode(graphId, VocabularyType.TerminologicalVocabulary);
         long end = System.currentTimeMillis();
+        if (log.isDebugEnabled()) {
         log.info("Vocabulary Search took " + (end-start) + "ms");
+        }
         if (json != null) {
             return json;
         } else {
