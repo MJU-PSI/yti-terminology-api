@@ -140,10 +140,6 @@ public class IndexElasticSearchService {
                 vocabularies.add(jn);
             }
         });
-        long end = System.currentTimeMillis();
-        if (log.isDebugEnabled()) {
-            log.debug("Vocabulary Search took " + (end - start));
-        }
         if (vocabularies.isEmpty()) {
             return; // Nothing to do
         }
@@ -176,20 +172,21 @@ public class IndexElasticSearchService {
             log.debug("Request:" + entity);
         }
         Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
+        long end = System.currentTimeMillis();
         if (log.isDebugEnabled()) {
             log.debug("Response:" + response + "\n Response status line" + response.getStatusLine());
-        }
+        }      
         if (isSuccess(response)) {
-            log.info("Successfully added/updated documents to elasticsearch index: " + vocabularies.size());
+            log.info("Successfully indexed " + vocabularies.size()+" terminologies in "+(end-start)+"ms");
         } else {
-            log.warn("Unable to add or update document to elasticsearch index: " + vocabularies.size());
+            log.warn("Unable to add or update document to elasticsearch index: " + vocabularies.size()+" took "+(end-start)+"ms");
             log.info(responseContentAsString(response));
         }
-        log.info("Indexed " + vocabularies.size() + " vocabularies");
     }
 
     private boolean reindexGivenVocabulary(UUID vocId) {
         boolean rv = true;
+        long start = System.currentTimeMillis();
         // Get vocabulary
         JsonNode jn = termedApiService.getTerminologyVocabularyNode(vocId);
         if (jn == null) {
@@ -212,14 +209,14 @@ public class IndexElasticSearchService {
 
             Response response = alsoUnsuccessful(() -> esRestClient.performRequest("POST", "/_bulk", params, entity));
 
+            long end = System.currentTimeMillis();
             if (isSuccess(response)) {
-                log.info("Successfully added/updated documents to elasticsearch index: " + vocId.toString());
+                log.info("Successfully added/updated documents to elasticsearch index: " + vocId.toString()+" in "+(end-start)+"ms" );
             } else {
-                log.warn("Unable to add or update document to elasticsearch index: " + vocId.toString());
+                log.warn("Unable to add or update document to elasticsearch index: " + vocId.toString()+" in "+(end-start)+"ms");
                 log.info(responseContentAsString(response));
                 rv = false;
-            }
-            log.info("Indexed  vocabulary " + vocId.toString());
+            }        
         } catch (JsonProcessingException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -303,9 +300,12 @@ public class IndexElasticSearchService {
 
     private void reindexGraph(@NotNull UUID graphId, boolean waitForRefresh) {
         List<Concept> concepts = termedApiService.getAllConceptsForGraph(graphId);
+        long start = System.currentTimeMillis();
         if (concepts != null && !concepts.isEmpty()) {
         bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), waitForRefresh);
-            log.info("Graph:" + graphId + " Indexed " + concepts.size() + " concepts");
+            long end = System.currentTimeMillis();
+
+            log.info("Graph:" + graphId + " Indexed " + concepts.size() + " concepts in "+(end-start)+"ms");
         }
     }
 
