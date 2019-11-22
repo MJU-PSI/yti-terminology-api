@@ -151,6 +151,10 @@ public class IntegrationService {
 
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
+        if(resp.isEmpty()){
+            ContainersResponse cr = new ContainersResponse();
+            resp.add(cr);
+        }
         wrapper.setResults(resp);
         /*
          * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
@@ -452,6 +456,10 @@ public class IntegrationService {
 
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
+        if(resp.isEmpty()){
+            ContainersResponse cr = new ContainersResponse();
+            resp.add(cr);
+        }
         wrapper.setResults(resp);
         /*
          * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
