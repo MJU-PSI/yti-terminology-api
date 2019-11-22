@@ -16,7 +16,10 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -156,12 +159,15 @@ public class IntegrationService {
             resp.add(cr);
         }
         wrapper.setResults(resp);
-        /*
-         * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
-         * System.out.println(" mapper.write=" + mapper.writeValueAsString(wrapper)); }
-         * catch (JsonProcessingException jpe) { }
-         */
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        try {
+            return new ResponseEntity<>(mapper.writeValueAsString(wrapper), HttpStatus.OK);
+        } catch (JsonProcessingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>("{}", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private SearchRequest createContainersQuery(IntegrationContainerRequest request) {
@@ -461,12 +467,16 @@ public class IntegrationService {
             resp.add(cr);
         }
         wrapper.setResults(resp);
-        /*
-         * prints data without newlines. ObjectMapper mapper = new ObjectMapper(); try {
-         * System.out.println(" mapper.write=" + mapper.writeValueAsString(wrapper)); }
-         * catch (JsonProcessingException jpe) { }
-         */
-        return new ResponseEntity<>(JsonUtils.prettyPrintJsonAsString(wrapper), HttpStatus.OK);
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        try {
+            return new ResponseEntity<>(mapper.writeValueAsString(wrapper), HttpStatus.OK);
+        } catch (JsonProcessingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>("{}", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private SearchRequest createResourcesQuery(IntegrationResourceRequest request) {
