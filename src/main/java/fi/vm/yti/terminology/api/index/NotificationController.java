@@ -22,7 +22,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
-@RestController("/private/v1/notify")
+@RestController
 public class NotificationController {
 
     private final IndexElasticSearchService elasticSearchService;
@@ -39,7 +39,7 @@ public class NotificationController {
         this.elasticSearchService = elasticSearchService;
     }
 
-    @RequestMapping("")
+    @RequestMapping("/private/v1/notify")
     public void notify(@RequestBody TermedNotification notification) {
         logger.info("/private/v1/notify requested with notification.user: " + notification.body.user + " and node identifier ids:");
         for (final Identifier ident: notification.body.nodes) {
