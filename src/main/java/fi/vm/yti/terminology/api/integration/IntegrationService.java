@@ -154,11 +154,8 @@ public class IntegrationService {
 
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
-        if(resp.isEmpty()){
-            ContainersResponse cr = new ContainersResponse();
-            resp.add(cr);
-        }
         wrapper.setResults(resp);
+        
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         try {
@@ -462,10 +459,6 @@ public class IntegrationService {
 
         ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
-        if(resp.isEmpty()){
-            ContainersResponse cr = new ContainersResponse();
-            resp.add(cr);
-        }
         wrapper.setResults(resp);
 
         ObjectMapper mapper = new ObjectMapper();
