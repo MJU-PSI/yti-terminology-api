@@ -508,24 +508,11 @@ public class IntegrationService {
             mustList.add(uriBoolQuery);
         }
         // Handle namespace uri list.
-        Set<String> terminologyNsUris = null;
+        Set<String> terminologyNsUris = request.getUri();
         if (request.getUri() != null && !request.getUri().isEmpty()) {
-            terminologyNsUris = new HashSet<>();
-            BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
-            for (String uriFromRequest : request.getUri()) {
-                if (!uriFromRequest.endsWith("/")) {
-                    uriFromRequest = uriFromRequest + "/";
-                }
-                if (namespacePattern.matcher(uriFromRequest).matches()) {
-                    uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
-                } else {
-                    logger.warn("URI is probably invalid: " + uriFromRequest);
-                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
-                }
-                terminologyNsUris.add(uriFromRequest);
-            }
-            uriBoolQuery.minimumShouldMatch(1);
-            mustList.add(uriBoolQuery);
+            QueryBuilder uriQuery = QueryBuilders.boolQuery().should(QueryBuilders.termsQuery("uri", request.getUri()))
+                    .minimumShouldMatch(1);
+            mustList.add(uriQuery);
         }
          
         if(request.getContainer() == null && request.getUri() ==null){
