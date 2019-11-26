@@ -17,15 +17,18 @@ public class SystemController {
 
     private final SystemService systemService;
     private final ServiceUrls serviceUrls;
+    private final String namespaceRoot;
     private final boolean restrictFilterOptions;
 
     private static final Logger logger = LoggerFactory.getLogger(SystemController.class);
 
     public SystemController(SystemService systemService,
                             ServiceUrls serviceUrls,
+                            @Value("${namespace.root}") String namespaceRoot,
                             @Value("${front.restrictFilterOptions}") boolean restrictFilterOptions) {
         this.systemService = systemService;
         this.serviceUrls = serviceUrls;
+        this.namespaceRoot = namespaceRoot;
         this.restrictFilterOptions = restrictFilterOptions;
     }
 
@@ -50,6 +53,7 @@ public class SystemController {
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
         conf.messagingEnabled = this.serviceUrls.getMessagingEnabled();
         conf.env = this.serviceUrls.getEnv();
+        conf.namespaceRoot = this.namespaceRoot;
         conf.restrictFilterOptions = this.restrictFilterOptions;
 
         return conf;
