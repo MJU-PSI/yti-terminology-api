@@ -32,6 +32,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
@@ -72,6 +73,7 @@ import fi.vm.yti.terminology.api.model.termed.TypeId;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
+import net.logstash.logback.encoder.org.apache.commons.lang.StringEscapeUtils;
 
 @Component
 public class NtrfMapper {
@@ -1802,19 +1804,21 @@ public class NtrfMapper {
                     logger.debug("  Parsing note-string:" + de.toString());
                 String str = (String) de;
                 // trim and add space
-                if (noteString.isEmpty())
-                    noteString = noteString.concat(str.trim() + " ");
-                else if (noteString.endsWith(" ")) {
-                    noteString = noteString.concat(str.trim() + " ");
-                } else // Add space befor and after
-                    noteString = noteString.concat(" " + str.trim() + " ");
+                if (noteString.isEmpty()){
+                    noteString = str;
+                } else {
+                    noteString = noteString.concat(str);
+                }
+//                noteString = StringEscapeUtils.unescapeXml(noteString);
+                // Remove newline from string
+                noteString = noteString.replace("\n", "");
             } else if (de instanceof SOURF) {
                 if (((SOURF) de).getContent() != null && ((SOURF) de).getContent().size() > 0) {
                     handleSOURF((SOURF) de, null, termProperties, vocabulary);
                     // handleSOURF((SOURF)de, lang, termProperties,vocabulary);
                     // Don't add sourf-string into the note-field, just add them to the sources-list
                     // noteString=noteString.concat(((SOURF)de).getContent().toString().trim());
-                    // Add refs as string and construct lines four sources-part.
+                    // Add refs as string and construct lines for sources-part.
                     updateSources(((SOURF) de).getContent(), lang, termProperties);
                 }
             } else if (de instanceof RCON) {
@@ -1844,7 +1848,7 @@ public class NtrfMapper {
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(bc.getHref(), typr));
                     String hrefText = parseHrefText(bc.getContent());
-                    noteString = noteString.concat(">" + hrefText.trim() + "</a> ");
+                    noteString = noteString.concat(">" + hrefText.trim() + "</a>");
                     if (logger.isDebugEnabled())
                         logger.debug("handleDEF BCON:" + noteString);
                     // Add also reference
@@ -1866,7 +1870,7 @@ public class NtrfMapper {
                     // Remove # from uri
                     noteString = noteString.concat(getCleanRef(nc.getHref(), typr));
                     String hrefText = parseHrefText(nc.getContent());
-                    noteString = noteString.concat(">" + hrefText.trim() + "</a> ");
+                    noteString = noteString.concat(">" + hrefText.trim() + "</a>");
                     if (logger.isDebugEnabled())
                         logger.debug("handleDEF NCON:" + noteString);
                     // Add also reference
@@ -1884,8 +1888,8 @@ public class NtrfMapper {
                         linkRef = linkRef.substring(5);
                     }
                     noteString = noteString.concat("<a href='" + linkRef + "' data-type='external'>"
-                            + lc.getContent().get(0).toString().trim() + "</a> ");
-                    System.out.println("Add LINK:" + linkRef);
+                            + lc.getContent().get(0).toString().trim() + "</a>");
+                    logger.info("Add LINK:" + linkRef);
                 }
             } else if (de instanceof JAXBElement) {
                 JAXBElement j = (JAXBElement) de;
@@ -1920,10 +1924,13 @@ public class NtrfMapper {
 
         // Add note if exist.
         if (!noteString.isEmpty()) {
-            System.out.println("parseNOTE str:" + noteString);
-            noteString = noteString.replaceAll(" , ", ", ");
-            noteString = noteString.replaceAll(" . ", ". ");
-            Attribute att = new Attribute(lang, noteString.trim());
+            //System.out.println("parseNOTE str:" + noteString);
+            // Remove extra spaces around
+            noteString = noteString.trim();
+            // Replace multiple spaces with one
+            noteString = noteString.replaceAll("( )+", " ");
+            logger.info("handleNote() Adding note:"+noteString);
+            Attribute att = new Attribute(lang, noteString);
             addProperty("note", parentProperties, att);
             return att;
         } else
