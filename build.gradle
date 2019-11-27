@@ -57,7 +57,7 @@ targetCompatibility = 1.8
 dependencies {
     compile "org.springframework.boot:spring-boot-starter-web"
 	compile "org.springframework.boot:spring-boot-starter-actuator"
-    compile("org.springframework.boot:spring-boot-starter-activemq")
+    compile("org.springframework.boot:spring-boot-starter-activemq")    
     compile("org.apache.activemq:activemq-broker")
     compile "org.elasticsearch:elasticsearch:6.5.4"
     compile "org.elasticsearch.client:elasticsearch-rest-client:6.5.4"
@@ -90,6 +90,7 @@ dependencies {
 
     compile 'org.jsoup:jsoup:1.11.3'
     testCompile 'junit:junit:4.12'
+	testCompile 'org.springframework.boot:spring-boot-starter-test'
 }
 
 springBoot {
