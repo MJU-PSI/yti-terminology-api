@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.util.Parameters;
+
+import static org.springframework.http.HttpMethod.GET;
 
 @Service
 public class SystemService {
@@ -39,11 +42,23 @@ public class SystemService {
 
     private int countTerminologies() {
         int rv = 0;
+        String url = "/node-count?where=type.id:TerminologicalVocabulary";
+        String count = termedRequester.exchange(url, GET, Parameters.empty(), String.class);
+        logger.info("countTerminologies rv="+count);
+        if(count != null){
+            rv = Integer.parseInt(count);
+        }
         return rv;
     }
 
     private int countConcepts() {
         int rv = 0;
+        String url = "/node-count/?wheretype.id:Concept";
+        String count = termedRequester.exchange(url, GET, Parameters.empty(), String.class);
+        logger.info("countConcepts rv="+count);
+        if(count != null){
+            rv = Integer.parseInt(count);
+        }
         return rv;
     }
 }
