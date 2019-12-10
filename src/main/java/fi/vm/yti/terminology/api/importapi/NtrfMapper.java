@@ -1887,7 +1887,7 @@ public class NtrfMapper {
                     if (linkRef.startsWith("href:")) {
                         linkRef = linkRef.substring(5);
                     }
-                    noteString = noteString.concat("<a href='" + linkRef + "' data-type='external'>"
+                    noteString = noteString.trim().concat("<a href='" + linkRef + "' data-type='external'>"
                             + lc.getContent().get(0).toString().trim() + "</a>");
                     logger.info("Add LINK:" + linkRef);
                 }
@@ -1895,8 +1895,6 @@ public class NtrfMapper {
                 JAXBElement j = (JAXBElement) de;
                 if (logger.isDebugEnabled())
                     logger.debug("  Parsing note-elem:" + j.getName());
-                System.out.println("  Parsing note-elem:" + j.getName());
-
                 if (j.getName().toString().equalsIgnoreCase("HOGR")) {
                     noteString = noteString.trim() + " (" + j.getValue().toString() + ")";
                 } else if (j.getName().toString().equalsIgnoreCase("B")
@@ -1907,14 +1905,14 @@ public class NtrfMapper {
                     // Add newline
                     noteString = noteString + "\n";
                 } else {
-                    System.out.println("  Unhandled note-class " + j.getName().toString());
+                    logger.error("  JABX-element Unhandled note-class " + j.getName().toString());
                     // statusList.put(currentRecord,
                     // new StatusMessage(currentRecord, "Unhandled note-class " +
                     // j.getName().toString()));
                     statusList.add(new StatusMessage(currentRecord, "Unhandled note-class " + j.getName().toString()));
                 }
             } else {
-                System.out.println("Unhandled note-class " + de.getClass().getTypeName());
+                logger.error("Unhandled note-class " + de.getClass().getTypeName());
             }
 
             if (logger.isDebugEnabled())

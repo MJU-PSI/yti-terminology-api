@@ -65,6 +65,7 @@ dependencies {
     compile "com.google.code.findbugs:jsr305:3.0.2"
     compile "org.jetbrains:annotations:15.0"
     compile "ch.qos.logback:logback-core"
+    compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.logging.log4j:log4j-core:2.12.1'
     compile 'org.apache.logging.log4j:log4j-api:2.12.1'
     compile "net.logstash.logback:logstash-logback-encoder:5.0"
