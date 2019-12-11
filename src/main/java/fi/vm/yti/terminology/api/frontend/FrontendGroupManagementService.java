@@ -54,11 +54,11 @@ public class FrontendGroupManagementService {
             throw new RuntimeException("User not authenticated");
         }
 
-        String url = groupManagementUrl + "/public-api/requests" + Parameters.single("email", user.getEmail());
+        String url = groupManagementUrl + "/private-api/requests" + Parameters.single("userId", user.getId().toString());
         return restTemplate.exchange(url, GET, null, new ParameterizedTypeReference<List<GroupManagementUserRequest>>() {}).getBody();
     }
 
-    void sendRequest(UUID organizationId) {
+    void sendRequest(final UUID organizationId) {
 
         YtiUser user = userProvider.getUser();
 
@@ -67,11 +67,11 @@ public class FrontendGroupManagementService {
         }
 
         Parameters parameters = new Parameters();
-        parameters.add("email", user.getEmail());
+        parameters.add("userId", user.getId().toString());
         parameters.add("role", Role.TERMINOLOGY_EDITOR.toString());
         parameters.add("organizationId", organizationId.toString());
 
-        String url = groupManagementUrl + "/public-api/request" + parameters;
+        String url = groupManagementUrl + "/private-api/request" + parameters;
         restTemplate.exchange(url, POST, null, String.class);
     }
 
