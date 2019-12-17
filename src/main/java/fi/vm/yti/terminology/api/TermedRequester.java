@@ -229,6 +229,8 @@ public class TermedRequester {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.AUTHORIZATION, createAuthorizationHeaderValue(username, password));
         headers.add(HttpHeaders.ACCEPT, contentType.getContentType());
+        headers.add(HttpHeaders.CONTENT_TYPE,contentType.getContentType());
+        headers.add(HttpHeaders.ACCEPT_CHARSET,"utf-8");
         return headers;
     }
 

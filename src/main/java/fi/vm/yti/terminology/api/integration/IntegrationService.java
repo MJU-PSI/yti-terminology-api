@@ -437,7 +437,7 @@ public class IntegrationService {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
                     ContainersResponse node = parseResourceResponse(source);
-                    node.setType("consept");
+                    node.setType("concept");
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
                         resp.add(node);
                     } else {

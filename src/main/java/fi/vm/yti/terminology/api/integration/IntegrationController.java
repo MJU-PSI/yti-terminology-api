@@ -101,6 +101,11 @@ public class IntegrationController {
         containersRequest.setLanguage(language);
         containersRequest.setPageSize(pageSize);
         containersRequest.setPageFrom(from);
+        // Change status into upper case
+        if(statusEnum != null){
+            statusEnum = statusEnum.stream().map(String::toUpperCase).collect(Collectors.toSet());
+        }
+
         containersRequest.setStatus(statusEnum);
         containersRequest.setUri(uri);
         containersRequest.setSearchTerm(searchTerm);
@@ -155,6 +160,10 @@ public class IntegrationController {
         IntegrationResourceRequest request = new IntegrationResourceRequest();
         request.setContainer(container);
         request.setLanguage(lang);
+        // Change status into upper case
+        if(status != null){
+            status = status.stream().map(String::toUpperCase).collect(Collectors.toSet());
+        }
         request.setStatus(status);
         request.setBefore(before);
         request.setFilter(filter);
