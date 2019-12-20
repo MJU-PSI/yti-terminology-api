@@ -23,7 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         title = "YTI Terminology Service",
         description = "YTI Terminology Service - Terminology API",
         termsOfService = "https://opensource.org/licenses/EUPL-1.2",
-        contact = @Contact(name = "YTI Terminology Service by the Population Register Center of Finland", url = "https://yhteentoimiva.suomi.fi/", email = "yhteentoimivuus@vrk.fi"),
+        contact = @Contact(name = "YTI Terminology Service by the Digital and Population Data Services Agency", url = "https://yhteentoimiva.suomi.fi/", email = "yhteentoimivuus@dvv.fi"),
         license = @License(name = "EUPL-1.2", url = "https://opensource.org/licenses/EUPL-1.2")
     ),
     servers = { @Server(url = "/terminology-api", description = "Terminology API Service") },
