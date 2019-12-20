@@ -73,7 +73,6 @@ import fi.vm.yti.terminology.api.model.termed.TypeId;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
-import net.logstash.logback.encoder.org.apache.commons.lang.StringEscapeUtils;
 
 @Component
 public class NtrfMapper {

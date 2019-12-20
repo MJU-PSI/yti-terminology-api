@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.frontend;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.AuthorizationException;
 import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.util.Parameters;
@@ -51,7 +52,7 @@ public class FrontendGroupManagementService {
         YtiUser user = userProvider.getUser();
 
         if (user.isAnonymous()) {
-            throw new RuntimeException("User not authenticated");
+            throw new AuthorizationException("User not authenticated");
         }
 
         String url = groupManagementUrl + "/private-api/requests" + Parameters.single("userId", user.getId().toString());
@@ -63,7 +64,7 @@ public class FrontendGroupManagementService {
         YtiUser user = userProvider.getUser();
 
         if (user.isAnonymous()) {
-            throw new RuntimeException("User not authenticated");
+            throw new AuthorizationException("User not authenticated");
         }
 
         Parameters parameters = new Parameters();
