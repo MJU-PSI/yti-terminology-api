@@ -26,7 +26,6 @@ import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -66,7 +65,7 @@ public class ResolveController {
         @Parameter(description = "Requested format. Depending on format the request is forwarded either to the UI or to download address.")
         @RequestHeader("Accept") String acceptHeader) {
 
-        logger.debug("Resolving URI: " + uri + " [format=" + format + ", accept=" + acceptHeader + "]");
+        logger.info("Resolving URI: " + uri + " [format=\"" + format + "\", accept=\"" + acceptHeader + "\"]");
 
         // Check whether uri is syntactically valid.
         try {
@@ -87,8 +86,7 @@ public class ResolveController {
             // "&format=" + format);
             // return new ResponseEntity<>(responseValue, HttpStatus.OK);
             String responseValue = applicationUrl + formatPath(resource, contentType)
-                + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" : "&format=" + format);
-            logger.debug("Resolving URI: " + uri + " [format=" + format + ", accept=" + acceptHeader + "] => " + contentType + " => " + responseValue);
+                + (!contentType.isHandledByFrontend() && !StringUtils.isEmpty(format) && contentType.getMediaType().equals(format) ? "&format=" + format.replaceAll("\\+", "%2b") : "");
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setLocation(new URI(responseValue));
             return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
@@ -114,11 +112,11 @@ public class ResolveController {
         } else {
             switch (resource.getType()) {
                 case VOCABULARY:
-                    return "/terminology/api/v1/vocabulary?graphId=" + resource.getGraphId();
+                    return "/terminology-api/api/v1/vocabulary?graphId=" + resource.getGraphId();
                 case CONCEPT:
-                    return "/terminology/api/v1/concept?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
+                    return "/terminology-api/api/v1/concept?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
                 case COLLECTION:
-                    return "/terminology/api/v1/collection?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
+                    return "/terminology-api/api/v1/collection?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
                 default:
                     throw new RuntimeException("Unsupported type: " + resource.getType());
             }
@@ -137,6 +135,7 @@ public class ResolveController {
                                 @RequestParam(required = false) String format,
                                 @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
                                 @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching terminology [id=\"" + graphId + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"]");
         return urlResolverService.getResource(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary),
             TermedContentType.fromString(format, acceptHeader), null);
     }
@@ -154,6 +153,7 @@ public class ResolveController {
                              @RequestParam(required = false) String format,
                              @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
                              @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching concept [termonology=\"" + graphId + "\", id=\"" + id + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"]");
         return urlResolverService.getResource(graphId, singletonList(NodeType.Concept),
             TermedContentType.fromString(format, acceptHeader), id);
     }
@@ -171,6 +171,7 @@ public class ResolveController {
                                 @RequestParam(required = false) String format,
                                 @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
                                 @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching collection [termonology=\"" + graphId + "\", id=\"" + id + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"]");
         return urlResolverService.getResource(graphId, singletonList(NodeType.Collection),
             TermedContentType.fromString(format, acceptHeader), id);
     }
