@@ -45,7 +45,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RestController
 @RequestMapping("/api/v1/frontend")
 @Tag(name = "Frontend")
-// TODO: TSoTODO
 public class FrontendController {
 
     private final FrontendTermedService termedService;
