@@ -88,11 +88,11 @@ public class ResolveController {
         } else {
             switch (resource.getType()) {
             case VOCABULARY:
-                return "/terminology/api/v1/vocabulary?graphId=" + resource.getGraphId();
+                return "/terminology-api/api/v1/vocabulary?graphId=" + resource.getGraphId();
             case CONCEPT:
-                return "/terminology/api/v1/concept?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
+                return "/terminology-api/api/v1/concept?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
             case COLLECTION:
-                return "/terminology/api/v1/collection?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
+                return "/terminology-api/api/v1/collection?graphId=" + resource.getGraphId() + "&id=" + resource.getId();
             default:
                 throw new RuntimeException("Unsupported type: " + resource.getType());
             }
