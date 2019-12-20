@@ -59,7 +59,7 @@ public class ResolveController {
         @Parameter(description = "The resource URI to resolve") @RequestParam String uri,
         @Parameter(
             description = "Requested format. This parameter has priority over the Accept header.",
-            schema = @Schema(allowableValues = { "application/json", "application/ld+json", "application/rdf+xml", "text/html" })
+            schema = @Schema(allowableValues = { "application/json", "application/ld+json", "application/rdf+xml", "text/turtle", "text/html" })
         )
         @RequestParam(required = false) String format,
         @Parameter(description = "Requested format. Depending on format the request is forwarded either to the UI or to download address.")
