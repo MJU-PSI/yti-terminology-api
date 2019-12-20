@@ -42,7 +42,7 @@ public class ResolveController {
     public ResponseEntity<String> resolve(@RequestParam String uri, @RequestParam(required = false) String format,
             @RequestHeader("Accept") String acceptHeader) {
 
-        logger.debug("Resolving URI: " + uri);
+        logger.info("Resolving URI: " + uri + " [format=\"" + format + "\", accept=\"" + acceptHeader + "\"");
 
         // Check whether uri is syntactically valid.
         try {
@@ -63,7 +63,7 @@ public class ResolveController {
             // "&format=" + format);
             // return new ResponseEntity<>(responseValue, HttpStatus.OK);
             String responseValue = applicationUrl + formatPath(resource, contentType)
-                    + (contentType.isHandledByFrontend() || StringUtils.isEmpty(format) ? "" : "&format=" + format);
+                    + (!contentType.isHandledByFrontend() && !StringUtils.isEmpty(format) && contentType.getMediaType().equals(format) ? "&format=" + format.replaceAll("\\+", "%2b") : "");
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setLocation(new URI(responseValue));
             return new ResponseEntity<>(httpHeaders, HttpStatus.SEE_OTHER);
@@ -103,6 +103,7 @@ public class ResolveController {
     @ResponseBody
     public String getVocabulary(@RequestParam UUID graphId, @RequestParam(required = false) String format,
             @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching terminology [id=\"" + graphId + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"");
         return urlResolverService.getResource(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary),
                 TermedContentType.fromString(format, acceptHeader), null);
     }
@@ -111,6 +112,7 @@ public class ResolveController {
     @ResponseBody
     public String getConcept(@RequestParam UUID graphId, @RequestParam UUID id,
             @RequestParam(required = false) String format, @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching concept [termonology=\"" + graphId + "\", id=\"" + id + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"");
         return urlResolverService.getResource(graphId, singletonList(NodeType.Concept),
                 TermedContentType.fromString(format, acceptHeader), id);
     }
@@ -119,6 +121,7 @@ public class ResolveController {
     @ResponseBody
     public String getCollection(@RequestParam UUID graphId, @RequestParam UUID id,
             @RequestParam(required = false) String format, @RequestHeader("Accept") String acceptHeader) {
+        logger.info("Fetching collection [termonology=\"" + graphId + "\", id=\"" + id + "\", format=\"" + format + "\", accept=\"" + acceptHeader + "\"");
         return urlResolverService.getResource(graphId, singletonList(NodeType.Collection),
                 TermedContentType.fromString(format, acceptHeader), id);
     }
