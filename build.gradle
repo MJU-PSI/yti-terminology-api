@@ -69,6 +69,7 @@ dependencies {
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
     implementation 'ch.qos.logback:logback-parent:1.2.3'
     implementation 'ch.qos.logback:logback-core'
+    implementation 'net.logstash.logback:logstash-logback-encoder:5.0'
     implementation 'org.jetbrains:annotations:15.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
