@@ -27,12 +27,13 @@ file if it does not exist:
 
 and run:
 ```
-./gradlew bootRun -Dspring.profiles.active=prod
+./gradlew bootRun --args='spring.profiles.active=prod'
 ```
 
 ## Stopping
 
-Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
+Run in a separate terminal: `curl -X POST localhost:8001/terminology-api/actuator/shutdown`
+(Note that this is not probably exposed by default.)
 
 ## Development
 
