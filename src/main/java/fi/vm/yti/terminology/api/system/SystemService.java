@@ -53,7 +53,7 @@ public class SystemService {
 
     private int countConcepts() {
         int rv = 0;
-        String url = "/node-count/?wheretype.id:Concept";
+        String url = "/node-count/?where=type.id:Concept";
         String count = termedRequester.exchange(url, GET, Parameters.empty(), String.class);
         logger.info("countConcepts rv="+count);
         if(count != null){
