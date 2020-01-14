@@ -297,35 +297,6 @@ public class FrontendController {
         return termedService.getGraph(graphId);
     }
 
-    /*
-    // TODO: Remove this after proven unnecessary.
-    @Operation(summary = "Search for concepts", description = "Make either a Elasticsearch query or a concept search query")
-    @ApiResponse(responseCode = "200", description = "Concept search result. Format depends on the request object.")
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "Either Elasticsearch query as JSON, or a concept search request object as JSON",
-        required = true,
-        content = {
-            @Content(schema = @Schema(implementation = ConceptSearchRequest.class)),
-            @Content(schema = @Schema(implementation = String.class))
-        }
-    )
-    @PostMapping(path = "/searchConcept", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
-    String searchConcept(@RequestBody JsonNode query) {
-        logger.info("POST /searchConcept requested with query: " + query.toString());
-        JsonNode esQuery = query.get("query");
-        if (esQuery != null && esQuery.isObject()) {
-            return elasticSearchService.searchConcept(query);
-        }
-        try {
-            ConceptSearchRequest csr = objectMapper.readValue(query.toString(), ConceptSearchRequest.class);
-            return objectMapper.writeValueAsString(elasticSearchService.searchConcept(csr));
-        } catch (Exception e) {
-            logger.error("Concept search failed", e);
-            throw new RuntimeException(e);
-        }
-    }
-    */
-
     @Operation(summary = "Search for concepts", description = "Make a concept search query based on query object")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Concept search query object as JSON")
     @ApiResponse(responseCode = "200", description = "Concept search response container object as JSON")
