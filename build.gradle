@@ -59,7 +59,7 @@ dependencies {
 
     implementation 'org.springdoc:springdoc-openapi-ui:1.2.15'
 
-    implementation 'fi.vm.yti:yti-spring-security:0.1.12'
+    implementation 'fi.vm.yti:yti-spring-security:0.1.13'
     implementation 'fi.vm.yti:yti-spring-migration:0.1.4'
 
     implementation 'org.apache.activemq:activemq-broker'
