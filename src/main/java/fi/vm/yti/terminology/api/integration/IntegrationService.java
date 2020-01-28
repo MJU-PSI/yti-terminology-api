@@ -267,13 +267,12 @@ public class IntegrationService {
 
         if (request.getPageFrom() != null) {
             sourceBuilder.from(request.getPageFrom());
+        } else {
+            sourceBuilder.from(0);
         }
 
         if (request.getPageSize() != null && request.getPageSize() > 0) {
             sourceBuilder.size(request.getPageSize());
-            if (request.getPageFrom() == null) {
-                sourceBuilder.from(0);
-            }
         } else {
             sourceBuilder.size(10000);
         }
@@ -596,16 +595,16 @@ public class IntegrationService {
         // paging handling 
         if (request.getPageFrom() != null) {
             sourceBuilder.from(request.getPageFrom());
+        } else {
+            sourceBuilder.from(0);
         }
 
         if (request.getPageSize() != null && request.getPageSize() > 0) {
             sourceBuilder.size(request.getPageSize());
-            if (request.getPageFrom() == null) {
-                sourceBuilder.from(0);
-            }
         } else {
             sourceBuilder.size(10000);
         }
+
         String[] includeFields = new String[] { "id", "label", "definition", "modified", "status", "uri" };
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request

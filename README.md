@@ -15,7 +15,7 @@ Run with `./gradlew assemble` to download all dependencies.
 
 Run with: `./gradlew bootRun`
 
-Terminology API should respond at port `8001`.
+Terminology API should respond at port `9103`.
 
 ### Using profile-specific properties
 
@@ -27,12 +27,13 @@ file if it does not exist:
 
 and run:
 ```
-./gradlew bootRun -Dspring.profiles.active=prod
+./gradlew bootRun --args='--spring.profiles.active=prod'
 ```
 
 ## Stopping
 
-Run in a separate terminal: `curl -X POST localhost:8001/shutdown`
+Run in a separate terminal: `curl -X POST localhost:9103/terminology-api/actuator/shutdown`
+(Note that this is not probably exposed by default.)
 
 ## Development
 
@@ -44,12 +45,12 @@ Get started:
 
 To develop the code:
 
-  - Run java class `fi.vm.yti.terminology.api.Application` with parameter `-Dspring.profiles.active=local` to start up Spring Boot web application at [http://localhost:8001](http://localhost:8001).
+  - Run java class `fi.vm.yti.terminology.api.Application` with parameter `-Dspring.profiles.active=local` to start up Spring Boot web application at [http://localhost:9103](http://localhost:9103).
 
 Now you can start hacking the code normally.
 
 ## Build (executable) jar
 
-Run with: `./gradlew jar -Dspring.profiles.active=prod`
+Run with: `./gradlew jar --args='--spring.profiles.active=prod'`
 
 The jar file is created into folder ./build/libs

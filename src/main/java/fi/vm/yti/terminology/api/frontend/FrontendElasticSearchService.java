@@ -75,28 +75,6 @@ public class FrontendElasticSearchService {
         this.conceptQueryFactory = new ConceptQueryFactory(objectMapper, namespaceRoot);
     }
 
-    @SuppressWarnings("Duplicates")
-    String searchConcept(JsonNode query) {
-        return searchFromIndex(query, "concepts");
-    }
-
-    private String searchFromIndex(JsonNode query,
-                                   String index) {
-        Parameters params = new Parameters();
-        params.add("source", query.toString());
-        params.add("source_content_type", "application/json");
-        String endpoint = "/" + index + "/" + indexMappingType + "/_search";
-        NStringEntity body = new NStringEntity(query.toString(), ContentType.APPLICATION_JSON);
-        try {
-            Request request = new Request("POST", endpoint);
-            request.setEntity(body);
-            Response response = esRestClient.getLowLevelClient().performRequest(request);
-            return responseContentAsString(response);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     ConceptSearchResponse searchConcept(ConceptSearchRequest request) {
         request.setQuery(request.getQuery() != null ? request.getQuery().trim() : "");
         try {
