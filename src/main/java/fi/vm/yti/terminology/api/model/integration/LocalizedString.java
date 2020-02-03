@@ -2,13 +2,16 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import java.util.Objects;
 
-import org.apache.tomcat.jni.Local;
-
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 
 public class LocalizedString {
+
     private String value;
     private String lang;
+
+    private LocalizedString() {
+        this("", "");
+    }
 
     public LocalizedString(final String value,
                            final String lang) {
@@ -39,6 +42,7 @@ public class LocalizedString {
 
     /**
      * Convert a {@link fi.vm.yti.terminology.api.model.integration.LocalizedString} to an {@link fi.vm.yti.terminology.api.model.termed.Attribute}.
+     *
      * @param maybeNull LocalizedString or null
      * @return Attribute or null, null only if the argument was null
      */
