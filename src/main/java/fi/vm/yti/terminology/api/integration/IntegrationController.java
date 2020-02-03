@@ -32,6 +32,7 @@ import fi.vm.yti.terminology.api.model.integration.ConceptSuggestionResponse;
 import fi.vm.yti.terminology.api.model.integration.ContainersResponse;
 import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
+import fi.vm.yti.terminology.api.model.integration.PrivateConceptSuggestionRequest;
 import fi.vm.yti.terminology.api.model.integration.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -80,8 +81,7 @@ public class IntegrationController {
             + (req != null ? req.getRemoteHost() : "N/A"));
         YtiUser user = userProvider.getUser();
         if (!user.isAnonymous()) {
-            incomingConcept.setCreator(user.getId().toString());
-            return integrationService.handleConceptSuggestion(incomingConcept);
+            return integrationService.handleConceptSuggestion(new PrivateConceptSuggestionRequest(incomingConcept, user.getId().toString()));
         } else {
             throw new AuthorizationException("Making concept suggestions require authorized user");
         }
@@ -118,7 +118,7 @@ public class IntegrationController {
         containersRequest.setPageFrom(from);
 
         // Change status into upper case
-        if(status != null) {
+        if (status != null) {
             status = status.stream().map(String::toUpperCase).collect(Collectors.toSet());
         }
         containersRequest.setStatus(status);
@@ -193,7 +193,7 @@ public class IntegrationController {
         request.setLanguage(language);
 
         // Change status into upper case
-        if(status != null){
+        if (status != null) {
             status = status.stream().map(String::toUpperCase).collect(Collectors.toSet());
         }
         request.setStatus(status);

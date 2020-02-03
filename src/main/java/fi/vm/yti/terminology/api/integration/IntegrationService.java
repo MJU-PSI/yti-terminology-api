@@ -49,7 +49,9 @@ import fi.vm.yti.terminology.api.model.integration.ConceptSuggestionResponse;
 import fi.vm.yti.terminology.api.model.integration.ContainersResponse;
 import fi.vm.yti.terminology.api.model.integration.IntegrationContainerRequest;
 import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
+import fi.vm.yti.terminology.api.model.integration.LocalizedString;
 import fi.vm.yti.terminology.api.model.integration.Meta;
+import fi.vm.yti.terminology.api.model.integration.PrivateConceptSuggestionRequest;
 import fi.vm.yti.terminology.api.model.integration.ResponseWrapper;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
@@ -725,7 +727,7 @@ public class IntegrationService {
      *
      * @return
      */
-    ResponseEntity<String> handleConceptSuggestion(ConceptSuggestionRequest incomingConcept) {
+    ResponseEntity<String> handleConceptSuggestion(PrivateConceptSuggestionRequest incomingConcept) {
         if (logger.isDebugEnabled())
             logger.debug("POST /vocabulary/concept requested. creating Concept for "
                     + JsonUtils.prettyPrintJsonAsString(incomingConcept));
@@ -807,7 +809,7 @@ public class IntegrationService {
         GenericNode node = null;
         // Populate term
         Map<String, List<Attribute>> properties = new HashMap<>();
-        addProperty("prefLabel", properties, incoming.getPrefLabel());
+        addProperty("prefLabel", properties, LocalizedString.asAttribute(incoming.getPrefLabel()));
         Attribute att = new Attribute("", "SUGGESTED");
         addProperty("status", properties, att);
         // Create Concept
@@ -845,7 +847,7 @@ public class IntegrationService {
             Map<String, List<Identifier>> conceptReferences) {
         GenericNode node = null;
         Map<String, List<Attribute>> properties = new HashMap<>();
-        addProperty("definition", properties, incoming.getDefinition());
+        addProperty("definition", properties, LocalizedString.asAttribute(incoming.getDefinition()));
         Attribute att = new Attribute("", "SUGGESTED");
         addProperty("status", properties, att);
 
