@@ -52,6 +52,7 @@ import fi.vm.yti.terminology.api.model.integration.IntegrationResourceRequest;
 import fi.vm.yti.terminology.api.model.integration.LocalizedString;
 import fi.vm.yti.terminology.api.model.integration.Meta;
 import fi.vm.yti.terminology.api.model.integration.PrivateConceptSuggestionRequest;
+import fi.vm.yti.terminology.api.model.integration.ResourcesResponse;
 import fi.vm.yti.terminology.api.model.integration.ResponseWrapper;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
@@ -280,8 +281,8 @@ public class IntegrationService {
         }
 
         String[] includeFields = new String[] { "id", "properties.prefLabel", "properties.language",
-                "properties.description", "lastModifiedDate", "properties.status.value", "uri",
-                "references.contributor.id" };
+                "properties.description", "createdDate", "lastModifiedDate", "properties.status.value",
+                "uri", "references.contributor.id" };
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(VOCABULARY_INDEX).source(sourceBuilder);
@@ -320,10 +321,14 @@ public class IntegrationService {
         }
         respItem.setStatus(stat);
 
-        String modifiedDate = null;
-        if (source.get("lastModifiedDate") != null) {
-            modifiedDate = source.get("lastModifiedDate").asText();
+        if (source.get("createdDate") != null) {
+            respItem.setCreated(source.get("createdDate").asText());
         }
+
+        if (source.get("lastModifiedDate") != null) {
+            respItem.setModified(source.get("lastModifiedDate").asText());
+        }
+
         // http://uri.suomi.fi/terminology/2/terminological-vocabulary-0
         // Get uri and remove last part after /
         // TODO! after 1 graph change, reve this part
@@ -334,12 +339,6 @@ public class IntegrationService {
             uri = uri.substring(0, uri.lastIndexOf("/")) + "/";
         }
         respItem.setUri(uri);
-
-        if (modifiedDate != null) {
-            // Curently returns 2019-01-07T09:16:32.432+02:00
-            // use only first 19 chars
-            respItem.setModified(modifiedDate);
-        }
 
         JsonNode label = source.findPath("prefLabel");
         if (label != null) {
@@ -426,7 +425,7 @@ public class IntegrationService {
             meta.setPageSize(1000);
         }
         // Response item list
-        List<ContainersResponse> resp = new ArrayList<>();
+        List<ResourcesResponse> resp = new ArrayList<>();
         if (r != null) {
             r = r.get("hits");
             // Total hits
@@ -437,7 +436,7 @@ public class IntegrationService {
             r.forEach(hit -> {
                 JsonNode source = hit.get("_source");
                 if (source != null) {
-                    ContainersResponse node = parseResourceResponse(source);
+                    ResourcesResponse node = parseResourceResponse(source);
                     node.setType("concept");
                     if (node.getUri() != null && node.getPrefLabel() != null && node.getStatus() != null) {
                         resp.add(node);
@@ -458,7 +457,7 @@ public class IntegrationService {
             logger.debug("current block  result count=" + meta.getResultCount());
         }
 
-        ResponseWrapper<ContainersResponse> wrapper = new ResponseWrapper<>();
+        ResponseWrapper<ResourcesResponse> wrapper = new ResponseWrapper<>();
         wrapper.setMeta(meta);
         wrapper.setResults(resp);
 
@@ -607,7 +606,7 @@ public class IntegrationService {
             sourceBuilder.size(10000);
         }
 
-        String[] includeFields = new String[] { "id", "label", "definition", "modified", "status", "uri" };
+        String[] includeFields = new String[] { "id", "label", "definition", "modified", "created", "status", "uri" };
         sourceBuilder.fetchSource(includeFields, null);
         // Add endpoint into the request
         SearchRequest sr = new SearchRequest(CONCEPTS_INDEX).source(sourceBuilder);
@@ -625,8 +624,9 @@ public class IntegrationService {
     /**
      * Transform incoming response into the resource-api JSON form
      */
-    private ContainersResponse parseResourceResponse(JsonNode source) {
+    private ResourcesResponse parseResourceResponse(JsonNode source) {
         String stat = null;
+        String createdDate = null;
         String modifiedDate = null;
         String uri = null;
         String container = null;
@@ -637,6 +637,11 @@ public class IntegrationService {
             stat = source.get("status").asText();
         } else {
             logger.warn("Resource response missing status");
+        }
+        if (source.get("created") != null) {
+            createdDate = source.get("created").asText();
+        } else {
+            logger.warn("Resource response missing created date");
         }
         if (source.get("modified") != null) {
             modifiedDate = source.get("modified").asText();
@@ -652,11 +657,14 @@ public class IntegrationService {
             logger.warn("Resource response missing URI");
         }
 
-        ContainersResponse respItem = new ContainersResponse();
+        ResourcesResponse respItem = new ResourcesResponse();
         respItem.setUri(uri);
         respItem.setStatus(stat);
         if (container != null && !container.isEmpty()) {
             respItem.setContainer(container);
+        }
+        if (createdDate != null) {
+            respItem.setCreated(createdDate);
         }
         if (modifiedDate != null) {
             respItem.setModified(modifiedDate);

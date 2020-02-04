@@ -26,6 +26,8 @@ final class Concept {
     private final List<UUID> broaderIds;
     private final List<UUID> narrowerIds;
     @Nullable
+    private final String createdDate;
+    @Nullable
     private final String lastModifiedDate;
     @Nullable
     private final String uri;
@@ -38,6 +40,7 @@ final class Concept {
                     @Nullable String status,
                     List<UUID> broaderIds,
                     List<UUID> narrowerIds,
+                    @Nullable String createdDate,
                     @Nullable String lastModifiedDate,
                     @Nullable String uri) {
 
@@ -49,6 +52,7 @@ final class Concept {
         this.status = status != null ? status : "DRAFT";
         this.broaderIds = broaderIds;
         this.narrowerIds = narrowerIds;
+        this.createdDate = createdDate;
         this.lastModifiedDate = lastModifiedDate;
         this.uri = uri;
     }
@@ -59,6 +63,7 @@ final class Concept {
                                                           @NotNull Vocabulary vocabulary) {
 
         UUID id = UUID.fromString(conceptJson.get("id").textValue());
+        String createdDate = conceptJson.get("createdDate").textValue();
         String lastModifiedDate = conceptJson.get("lastModifiedDate").textValue();
 
         JsonNode properties = conceptJson.get("properties");
@@ -87,7 +92,7 @@ final class Concept {
 
         JsonNode uri = conceptJson.get("uri");
 
-        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, lastModifiedDate, uri != null ? uri.asText() : null);
+        return new Concept(id, vocabulary, label, altLabel, definition, status, broaderIds, narrowerIds, createdDate, lastModifiedDate, uri != null ? uri.asText() : null);
     }
 
     static @NotNull Concept createFromExtJson(@NotNull JsonNode json, @NotNull Vocabulary vocabulary) {
@@ -148,12 +153,13 @@ final class Concept {
         Map<String, List<String>> definition = jsonToLocalizable(mapper, json.get("definition"));
         Map<String, List<String>> label = jsonToLocalizable(mapper, json.get("label"));
         Map<String, List<String>> altLabel = jsonToLocalizable(mapper, json.get("altLabel"));
+        String createdDate = json.has("created") ? json.get("created").textValue() : null;
         String lastModifiedDate = json.has("modified")  ? json.get("modified").textValue() : null;
         String status = json.has("status") ? json.get("status").textValue() : null;
         Vocabulary vocabulary = Vocabulary.createFromIndex(mapper, json.get("vocabulary"));
         String uri = json.has("uri") ? json.get("uri").textValue() : null;
 
-        return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, lastModifiedDate, uri);
+        return new Concept(id, vocabulary, label, altLabel, definition, status, broader, narrower, createdDate, lastModifiedDate, uri);
     }
 
     private static @NotNull List<UUID> getReferenceIdsFromTermedReferences(@NotNull JsonNode references, @NotNull String referenceName, @NotNull String typeRequirement) {
@@ -209,6 +215,10 @@ final class Concept {
         output.set("label", localizableToJson(mapper, label));
         output.set("altLabel", localizableToJson(mapper, altLabel));
         output.set("sortByLabel", localizableToJson(mapper, getSingleLabelAsLower()));
+
+        if (createdDate != null) {
+            output.put("created", createdDate);
+        }
 
         if (lastModifiedDate != null) {
             output.put("modified", lastModifiedDate);
