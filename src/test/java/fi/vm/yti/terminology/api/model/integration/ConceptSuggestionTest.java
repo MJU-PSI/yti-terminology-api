@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 //@SpringBootTest
 public class ConceptSuggestionTest {
 
-    String jsonString = "{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"creator\":\"45778009-804c-4aba-a836-f5c911ea5ef1\",\"terminologyUri\":\"http://uri.suomi.fi/terminology/kira/\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\", \"created\":\"2019-09-17T09:54:30.139\"}";
+    String jsonString = "{\"prefLabel\":{\"lang\":\"fi\",\"value\":\"esimerkki\"},\"definition\":{\"lang\":\"fi\",\"value\":\"jotain\"},\"terminologyUri\":\"http://uri.suomi.fi/terminology/kira/\",\"uri\":\"http://uri.suomi.fi/terminology/kira/\", \"created\":\"2019-09-17T09:54:30.139\"}";
 
     private ConceptSuggestionResponse cs = null;
 
@@ -47,14 +47,6 @@ public class ConceptSuggestionTest {
     }
 
     @Test
-    public void getCreator() {
-        if (cs != null && cs.getCreator() != null) {
-            assertEquals("45778009-804c-4aba-a836-f5c911ea5ef1", cs.getCreator().toString());
-        } else
-            fail("GetCreator test Failed");
-    }
-
-    @Test
     public void getterminologyUri() {
         if (cs != null && cs.getTerminologyUri() != null) {
             assertEquals("http://uri.suomi.fi/terminology/kira/", cs.getTerminologyUri());
@@ -70,14 +62,4 @@ public class ConceptSuggestionTest {
         } else
             fail("GetUri test Failed");
     }
-
-    @Test
-    public void getCreated() {
-        String expected = "http://uri.suomi.fi/terminology/kira/";
-        if (cs != null && cs.getTerminologyUri() != null) {
-            assertEquals(expected, cs.getTerminologyUri());
-        } else
-            fail("GetUri test Failed");
-    }
-
 }
