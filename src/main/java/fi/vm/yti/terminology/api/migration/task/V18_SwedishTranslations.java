@@ -17,11 +17,11 @@ import java.util.stream.Collectors;
  * prefLabel.
  */
 @Component
-public class V18_SvedishTranslations implements MigrationTask {
+public class V18_SwedishTranslations implements MigrationTask {
 
     private final MigrationService migrationService;
 
-    V18_SvedishTranslations(MigrationService migrationService) {
+    V18_SwedishTranslations(MigrationService migrationService) {
         this.migrationService = migrationService;
     }
 
@@ -34,14 +34,14 @@ public class V18_SvedishTranslations implements MigrationTask {
     }
 
     /**
-     * Update MetaNodes text- and reference-attributes with svedish translations
+     * Update MetaNodes text- and reference-attributes with Swedish translations
      * 
      * @param meta MetaNode to be updated
      * @return true if updated
      */
     boolean updateMeta(MetaNode meta) {
         boolean rv = false;
-        ;
+
         String domainName = meta.getDomain().getId().name();
         if (domainName.equals("TerminologicalVocabulary")) {
             updateTextAttributePrefLabel(meta, "prefLabel", "Nimi", "Name", "Namn");
