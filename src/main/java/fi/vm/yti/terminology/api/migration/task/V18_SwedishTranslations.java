@@ -44,10 +44,17 @@ public class V18_SwedishTranslations implements MigrationTask {
 
         String domainName = meta.getDomain().getId().name();
         if (domainName.equals("TerminologicalVocabulary")) {
+            meta.updateProperties(PropertyUtil.prefLabel("Terminologinen sanasto", "Terminological Dictionary", "Terminologisk ordlista"));
+
             updateTextAttributePrefLabel(meta, "prefLabel", "Nimi", "Name", "Namn");
             updateTextAttributeDescription(meta, "prefLabel", "Sanaston nimi, joka näkyy otsikossa ja hakutuloksissa",
                     "Name of the terminology that is displayed in the header and search results",
                     "Ordlistans namn som visas i rubriken och sökresultaten");
+
+            updateTextAttributePrefLabel(meta, "description", "Kuvaus", "Description", "Beskrivning");
+            updateTextAttributeDescription(meta, "description", "Laaja kuvaus sanaston sisällöstä, kohderyhmästä yms.",
+                "Description of the terminology and the domain of use",
+                "Omfattande beskrivning av ordlistans innehåll, målgrupper m.m.");
 
             updateTextAttributePrefLabel(meta, "language", "Kieli", "Language", "Språk");
             updateTextAttributeDescription(meta, "language", "Kielet, joilla sanaston sisältöä määritellään",
@@ -57,11 +64,13 @@ public class V18_SwedishTranslations implements MigrationTask {
             updateTextAttributeDescription(meta, "status", "Sanastomäärittelyn valmiusastetta kuvaava tilatieto",
                     "Status of the terminology", "Status som visar i vilken grad ordlistan är färdig");
 
-            updateTextAttributePrefLabel(meta, "contact", "Yhteydenotto", "Contact", "kontakt");
+            updateTextAttributePrefLabel(meta, "contact", "Yhteydenotto", "Contact", "Kontakt");
             updateTextAttributeDescription(meta, "contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta. Suositeltava muoto esimerkiksi: \"Sanastotyöryhmän ylläpito: yllapito@example.org\"",
                     "Description for the feedback channel. Do not use personal email addresses. Preferred form for example: \"Terminology working group: maintain@example.org\"",
                     "Beskrivning av responskanalen. Använd inte en personlig e-postadress. Rekommenderad form, exempelvis: \"Ordlistearbetsgruppens underhåll: underhall@example.org\"");
+
+            updateTextAttributePrefLabel(meta, "priority", "Ensisijainen järjestysnimi", "Priority name", "Prioritetsnamn");
 
             // reference attributes
             updateReferenceAttributePrefLabel(meta, "contributor", "Sisällöntuottaja", "Contributor",
@@ -79,6 +88,8 @@ public class V18_SwedishTranslations implements MigrationTask {
         }
 
         if (domainName.equals("Collection")) {
+            meta.updateProperties(PropertyUtil.prefLabel("Käsitevalikoima", "Collection", "Begreppsurval"));
+
             updateTextAttributePrefLabel(meta, "prefLabel", "Nimi", "Name", "Namn");
             updateTextAttributeDescription(meta, "prefLabel", "Käsitevalikoiman nimi valitsemallasi kielellä",
                     "Name of the collection", "Begreppsurvalets namn på det språk du valt");
@@ -88,6 +99,7 @@ public class V18_SwedishTranslations implements MigrationTask {
                     "Kuvaus valikoiman käyttötarkoituksesta ja mitä käsitteitä valikoimaan kuuluu",
                     "Description of the use cases and content of the collection",
                     "Beskrivning av urvalets användningsändamål och vilka begrepp urvalet omfattar");
+
             // reference attributes
             updateReferenceAttributePrefLabel(meta, "broader", "Jaottelu yläkäsitteen mukaan", "Collection broader",
                     "Uppdelning enligt det överordnade begreppet");
@@ -103,6 +115,8 @@ public class V18_SwedishTranslations implements MigrationTask {
         }
 
         if (domainName.equals("Term")) {
+            meta.updateProperties(PropertyUtil.prefLabel("Termi", "Term", "Term"));
+
             updateTextAttributePrefLabel(meta, "prefLabel", "Termin arvo", "Term literal value", "Termens värde");
             updateTextAttributeDescription(meta, "prefLabel", "Termin tekstimuotoinen kuvaus/nimi (merkkijono)",
                     "Literal value of the term", "Termens beskrivning/namn i textform (teckensträng)");
@@ -176,6 +190,8 @@ public class V18_SwedishTranslations implements MigrationTask {
         }
 
         if (domainName.equals("Concept")) {
+            meta.updateProperties(PropertyUtil.prefLabel("Käsite", "Concept", "Begrepp"));
+
             updateTextAttributePrefLabel(meta, "definition", "Määritelmä", "Definition", "Definition");
             updateTextAttributeDescription(meta, "definition",
                     "Kuvaa käsitteen sisällön ja erottaa sen muista käsitteistä",
@@ -421,5 +437,4 @@ public class V18_SwedishTranslations implements MigrationTask {
         }
         return rv;
     }
-
 }
