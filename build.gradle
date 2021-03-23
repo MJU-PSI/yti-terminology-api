@@ -17,8 +17,12 @@ targetCompatibility = '1.8'
 
 repositories {
     mavenLocal()
-    mavenCentral()
-    jcenter()
+    mavenCentral {
+        content { excludeGroupByRegex "fi\\.vm\\.yti.*" }
+    }
+    jcenter {
+        content { excludeGroupByRegex "fi\\.vm\\.yti.*" }
+    }
 
     // put your artifactory parameters to $HOME/.gradle/gradle.properties
     if (project.hasProperty('artifactoryUrl')) {
@@ -30,7 +34,10 @@ repositories {
             }
         }
     }
-    maven { url 'https://repo.spring.io/milestone' }
+    maven {
+        url 'https://repo.spring.io/milestone'
+        content { excludeGroupByRegex "fi\\.vm\\.yti.*" }
+    }
 }
 
 ext {
