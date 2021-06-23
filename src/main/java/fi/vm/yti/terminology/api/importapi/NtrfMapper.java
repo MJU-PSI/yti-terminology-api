@@ -2166,6 +2166,7 @@ public class NtrfMapper {
         Escaper escaper = Escapers.builder()
                 .addEscape('&', "&amp;")
                 .addEscape('\"', "&quot;")
+                .addEscape('\'', "&apos;")
                 .addEscape('<', "&lt;")
                 .addEscape('>', "&gt;")
                 .build();
