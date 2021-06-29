@@ -1785,6 +1785,7 @@ public class NtrfMapper {
                 if (logger.isDebugEnabled())
                     logger.debug("  Parsing note-string:" + de.toString());
                 String str = (String) de;
+                str = escapeStringContent(str);
 
                 // trim and add space
                 if (noteString.isEmpty()){
@@ -1794,7 +1795,6 @@ public class NtrfMapper {
                 }
                 // Remove newline from string
                 noteString = noteString.replace("\n", "");
-                noteString = escapeStringContent(noteString);
             } else if (de instanceof SOURF) {
                 if (((SOURF) de).getContent() != null && ((SOURF) de).getContent().size() > 0) {
                     handleSOURF((SOURF) de, null, termProperties, vocabulary);
