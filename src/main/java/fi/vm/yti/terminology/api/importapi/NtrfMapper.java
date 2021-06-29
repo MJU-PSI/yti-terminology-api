@@ -1693,7 +1693,7 @@ public class NtrfMapper {
                             linkRef = linkRef.substring(5);
                         }
                         defString = defString.concat("<a href='" + linkRef + "' data-type='external'>"
-                                + lc.getContent().get(0).toString().trim() + "</a> ");
+                                + escapeStringContent(lc.getContent().get(0).toString().trim()) + "</a> ");
                     }
                 } else if (de instanceof JAXBElement) {
                     // HOGR
@@ -1871,7 +1871,7 @@ public class NtrfMapper {
                     }
 
                     noteString = noteString.concat("<a href='" + linkRef + "' data-type='external'>"
-                            + escapeStringContent(lc.getContent().get(0).toString().trim() + "</a>"));
+                            + escapeStringContent(lc.getContent().get(0).toString().trim()) + "</a>");
 
                     logger.info("Add LINK:" + linkRef);
                 }
