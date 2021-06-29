@@ -1869,8 +1869,10 @@ public class NtrfMapper {
                     if (linkRef.startsWith("href:")) {
                         linkRef = linkRef.substring(5);
                     }
-                    noteString = noteString.trim().concat("<a href='" + linkRef + "' data-type='external'>"
-                            + escapeStringContent(lc.getContent().get(0).toString().trim()) + "</a>");
+
+                    noteString = noteString.concat("<a href='" + linkRef + "' data-type='external'>"
+                            + escapeStringContent(lc.getContent().get(0).toString().trim() + "</a>"));
+
                     logger.info("Add LINK:" + linkRef);
                 }
             } else if (de instanceof JAXBElement) {
