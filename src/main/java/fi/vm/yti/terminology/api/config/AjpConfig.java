@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.config;
 
 import org.apache.catalina.connector.Connector;
+import org.apache.coyote.ajp.AjpNioProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +43,10 @@ public class AjpConfig {
         ajpConnector.setSecure(false);
         ajpConnector.setAllowTrace(false);
         ajpConnector.setScheme("http");
+
+        AjpNioProtocol protocol= (AjpNioProtocol)ajpConnector.getProtocolHandler();
+        protocol.setSecretRequired(false);
+
         return ajpConnector;
     }
 }
