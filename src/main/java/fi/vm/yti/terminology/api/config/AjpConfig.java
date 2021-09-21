@@ -10,6 +10,9 @@ import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 @Configuration
 public class AjpConfig {
 
@@ -20,7 +23,11 @@ public class AjpConfig {
         return server -> {
             if (ajpPort != null && server instanceof TomcatServletWebServerFactory) {
                 logger.info("Modifying TomcatServletWebServerFactory to enable AJP at port " + ajpPort);
-                server.addAdditionalTomcatConnectors(ajpConnector(ajpPort));
+                try {
+                    server.addAdditionalTomcatConnectors(ajpConnector(ajpPort));
+                } catch (UnknownHostException e) {
+                    logger.warn("Unable to configure AJP connector");
+                }
             }
         };
     }
@@ -37,15 +44,17 @@ public class AjpConfig {
     }
 */
 
-    private Connector ajpConnector(int ajpPort) {
+    private Connector ajpConnector(int ajpPort) throws UnknownHostException {
         Connector ajpConnector = new Connector("AJP/1.3");
         ajpConnector.setPort(ajpPort);
         ajpConnector.setSecure(false);
         ajpConnector.setAllowTrace(false);
         ajpConnector.setScheme("http");
+        ajpConnector.setProperty("allowedRequestAttributesPattern", ".*");
 
         AjpNioProtocol protocol= (AjpNioProtocol)ajpConnector.getProtocolHandler();
         protocol.setSecretRequired(false);
+        protocol.setAddress(InetAddress.getByName("0.0.0.0"));
 
         return ajpConnector;
     }
