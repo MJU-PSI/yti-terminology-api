@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import java.util.stream.Collectors;
-import javax.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBElement;
 
 import com.google.common.escape.Escaper;
 import com.google.common.escape.Escapers;
