@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import fi.vm.yti.terminology.api.frontend.elasticqueries.CountQueryFactory;
+import fi.vm.yti.terminology.api.frontend.searchdto.*;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -31,11 +33,6 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.ConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.DeepConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.TerminologyQueryFactory;
-import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchRequest;
-import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchResponse;
-import fi.vm.yti.terminology.api.frontend.searchdto.DeepSearchHitListDTO;
-import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
-import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
 import fi.vm.yti.terminology.api.util.Parameters;
 import static fi.vm.yti.terminology.api.util.ElasticRequestUtils.responseContentAsString;
 
@@ -53,6 +50,7 @@ public class FrontendElasticSearchService {
     private final AuthenticatedUserProvider userProvider;
     private final TerminologyQueryFactory terminologyQueryFactory;
     private final DeepConceptQueryFactory deepConceptQueryFactory;
+    private final CountQueryFactory countQueryFactory;
     private final ConceptQueryFactory conceptQueryFactory;
 
     @Autowired
@@ -73,6 +71,7 @@ public class FrontendElasticSearchService {
         this.terminologyQueryFactory = new TerminologyQueryFactory(objectMapper);
         this.deepConceptQueryFactory = new DeepConceptQueryFactory(objectMapper);
         this.conceptQueryFactory = new ConceptQueryFactory(objectMapper, namespaceRoot);
+        this.countQueryFactory = new CountQueryFactory(objectMapper);
     }
 
     ConceptSearchResponse searchConcept(ConceptSearchRequest request) {
@@ -118,6 +117,17 @@ public class FrontendElasticSearchService {
             }
             SearchResponse response = esRestClient.search(finalQuery, RequestOptions.DEFAULT);
             return terminologyQueryFactory.parseResponse(response, request, deepSearchHits);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    CountSearchResponse getCounts() {
+        SearchRequest query = countQueryFactory.createQuery();
+        try {
+            SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
+            logger.debug(response.toString());
+            return countQueryFactory.parseResponse(response);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
