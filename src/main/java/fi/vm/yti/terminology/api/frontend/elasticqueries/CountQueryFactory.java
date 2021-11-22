@@ -61,10 +61,17 @@ public class CountQueryFactory {
     }
 
     private TermsAggregationBuilder createIndexAggregation() {
+        String scriptSource = "doc['_index'].value == 'concepts' ? 'Concept' : params._source.type.id";
+        Map<String, Object> params = new HashMap<>(16);
+        Script script = new Script(
+                Script.DEFAULT_SCRIPT_TYPE,
+                "painless",
+                scriptSource,
+                params);
         return AggregationBuilders
-                .terms("indexagg")
+                .terms("catagg")
                 .size(300)
-                .field("_index");
+                .script(script);
     }
 
     private TermsAggregationBuilder createGroupAggregation() {
@@ -94,8 +101,8 @@ public class CountQueryFactory {
         CountSearchResponse ret = new CountSearchResponse();
         ret.setTotalHitCount(response.getHits().getTotalHits());
 
-        Terms indexAgg = response.getAggregations().get("indexagg");
-        var indices = indexAgg
+        Terms catAgg = response.getAggregations().get("catagg");
+        var categories = catAgg
                 .getBuckets()
                 .stream()
                 .collect(Collectors.toMap(
@@ -118,7 +125,7 @@ public class CountQueryFactory {
                         MultiBucketsAggregation.Bucket::getKeyAsString,
                         MultiBucketsAggregation.Bucket::getDocCount));
 
-        ret.setCounts(new CountDTO(indices, statuses, groups));
+        ret.setCounts(new CountDTO(categories, statuses, groups));
 
         return ret;
     }
