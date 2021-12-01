@@ -3,8 +3,13 @@ package fi.vm.yti.terminology.api.frontend.searchdto;
 public class TerminologySearchRequest {
 
     private String query;
+
     private boolean searchConcepts;
+
+    private String[] statuses;
+
     private String prefLang;
+
     private Integer pageSize;
     private Integer pageFrom;
 
@@ -22,6 +27,14 @@ public class TerminologySearchRequest {
 
     public void setSearchConcepts(final boolean searchConcepts) {
         this.searchConcepts = searchConcepts;
+    }
+
+    public String[] getStatuses() {
+        return statuses;
+    }
+
+    public void setStatuses(String[] statuses) {
+        this.statuses = statuses;
     }
 
     public String getPrefLang() {
