@@ -47,11 +47,8 @@ public class TerminologyQueryFactory {
                                      boolean superUser,
                                      Set<String> privilegedOrganizations) {
         return createQuery(
-                request.getQuery(),
-                request.getStatuses(),
+                request,
                 Collections.emptySet(),
-                pageSize(request),
-                pageFrom(request),
                 superUser,
                 privilegedOrganizations);
     }
@@ -63,14 +60,17 @@ public class TerminologyQueryFactory {
         return createQuery(
                 request.getQuery(),
                 request.getStatuses(),
+                request.getGroups(),
                 additionalTerminologyIds,
                 pageSize(request),
                 pageFrom(request),
-                superUser, privilegedOrganizations);
+                superUser,
+                privilegedOrganizations);
     }
 
     private SearchRequest createQuery(String query,
                                       String[] statuses,
+                                      String[] groupIds,
                                       Collection<String> additionalTerminologyIds,
                                       int pageSize,
                                       int pageFrom,
@@ -97,6 +97,18 @@ public class TerminologyQueryFactory {
         if (statuses != null && statuses.length > 0) {
             mustQueries.add(ElasticRequestUtils.buildStatusQuery(
                     statuses, "properties.status.value"));
+        }
+
+        try {
+            Arrays.stream(groupIds).forEach(x -> UUID.fromString(x));
+        } catch (IllegalArgumentException exception){
+            log.error("One or more group IDs were invalid");
+            throw new InvalidQueryException("One or more group IDs were invalid");
+        }
+
+        if (groupIds != null && groupIds.length > 0)  {
+            mustQueries.add(QueryBuilders.termsQuery(
+                    "references.inGroup.id", groupIds));
         }
 
         // if the search was also done to concepts, we may have
