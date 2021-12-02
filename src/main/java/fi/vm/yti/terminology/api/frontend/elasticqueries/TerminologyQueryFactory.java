@@ -61,6 +61,7 @@ public class TerminologyQueryFactory {
                 request.getQuery(),
                 request.getStatuses(),
                 request.getGroups(),
+                request.getTypes(),
                 additionalTerminologyIds,
                 pageSize(request),
                 pageFrom(request),
@@ -71,6 +72,7 @@ public class TerminologyQueryFactory {
     private SearchRequest createQuery(String query,
                                       String[] statuses,
                                       String[] groupIds,
+                                      String[] types,
                                       Collection<String> additionalTerminologyIds,
                                       int pageSize,
                                       int pageFrom,
@@ -99,16 +101,29 @@ public class TerminologyQueryFactory {
                     statuses, "properties.status.value"));
         }
 
-        try {
-            Arrays.stream(groupIds).forEach(x -> UUID.fromString(x));
-        } catch (IllegalArgumentException exception){
-            log.error("One or more group IDs were invalid");
-            throw new InvalidQueryException("One or more group IDs were invalid");
-        }
-
         if (groupIds != null && groupIds.length > 0)  {
+            try {
+                Arrays.stream(groupIds).forEach(x -> UUID.fromString(x));
+            } catch (IllegalArgumentException exception){
+                log.error("One or more group IDs were invalid");
+                throw new InvalidQueryException("One or more group IDs were invalid");
+            }
+
             mustQueries.add(QueryBuilders.termsQuery(
                     "references.inGroup.id", groupIds));
+        }
+
+        QueryBuilder typeQuery = null;
+        if (types != null && types.length > 0)  {
+            final var validTypes = new String[] { "TerminologicalVocabulary", "OtherVocabulary" };
+            if (!Arrays.asList(validTypes).containsAll(Arrays.asList(types))) {
+                log.error("One or more vocabulary types were invalid");
+                throw new InvalidQueryException("One or more vocabulary types were invalid");
+            }
+            // vocabulary type query must also be applied later when
+            // filtering by additionalTerminologyIds
+            typeQuery = QueryBuilders.termsQuery("type.id", types);
+            mustQueries.add(typeQuery);
         }
 
         // if the search was also done to concepts, we may have
@@ -117,7 +132,15 @@ public class TerminologyQueryFactory {
             var idQuery = QueryBuilders.termsQuery(
                     "type.graph.id.keyword",
                     additionalTerminologyIds);
-            shouldQueries.add(idQuery);
+
+            QueryBuilder boolIdQuery = null;
+            if (typeQuery != null) {
+                shouldQueries.add(QueryBuilders.boolQuery()
+                    .must(idQuery)
+                    .must(typeQuery));
+            } else {
+                shouldQueries.add(idQuery);
+            }
         }
 
         QueryBuilder mustQuery = null;

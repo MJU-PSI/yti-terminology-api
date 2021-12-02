@@ -74,6 +74,9 @@
     "uri": {
       "type": "keyword"
     },
+    "type.id": {
+      "type": "keyword"
+    },
     "references.contributor.id": {
       "type": "keyword"
     },

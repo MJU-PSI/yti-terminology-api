@@ -10,6 +10,8 @@ public class TerminologySearchRequest {
 
     private String[] groups;
 
+    private String[] types;
+
     private String prefLang;
 
     private Integer pageSize;
@@ -45,6 +47,14 @@ public class TerminologySearchRequest {
 
     public void setGroups(String[] groups) {
         this.groups = groups;
+    }
+
+    public String[] getTypes() {
+        return types;
+    }
+
+    public void setTypes(String[] types) {
+        this.types = types;
     }
 
     public String getPrefLang() {
