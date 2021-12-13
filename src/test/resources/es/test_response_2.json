@@ -14,28 +14,28 @@
       {
         "_index" : "vocabularies",
         "_type" : "vocabulary",
-        "_id" : "568734e8-71db-4af4-bd03-3243ea003980",
+        "_id" : "6164a79e-56c4-43d4-8248-06dcfc70a170",
         "_score" : 4.3136578,
         "_source" : {
-          "id" : "568734e8-71db-4af4-bd03-3243ea003980",
+          "id" : "6164a79e-56c4-43d4-8248-06dcfc70a170",
           "code" : "terminological-vocabulary-0",
           "uri" : "http://uri.suomi.fi/terminology/kela_test/terminological-vocabulary-0",
           "number" : 0,
-          "createdBy" : "dbcc0abf-d3c2-4cc8-abb9-9067f7525d80",
-          "createdDate" : "2019-04-18T08:46:02Z",
-          "lastModifiedBy" : "dbcc0abf-d3c2-4cc8-abb9-9067f7525d80",
-          "lastModifiedDate" : "2019-04-18T08:46:02Z",
+          "createdBy" : "e368498c-63c7-44fe-964e-ce714d077976",
+          "createdDate" : "2019-04-14T08:46:02Z",
+          "lastModifiedBy" : "e368498c-63c7-44fe-964e-ce714d077976",
+          "lastModifiedDate" : "2019-04-14T08:46:02Z",
           "type" : {
             "id" : "TerminologicalVocabulary",
             "graph" : {
-              "id" : "52dee00e-39b1-45ae-9086-eb7575ad9801"
+              "id" : "ee9af176-984b-407c-86fe-9e75effbec3e"
             }
           },
           "properties" : {
             "prefLabel" : [
               {
                 "lang" : "fi",
-                "value" : "Kelan testisanasto",
+                "value" : "mock terminology for unit tests",
                 "regex" : "(?s)^.*$"
               }
             ],
@@ -67,35 +67,35 @@
           "references" : {
             "contributor" : [
               {
-                "id" : "f1e271e3-a90c-4070-8956-9f20270a6ae3",
+                "id" : "17792fd8-ac0d-487d-9966-4b14a3d2114a",
                 "code" : "",
                 "uri" : "",
-                "number" : 25304,
+                "number" : 1234,
                 "createdBy" : "admin",
-                "createdDate" : "2019-12-10T09:47:08Z",
+                "createdDate" : "2019-11-10T09:47:08Z",
                 "lastModifiedBy" : "admin",
                 "lastModifiedDate" : "2021-03-11T08:55:00Z",
                 "type" : {
                   "id" : "Organization",
                   "graph" : {
-                    "id" : "228cce1e-8360-4039-a3f7-725df5643354"
+                    "id" : "a262b6f1-1c27-46da-9a17-1494f51f395a"
                   }
                 },
                 "properties" : {
                   "prefLabel" : [
                     {
                       "lang" : "en",
-                      "value" : "Kela",
+                      "value" : "Test contributor",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "fi",
-                      "value" : "Kela",
+                      "value" : "Test contributor",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "sv",
-                      "value" : "Fpa",
+                      "value" : "Test contributor",
                       "regex" : "(?s)^.*$"
                     }
                   ]
@@ -106,18 +106,18 @@
             ],
             "inGroup" : [
               {
-                "id" : "b4dc527b-5465-3b82-871a-2a982e23555b",
-                "code" : "v1096",
-                "uri" : "http://urn.fi/URN:NBN:fi:au:ptvl/v1096",
-                "number" : 12,
+                "id" : "6e7aa4e3-827a-4d88-90bd-5afea7a2bed9",
+                "code" : "v1234",
+                "uri" : "http://urn.fi/URN:NBN:fi:au:foo/v1234",
+                "number" : 110,
                 "createdBy" : "admin",
-                "createdDate" : "2018-05-04T11:17:34Z",
+                "createdDate" : "2018-03-04T11:17:34Z",
                 "lastModifiedBy" : "admin",
-                "lastModifiedDate" : "2020-02-19T09:03:25Z",
+                "lastModifiedDate" : "2020-01-19T09:03:25Z",
                 "type" : {
                   "id" : "Group",
                   "graph" : {
-                    "id" : "7f4cb68f-31f6-4bf9-b699-9d72dd110c4c"
+                    "id" : "04a28907-014b-485d-bc7b-becd05786717"
                   }
                 },
                 "properties" : {
@@ -131,17 +131,17 @@
                   "definition" : [
                     {
                       "lang" : "fi",
-                      "value" : "Tässä palveluluokassa käsitellään työn etsimistä ja löytämistä, työelämän sopimuksia ja sääntöjä, työkyvyn ylläpitämistä, työttömysajan ja työllistymisen tukia sekä työttömien järjestötoimintaa.",
+                      "value" : "Testipalveluluokka definition",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "sv",
-                      "value" : "I denna servicegrupp behandlas jobbsökning och rekrytering, avtal och regler relaterade till arbetslivet, upprätthållande av arbetsförmågan, stöd för arbetslöshetstiden och sysselsättning samt föreningsverksamhet för arbetslösa.",
+                      "value" : "Test servicegrupp definition",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "en",
-                      "value" : "This service class contains seeking and finding a job, working life contracts, agreements and rules, maintaining work ability, benefits received while unemployed and looking for work, and NGO activities for the unemployed.",
+                      "value" : "Test service group definition",
                       "regex" : "(?s)^.*$"
                     }
                   ],
@@ -155,153 +155,17 @@
                   "prefLabel" : [
                     {
                       "lang" : "fi",
-                      "value" : "Työ ja työttömyys",
+                      "value" : "Testipalveluluokka label",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "sv",
-                      "value" : "Arbete och arbetslöshet",
+                      "value" : "Test servicegrupp label",
                       "regex" : "(?s)^.*$"
                     },
                     {
                       "lang" : "en",
-                      "value" : "Work and unemployment",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ]
-                },
-                "references" : { },
-                "referrers" : { }
-              },
-              {
-                "id" : "9ba19f8d-d688-39cc-b620-ebb7875e6e9b",
-                "code" : "v1001",
-                "uri" : "http://urn.fi/URN:NBN:fi:au:ptvl/v1001",
-                "number" : 2,
-                "createdBy" : "admin",
-                "createdDate" : "2018-05-04T11:17:34Z",
-                "lastModifiedBy" : "admin",
-                "lastModifiedDate" : "2020-02-19T09:03:25Z",
-                "type" : {
-                  "id" : "Group",
-                  "graph" : {
-                    "id" : "7f4cb68f-31f6-4bf9-b699-9d72dd110c4c"
-                  }
-                },
-                "properties" : {
-                  "notation" : [
-                    {
-                      "lang" : "",
-                      "value" : "P1",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "definition" : [
-                    {
-                      "lang" : "en",
-                      "value" : "This service class includes seeking, finding and purchasing a residence, different housing forms, housing benefits, processes and services related to migration within Finland, as well as services associated with the Population Information System.",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "fi",
-                      "value" : "Tähän palveluluokkaan kuuluvat asunnon etsiminen, löytäminen ja hankkiminen, erilaiset asumismuodot, asumisen taloudelliset tuet, Suomen sisällä tapahtuvaan muuttoon liittyvät prosessit ja palvelut sekä väestötietojärjestelmään liittyvät palvelut.",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "sv",
-                      "value" : "Denna servicegrupp omfattar hur man söker, hittar och skaffar en bostad, olika boendeformer, ekonomiskt stöd för boende, processer och tjänster i anslutning till flyttning inom Finland samt tjänster som berör befolkningsdatasystemet.",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "order" : [
-                    {
-                      "lang" : "",
-                      "value" : "100",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "prefLabel" : [
-                    {
-                      "lang" : "en",
-                      "value" : "Housing",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "sv",
-                      "value" : "Boende",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "fi",
-                      "value" : "Asuminen",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ]
-                },
-                "references" : { },
-                "referrers" : { }
-              },
-              {
-                "id" : "eef62fe8-c3f4-4ca8-aae5-8bcff3c50508",
-                "code" : "v1023",
-                "uri" : "http://urn.fi/URN:NBN:fi:au:ptvl/v1023",
-                "number" : 5,
-                "createdBy" : "admin",
-                "createdDate" : "2018-05-04T11:17:34Z",
-                "lastModifiedBy" : "admin",
-                "lastModifiedDate" : "2020-02-19T09:03:25Z",
-                "type" : {
-                  "id" : "Group",
-                  "graph" : {
-                    "id" : "7f4cb68f-31f6-4bf9-b699-9d72dd110c4c"
-                  }
-                },
-                "properties" : {
-                  "notation" : [
-                    {
-                      "lang" : "",
-                      "value" : "P4",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "definition" : [
-                    {
-                      "lang" : "sv",
-                      "value" : "I den här servicegruppen behandlas både allmänna socialtjänster och socialtjänster för specialgrupper, vilka avsetts som stöd för medborgarnas vardag, boende och försörjning.",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "en",
-                      "value" : "This service class contains both general social services and those targeted at special groups to support citizens’ everyday life management, housing and incomes.",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "fi",
-                      "value" : "Tässä palveluluokassa käsitellään sekä yleisiä että erityisryhmille suunnattuja sosiaalipalveluja, jotka on tarkoitettu kansalaisten arjen, asumisen ja toimeentulon tukemiseen.",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "order" : [
-                    {
-                      "lang" : "",
-                      "value" : "400",
-                      "regex" : "(?s)^.*$"
-                    }
-                  ],
-                  "prefLabel" : [
-                    {
-                      "lang" : "fi",
-                      "value" : "Sosiaalipalvelut",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "en",
-                      "value" : "Social services",
-                      "regex" : "(?s)^.*$"
-                    },
-                    {
-                      "lang" : "sv",
-                      "value" : "Socialtjänster",
+                      "value" : "Test service group label",
                       "regex" : "(?s)^.*$"
                     }
                   ]

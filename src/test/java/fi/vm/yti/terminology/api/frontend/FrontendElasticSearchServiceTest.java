@@ -1,5 +1,8 @@
 package fi.vm.yti.terminology.api.frontend;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
@@ -8,6 +11,7 @@ import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
 import fi.vm.yti.terminology.api.util.RestHighLevelClientWrapper;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.xcontent.ContextParser;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -17,16 +21,18 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.ParsedStringTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
+import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.max.ParsedMax;
 import org.elasticsearch.search.aggregations.metrics.tophits.ParsedTopHits;
 import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsAggregationBuilder;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -45,45 +51,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertNotNull;
-
-// TODO: we can manage without the lowlevel client now in these tests
-// but this might be nice code for some other case
-/*
-@TestConfiguration
-class TestConfig {
-
-    @Bean
-    public RestHighLevelClientWrapper getElasticSearchRestHighLevelClient() throws IOException {
-
-        var llc = Mockito.mock(RestClient.class);
-
-        // prepare a response for lowlevel calls
-        var response = Mockito.mock(org.elasticsearch.client.Response.class);
-        Mockito.when(response.getStatusLine()).thenReturn(new BasicStatusLine(
-                new ProtocolVersion("HTTP", 1, 1),
-                200,
-                "OK"));
-
-        // mock whichever calls are being used during the app initialization
-        Mockito.when(llc.performRequest(
-                        Mockito.anyString(),
-                        Mockito.anyString(),
-                        Mockito.any()))
-                .thenReturn(response);
-
-        var hlc = Mockito.mock(RestHighLevelClientWrapperImpl.class);
-        Mockito.when(hlc.getLowLevelClient()).thenReturn(llc);
-
-        return hlc;
-    }
-}
-*/
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
 
 @Import({ JsonConfig.class, FrontendElasticSearchService.class })
 @ExtendWith(SpringExtension.class) // TODO: read this https://rieckpil.de/what-the-heck-is-the-springextension-used-for/
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.STRICT_STUBS) // TODO: doesn't work
 @TestPropertySource(properties = {
         "search.index.name=testIndex"
 })
@@ -107,15 +83,43 @@ public class FrontendElasticSearchServiceTest {
     @Autowired
     FrontendElasticSearchService service;
 
-    @Before
-    public void testInit()
-    {
-        Mockito.mockitoSession()
-                .initMocks(this)
-                .strictness(Strictness.STRICT_STUBS)
-                .startMocking();
+    private ListAppender<ILoggingEvent> logWatcher;
 
+    @BeforeEach
+    void setup() {
+        // make sure DI is functioning
+        assertNotNull(service);
+        assertNotNull(esClient);
+        assertNotNull(objectMapper);
+
+        this.initLogWatcher();
     }
+
+    @AfterEach
+    void cleanup() {
+        this.cleanLogWatcher();
+    }
+
+    private void cleanLogWatcher() {
+        var logger = (Logger) LoggerFactory.getLogger(FrontendElasticSearchService.class);
+        logger.detachAndStopAllAppenders();
+    }
+
+    private void initLogWatcher() {
+        this.logWatcher = new ListAppender<>();
+        this.logWatcher.start();
+        // cast from facade (SLF4J) to implementation class (logback)
+        var logger = (Logger) LoggerFactory.getLogger(FrontendElasticSearchService.class);
+        logger.addAppender(this.logWatcher);
+    }
+
+    private void assertNoLogErrors() {
+        var errors = logWatcher.list.stream()
+                .filter(x -> x.getLevel().toString() == "ERROR")
+                .collect(Collectors.toList());
+        assertEquals(0, errors.size());
+    }
+
     private YtiUser createMockUser(boolean superUser) {
         return new YtiUser(
                 "test@test.invalid",
@@ -133,7 +137,7 @@ public class FrontendElasticSearchServiceTest {
 
     private boolean isVocabularyQuery(SearchRequest arg)
     {
-        if (arg.indices().length < 1 || arg.indices()[0] != "vocabularies") {
+        if (arg.indices().length != 1 || arg.indices()[0] != "vocabularies") {
             return false;
         }
         return true;
@@ -141,98 +145,143 @@ public class FrontendElasticSearchServiceTest {
 
     private boolean isConceptQuery(SearchRequest arg)
     {
-        if (arg.indices().length < 1 || arg.indices()[0] != "concepts") {
+        if (arg.indices().length != 1 || arg.indices()[0] != "concepts") {
             return false;
         }
         return true;
     }
 
     @Test
-    public void test1() throws IOException {
-
-        // TODO: capture logger errors
-        // var logger = Mockito.mock(Logger.class);
-        // Mockito.when(LoggerFactory.getLogger(Mockito.any(Class.class))).thenReturn(logger);
-        // Mockito.verify(logger).warn(Mockito.anyString());
-        // Mockito.verify(logger).error(Mockito.anyString());
-
-        // make sure DI is functioning
-        assertNotNull(service);
-        assertNotNull(esClient);
-        assertNotNull(objectMapper);
-
+    public void searchWithoutConcepts() throws IOException {
         // convert JSON sample data to SearchResponse for returning as mock
         // values from esClient searches
-        var conceptsResponse = this.getSearchResponseFromJson(this.getResourceContents("classpath:es/test_response_1.json"));
-        var vocabulariesResponse = this.getSearchResponseFromJson(this.getResourceContents("classpath:es/test_response_2.json"));
+        var vocabulariesResponse =this.getMockResponse(
+                "classpath:es/test_response_2.json");
+        assertNotNull(vocabulariesResponse);
 
         // getUser is being used to check for superUser and organizations
-        Mockito.when(this.userProvider.getUser())
-                .thenReturn(this.createMockUser(false));
+        doReturn(this.createMockUser(false))
+                .when(this.userProvider)
+                .getUser();
+
+        // Mock the same esClient call with a specific argument
+        doReturn(vocabulariesResponse)
+                .when(this.esClient)
+                .search(argThat(i -> isVocabularyQuery(i)), any());
+
+        // Actual query
+        var request = new TerminologySearchRequest();
+        request.setQuery("test");
+        request.setSearchConcepts(false); // false == no additional concept search
+        var response = service.searchTerminology(request);
+        assertNotNull(response);
+
+        // Make sure the mocks were called as expected
+        verify(this.userProvider, times(2))
+                .getUser();
+
+        ArgumentCaptor<SearchRequest> srCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.esClient, times(1))
+                .search(srCaptor.capture(), any(RequestOptions.class));
+
+        // Check that esClient.search was called with expected kinds of arguments
+        var args = srCaptor.getAllValues();
+        assertEquals(1, args.size());
+
+        var vocabulariesRequest = args.get(0);
+        assertEquals("vocabularies",
+                String.join(",", vocabulariesRequest.indices()));
+
+        Mockito.verifyNoMoreInteractions(esClient);
+        assertNoLogErrors();
+    }
+
+    @Test
+    public void searchWithConcepts() throws IOException {
+        // convert JSON sample data to SearchResponse for returning as mock
+        // values from esClient searches
+        var conceptsResponse = this.getMockResponse(
+                "classpath:es/test_response_1.json");
+        assertNotNull(conceptsResponse);
+        var vocabulariesResponse = this.getMockResponse(
+                "classpath:es/test_response_2.json");
+        assertNotNull(vocabulariesResponse);
+
+        // getUser is being used to check for superUser and organizations
+        doReturn(this.createMockUser(false))
+                .when(this.userProvider)
+                .getUser();
 
         // Mock the same esClient call with different arguments & return values
-        // TODO: unstubbed calls are not being caught
-        Mockito.when(this.esClient.search(
-                    Mockito.argThat(i -> isConceptQuery(i)),
-                    Mockito.any()))
-                .thenReturn(conceptsResponse);
-        Mockito.when(this.esClient.search(
-                    Mockito.argThat(i -> isVocabularyQuery(i)),
-                    Mockito.any()))
-                .thenReturn(vocabulariesResponse);
+        doReturn(conceptsResponse)
+                .when(this.esClient)
+                .search(argThat(i -> isConceptQuery(i)), any());
+        doReturn(vocabulariesResponse)
+                .when(this.esClient)
+                .search(argThat(i -> isVocabularyQuery(i)), any());
 
         // Actual query
         var request = new TerminologySearchRequest();
         request.setQuery("test");
         request.setSearchConcepts(true); // true == additional concept search
         var response = service.searchTerminology(request);
-
         assertNotNull(response);
 
-        // TODO: try ArgumentCaptor for verifying esClient calls
-        // https://stackoverflow.com/a/29169875
-        // var argument = ArgumentCaptor.forClass(SearchRequest.class);
-
         // Make sure the mocks were called as expected
-        Mockito.verify(this.userProvider, Mockito.times(2))
+
+        verify(this.userProvider, times(2))
                 .getUser();
-        Mockito.verify(this.esClient, Mockito.times(1))
-                .search(
-                        Mockito.argThat(i -> isVocabularyQuery(i)),
-                        Mockito.any(org.elasticsearch.client.RequestOptions.class));
-        Mockito.verify(this.esClient, Mockito.times(1))
-                .search(
-                        Mockito.argThat(i -> isConceptQuery(i)),
-                        Mockito.any(org.elasticsearch.client.RequestOptions.class));
+
+        ArgumentCaptor<SearchRequest> srCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.esClient, times(2))
+                .search(srCaptor.capture(), any(RequestOptions.class));
+
+        // Check that esClient.search was called with expected kinds of arguments
+        var args = srCaptor.getAllValues();
+        assertEquals(2, args.size());
+
+        var conceptsRequest = args.get(0);
+        assertEquals("concepts",
+                String.join(",", conceptsRequest.indices()));
+
+        var vocabulariesRequest = args.get(1);
+        assertEquals("vocabularies",
+                String.join(",", vocabulariesRequest.indices()));
+
+        // TODO: do some JSON based checks of the requests
+        // maybe with JSONAssert?
+
         Mockito.verifyNoMoreInteractions(esClient);
+
+        assertNoLogErrors();
+    }
+
+    private SearchResponse getMockResponse(String path) throws IOException {
+        return this.getSearchResponseFromJson(this.getResourceContents(path));
     }
 
     // read resource contents from a file, used for test data
     private String getResourceContents(String path) throws IOException {
         var stream = resourceLoader.getResource(path).getInputStream();
         var br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        var result =  br
-                .lines()
-                .collect(Collectors.joining("\n"));
+        var result = br.lines().collect(Collectors.joining("\n"));
         br.close();
         stream.close();
         return result;
     }
 
     // for use with getSearchResponseFromJson
-    // TODO: Could not parse aggregation keyed as [group_by_terminology]
-    // https://stackoverflow.com/questions/49798654/how-do-you-convert-an-elasticsearch-json-string-response-with-an-aggregation-t
     public static List<NamedXContentRegistry.Entry> getDefaultNamedXContents() {
         Map<String, ContextParser<Object, ? extends Aggregation>> map = new HashMap<>();
+        // Elasticsearch needs a hint to know what type of aggregation to
+        // parse this as. The hint is provided by elastic when
+        // adding ?typed_keys to the query.
+        // e.g. "sterms#group_by_terminology"
         map.put(TopHitsAggregationBuilder.NAME, (p, c) ->
                 ParsedTopHits.fromXContent(p, (String) c));
         map.put(StringTerms.NAME, (p, c) ->
                 ParsedStringTerms.fromXContent(p, (String) c));
-        map.put("group_by_terminology", (p, c) ->
-                ParsedStringTerms.fromXContent(p, (String) c));
-        map.put("top_concept_hits", (p, c) ->
-                ParsedTopHits.fromXContent(p, (String) c));
-        map.put("best_concept_hit", (p, c) ->
+        map.put(MaxAggregationBuilder.NAME, (p, c) ->
                 ParsedMax.fromXContent(p, (String) c));
         return map.entrySet().stream()
                 .map(entry -> new NamedXContentRegistry.Entry(
