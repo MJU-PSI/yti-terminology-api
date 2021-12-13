@@ -1,11 +1,7 @@
 package fi.vm.yti.terminology.api.frontend;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import fi.vm.yti.terminology.api.frontend.elasticqueries.CountQueryFactory;
@@ -97,8 +93,16 @@ public class FrontendElasticSearchService {
         Map<String, List<DeepSearchHitListDTO<?>>> deepSearchHits = null;
         if (request.isSearchConcepts() && !request.getQuery().isEmpty()) {
             try {
-                Set<String> incompleteFromTerminologies = superUser ? Collections.emptySet() : terminologiesMatchingOrganizations(privilegedOrganizations, null);
-                SearchRequest query = deepConceptQueryFactory.createQuery(request.getQuery(), request.getPrefLang(), superUser, incompleteFromTerminologies);
+                Set<String> incompleteFromTerminologies = superUser ?
+                        Collections.emptySet() :
+                        terminologiesMatchingOrganizations(privilegedOrganizations, null);
+                SearchRequest query = deepConceptQueryFactory.createQuery(
+                        request.getQuery(),
+                        request.getStatuses(),
+                        request.getPrefLang(),
+                        superUser,
+                        incompleteFromTerminologies);
+                // logger.debug("deepConceptQuery: " + query.toString());
                 SearchResponse response = esRestClient.search(query, RequestOptions.DEFAULT);
                 deepSearchHits = deepConceptQueryFactory.parseResponse(response, request);
             } catch (IOException e) {
@@ -109,9 +113,9 @@ public class FrontendElasticSearchService {
         try {
             SearchRequest finalQuery;
             if (deepSearchHits != null && !deepSearchHits.isEmpty()) {
-                Set<String> additionalTerminilogyIds = deepSearchHits.keySet();
-                logger.debug("Deep concept search resulted in " + additionalTerminilogyIds.size() + " terminology matches");
-                finalQuery = terminologyQueryFactory.createQuery(request, additionalTerminilogyIds, superUser, privilegedOrganizations);
+                Set<String> additionalTerminologyIds = deepSearchHits.keySet();
+                logger.debug("Deep concept search resulted in " + additionalTerminologyIds.size() + " terminology matches");
+                finalQuery = terminologyQueryFactory.createQuery(request, additionalTerminologyIds, superUser, privilegedOrganizations);
             } else {
                 finalQuery = terminologyQueryFactory.createQuery(request, superUser, privilegedOrganizations);
             }
