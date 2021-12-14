@@ -12,6 +12,8 @@ public class TerminologySearchRequest {
 
     private String[] types;
 
+    private String[] organizations;
+
     private String prefLang;
 
     private Integer pageSize;
@@ -55,6 +57,14 @@ public class TerminologySearchRequest {
 
     public void setTypes(String[] types) {
         this.types = types;
+    }
+
+    public String[] getOrganizations() {
+        return organizations;
+    }
+
+    public void setOrganizations(String[] organizations) {
+        this.organizations = organizations;
     }
 
     public String getPrefLang() {
