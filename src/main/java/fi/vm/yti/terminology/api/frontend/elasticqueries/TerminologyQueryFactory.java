@@ -62,6 +62,7 @@ public class TerminologyQueryFactory {
                 request.getStatuses(),
                 request.getGroups(),
                 request.getTypes(),
+                request.getOrganizations(),
                 additionalTerminologyIds,
                 pageSize(request),
                 pageFrom(request),
@@ -73,6 +74,7 @@ public class TerminologyQueryFactory {
                                       String[] statuses,
                                       String[] groupIds,
                                       String[] types,
+                                      String[] organizationIds,
                                       Collection<String> additionalTerminologyIds,
                                       int pageSize,
                                       int pageFrom,
@@ -111,6 +113,18 @@ public class TerminologyQueryFactory {
 
             mustQueries.add(QueryBuilders.termsQuery(
                     "references.inGroup.id", groupIds));
+        }
+
+        if (organizationIds != null && organizationIds.length > 0)  {
+            try {
+                Arrays.stream(organizationIds).forEach(x -> UUID.fromString(x));
+            } catch (IllegalArgumentException exception){
+                log.error("One or more organization IDs were invalid");
+                throw new InvalidQueryException("One or organization IDs were invalid");
+            }
+
+            mustQueries.add(QueryBuilders.termsQuery(
+                    "references.contributor.id", organizationIds));
         }
 
         QueryBuilder typeQuery = null;
