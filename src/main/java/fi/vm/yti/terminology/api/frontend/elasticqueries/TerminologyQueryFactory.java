@@ -94,7 +94,9 @@ public class TerminologyQueryFactory {
         if (!query.isEmpty()) {
             var labelQuery = ElasticRequestUtils
                     .buildPrefixSuffixQuery(query)
-                    .field("properties.prefLabel.value");
+                    .fields(Map.of(
+                            "properties.prefLabel.value", 1.0f,
+                            "references.contributor.properties.prefLabel.value", 2.0f));
             mustQueries.add(labelQuery);
         }
 
