@@ -267,7 +267,10 @@ public class FrontendTermedService {
         params.add("select", "uri");
         params.add("select", "properties.prefLabel");
         params.add("select", "properties.status");
+        params.add("select", "properties.definition");
         params.add("select", "lastModifiedDate");
+        params.add("select", "references.*");
+        params.add("select", "references.prefLabelXl:2");
         params.add("where", "graph.id:" + graphId);
         params.add("where", "type.id:" + "Collection");
         params.add("max", "-1");
