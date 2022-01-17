@@ -5,23 +5,36 @@ import java.util.Map;
 
 public class CountDTO {
 
-    public CategoriesCountDTO getCategories() {
-        return categories;
+    public enum Category {
+
+        TERMINOLOGICAL_VOCABULARY("TerminologicalVocabulary"),
+        OTHER_VOCABULARY("OtherVocabulary"),
+        CONCEPT("Concept"),
+        COLLECTION("Collection");
+
+        private final String name;
+
+        Category(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 
-    public void setCategories(CategoriesCountDTO categories) {
-        this.categories = categories;
-    }
-
+    /*
     class CategoriesCountDTO {
         private long terminologicalVocabulary;
         private long otherVocabulary;
         private long concept;
+        private long collection;
 
         public CategoriesCountDTO() {
             this.terminologicalVocabulary = 0;
             this.otherVocabulary = 0;
             this.concept = 0;
+            this.collection = 0;
         }
 
         public CategoriesCountDTO(Map<String, Long> categories) {
@@ -31,6 +44,7 @@ public class CountDTO {
                     "OtherVocabulary", 0L);
             this.concept = categories.getOrDefault(
                     "Concept", 0L);
+            this.collection = categories.getOrDefault("Collection", 0L);
         }
 
         public long getTerminologicalVocabulary() {
@@ -56,14 +70,23 @@ public class CountDTO {
         public void setConcept(int concept) {
             this.concept = concept;
         }
-    }
 
-    private CategoriesCountDTO categories;
+        public long getCollection() {
+            return collection;
+        }
+
+        public void setCollection(long collection) {
+            this.collection = collection;
+        }
+    }
+    */
+
+    private Map<String, Long> categories;
     private Map<String, Long> statuses;
     private Map<String, Long> groups;
 
     public CountDTO() {
-        this.categories = new CategoriesCountDTO();
+        this.categories = Collections.emptyMap();
         this.statuses = Collections.emptyMap();
         this.groups = Collections.emptyMap();
     }
@@ -72,9 +95,17 @@ public class CountDTO {
             final Map<String, Long> categories,
             final Map<String, Long> statuses,
             final Map<String, Long> groups) {
-        this.categories = new CategoriesCountDTO(categories);
+        this.categories = categories;
         this.statuses = statuses;
         this.groups = groups;
+    }
+
+    public Map<String, Long> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Map<String, Long> categories) {
+        this.categories = categories;
     }
 
     public Map<String, Long> getStatuses() {
