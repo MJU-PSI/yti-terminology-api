@@ -105,7 +105,8 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NodeNotFoundException(graphId, asList(NodeType.Vocabulary, NodeType.TerminologicalVocabulary));
         } else {
-            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper(),
+                    authorizationManager.isUserPartOfOrganization(graphId));
         }
     }
 
@@ -223,7 +224,8 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NodeNotFoundException(graphId, conceptId);
         } else {
-            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper(),
+                    authorizationManager.isUserPartOfOrganization(graphId));
         }
     }
 
@@ -253,7 +255,8 @@ public class FrontendTermedService {
         if (result.size() == 0) {
             throw new NodeNotFoundException(graphId, collectionId);
         } else {
-            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper());
+            return userNameToDisplayName(result.get(0), new UserIdToDisplayNameMapper(),
+                    authorizationManager.isUserPartOfOrganization(graphId));
         }
     }
 
@@ -470,14 +473,14 @@ public class FrontendTermedService {
     }
 
     private GenericNodeInlined userNameToDisplayName(GenericNodeInlined node,
-            UserIdToDisplayNameMapper userIdToDisplayNameMapper) {
-
+                                                     UserIdToDisplayNameMapper userIdToDisplayNameMapper,
+                                                     boolean mapUserNames) {
         return new GenericNodeInlined(node.getId(), node.getCode(), node.getUri(), node.getNumber(),
-                userIdToDisplayNameMapper.map(node.getCreatedBy()), node.getCreatedDate(),
-                userIdToDisplayNameMapper.map(node.getLastModifiedBy()), node.getLastModifiedDate(), node.getType(),
-                node.getProperties(),
-                mapMapValues(node.getReferences(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper)),
-                mapMapValues(node.getReferrers(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper)));
+                mapUserNames ? userIdToDisplayNameMapper.map(node.getCreatedBy()) : null, node.getCreatedDate(),
+                mapUserNames ? userIdToDisplayNameMapper.map(node.getLastModifiedBy()) : null, node.getLastModifiedDate(),
+                node.getType(), node.getProperties(),
+                mapMapValues(node.getReferences(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper, mapUserNames)),
+                mapMapValues(node.getReferrers(), x -> userNameToDisplayName(x, userIdToDisplayNameMapper, mapUserNames)));
     }
 
     private GenericNode userNameToDisplayName(GenericNode node, UserIdToDisplayNameMapper userIdToDisplayNameMapper) {
