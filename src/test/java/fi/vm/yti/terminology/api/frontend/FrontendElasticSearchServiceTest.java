@@ -5,6 +5,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.config.JsonConfig;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
@@ -25,6 +26,7 @@ import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.max.ParsedMax;
 import org.elasticsearch.search.aggregations.metrics.tophits.ParsedTopHits;
 import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsAggregationBuilder;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,14 +47,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
@@ -115,12 +113,12 @@ public class FrontendElasticSearchServiceTest {
 
     private void assertNoLogErrors() {
         var errors = logWatcher.list.stream()
-                .filter(x -> x.getLevel().toString() == "ERROR")
+                .filter(x -> "ERROR".equals(x.getLevel().toString()))
                 .collect(Collectors.toList());
         assertEquals(0, errors.size());
     }
 
-    private YtiUser createMockUser(boolean superUser) {
+    private YtiUser createMockUser(boolean superUser, Map<UUID, Set<Role>> roles) {
         return new YtiUser(
                 "test@test.invalid",
                 "firstname",
@@ -130,14 +128,18 @@ public class FrontendElasticSearchServiceTest {
                 false,
                 LocalDateTime.of(2005, 4, 2, 1, 10),
                 LocalDateTime.of(2006, 4, 2, 1, 10),
-                new HashMap<>(),
+                roles,
                 "",
                 "");
     }
 
+    private YtiUser createMockUser(boolean superUser) {
+        return this.createMockUser(superUser, new HashMap<>());
+    }
+
     private boolean isVocabularyQuery(SearchRequest arg)
     {
-        if (arg.indices().length != 1 || arg.indices()[0] != "vocabularies") {
+        if (arg.indices().length != 1 || !"vocabularies".equals(arg.indices()[0])) {
             return false;
         }
         return true;
@@ -145,7 +147,7 @@ public class FrontendElasticSearchServiceTest {
 
     private boolean isConceptQuery(SearchRequest arg)
     {
-        if (arg.indices().length != 1 || arg.indices()[0] != "concepts") {
+        if (arg.indices().length != 1 || !"concepts".equals(arg.indices()[0])) {
             return false;
         }
         return true;
@@ -192,7 +194,7 @@ public class FrontendElasticSearchServiceTest {
         assertEquals("vocabularies",
                 String.join(",", vocabulariesRequest.indices()));
 
-        Mockito.verifyNoMoreInteractions(esClient);
+        verifyNoMoreInteractions(esClient);
         assertNoLogErrors();
     }
 
@@ -254,6 +256,37 @@ public class FrontendElasticSearchServiceTest {
         Mockito.verifyNoMoreInteractions(esClient);
 
         assertNoLogErrors();
+    }
+
+    @Test
+    public void testOrganizationQuery() throws Exception {
+        var request = new TerminologySearchRequest();
+        request.setQuery("foo");
+
+        var vocabulariesResponse = this.getMockResponse(
+                "classpath:es/test_response_2.json");
+
+        var orgId = UUID.randomUUID();
+        Map<UUID, Set<Role>> roles = new HashMap<>();
+        roles.put(orgId, Set.of(Role.ADMIN));
+
+        doReturn(vocabulariesResponse)
+                .when(this.esClient)
+                .search(argThat(i -> isVocabularyQuery(i)), any());
+        doReturn(this.createMockUser(false, roles))
+            .when(userProvider)
+            .getUser();
+
+        service.searchTerminology(request);
+
+        ArgumentCaptor<SearchRequest> srCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.esClient)
+                .search(srCaptor.capture(), any(RequestOptions.class));
+
+        var values = srCaptor.getAllValues();
+
+        // query includes organization id
+        assertTrue(values.get(0).source().toString().indexOf("references.contributor.id\":[\"" + orgId.toString()) > -1);
     }
 
     private SearchResponse getMockResponse(String path) throws IOException {
