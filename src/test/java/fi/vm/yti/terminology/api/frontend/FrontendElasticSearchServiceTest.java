@@ -158,7 +158,7 @@ public class FrontendElasticSearchServiceTest {
         // convert JSON sample data to SearchResponse for returning as mock
         // values from esClient searches
         var vocabulariesResponse =this.getMockResponse(
-                "classpath:es/test_response_2.json");
+                "classpath:es/vocabulary_response.json");
         assertNotNull(vocabulariesResponse);
 
         // getUser is being used to check for superUser and organizations
@@ -203,10 +203,10 @@ public class FrontendElasticSearchServiceTest {
         // convert JSON sample data to SearchResponse for returning as mock
         // values from esClient searches
         var conceptsResponse = this.getMockResponse(
-                "classpath:es/test_response_1.json");
+                "classpath:es/response/concept_response.json");
         assertNotNull(conceptsResponse);
         var vocabulariesResponse = this.getMockResponse(
-                "classpath:es/test_response_2.json");
+                "classpath:es/response/vocabulary_response.json");
         assertNotNull(vocabulariesResponse);
 
         // getUser is being used to check for superUser and organizations
@@ -264,7 +264,7 @@ public class FrontendElasticSearchServiceTest {
         request.setQuery("foo");
 
         var vocabulariesResponse = this.getMockResponse(
-                "classpath:es/test_response_2.json");
+                "classpath:es/vocabulary_response.json");
 
         var orgId = UUID.randomUUID();
         Map<UUID, Set<Role>> roles = new HashMap<>();
