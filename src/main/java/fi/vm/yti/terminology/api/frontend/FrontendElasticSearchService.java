@@ -137,6 +137,17 @@ public class FrontendElasticSearchService {
         }
     }
 
+    CountSearchResponse getConceptCounts(UUID vocabularyId)  {
+        SearchRequest request = countQueryFactory.createConceptCountQuery(vocabularyId);
+        try {
+            SearchResponse response = esRestClient.search(request, RequestOptions.DEFAULT);
+            return countQueryFactory.parseResponse(response);
+        } catch (IOException e) {
+            logger.error("Error fetching concept counts", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private boolean superUser() {
         return userProvider.getUser().isSuperuser();
     }
