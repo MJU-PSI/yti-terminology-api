@@ -9,30 +9,16 @@ import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.config.JsonConfig;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
 import fi.vm.yti.terminology.api.util.RestHighLevelClientWrapper;
+import fi.vm.yti.terminology.elasticsearch.EsUtils;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.xcontent.ContextParser;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.bucket.terms.ParsedStringTerms;
-import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
-import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
-import org.elasticsearch.search.aggregations.metrics.max.ParsedMax;
-import org.elasticsearch.search.aggregations.metrics.tophits.ParsedTopHits;
-import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsAggregationBuilder;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +28,6 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -154,11 +136,11 @@ public class FrontendElasticSearchServiceTest {
     }
 
     @Test
-    public void searchWithoutConcepts() throws IOException {
+    public void searchWithoutConcepts() throws Exception {
         // convert JSON sample data to SearchResponse for returning as mock
         // values from esClient searches
-        var vocabulariesResponse =this.getMockResponse(
-                "classpath:es/vocabulary_response.json");
+        var vocabulariesResponse = EsUtils.getMockResponse(
+                "/es/response/vocabulary_response.json");
         assertNotNull(vocabulariesResponse);
 
         // getUser is being used to check for superUser and organizations
@@ -199,14 +181,14 @@ public class FrontendElasticSearchServiceTest {
     }
 
     @Test
-    public void searchWithConcepts() throws IOException {
+    public void searchWithConcepts() throws Exception {
         // convert JSON sample data to SearchResponse for returning as mock
         // values from esClient searches
-        var conceptsResponse = this.getMockResponse(
-                "classpath:es/response/concept_response.json");
+        var conceptsResponse = EsUtils.getMockResponse(
+                "/es/response/concept_response.json");
         assertNotNull(conceptsResponse);
-        var vocabulariesResponse = this.getMockResponse(
-                "classpath:es/response/vocabulary_response.json");
+        var vocabulariesResponse = EsUtils.getMockResponse(
+                "/es/response/vocabulary_response.json");
         assertNotNull(vocabulariesResponse);
 
         // getUser is being used to check for superUser and organizations
@@ -250,10 +232,10 @@ public class FrontendElasticSearchServiceTest {
         assertEquals("vocabularies",
                 String.join(",", vocabulariesRequest.indices()));
 
-        // TODO: do some JSON based checks of the requests
-        // maybe with JSONAssert?
+        verifyNoMoreInteractions(esClient);
 
-        Mockito.verifyNoMoreInteractions(esClient);
+        // parsed request should contain 1 terminology
+        assertEquals(1, response.getTotalHitCount());
 
         assertNoLogErrors();
     }
@@ -263,21 +245,21 @@ public class FrontendElasticSearchServiceTest {
         var request = new TerminologySearchRequest();
         request.setQuery("foo");
 
-        var vocabulariesResponse = this.getMockResponse(
-                "classpath:es/vocabulary_response.json");
+        var vocabulariesEsResponse = EsUtils.getMockResponse(
+                "/es/response/vocabulary_response.json");
 
         var orgId = UUID.randomUUID();
         Map<UUID, Set<Role>> roles = new HashMap<>();
         roles.put(orgId, Set.of(Role.ADMIN));
 
-        doReturn(vocabulariesResponse)
+        doReturn(vocabulariesEsResponse)
                 .when(this.esClient)
                 .search(argThat(i -> isVocabularyQuery(i)), any());
         doReturn(this.createMockUser(false, roles))
             .when(userProvider)
             .getUser();
 
-        service.searchTerminology(request);
+        TerminologySearchResponse response = service.searchTerminology(request);
 
         ArgumentCaptor<SearchRequest> srCaptor = ArgumentCaptor.forClass(SearchRequest.class);
         verify(this.esClient)
@@ -285,54 +267,8 @@ public class FrontendElasticSearchServiceTest {
 
         var values = srCaptor.getAllValues();
 
-        // query includes organization id
+        // query should include organization id
         assertTrue(values.get(0).source().toString().indexOf("references.contributor.id\":[\"" + orgId.toString()) > -1);
     }
 
-    private SearchResponse getMockResponse(String path) throws IOException {
-        return this.getSearchResponseFromJson(this.getResourceContents(path));
-    }
-
-    // read resource contents from a file, used for test data
-    private String getResourceContents(String path) throws IOException {
-        var stream = resourceLoader.getResource(path).getInputStream();
-        var br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        var result = br.lines().collect(Collectors.joining("\n"));
-        br.close();
-        stream.close();
-        return result;
-    }
-
-    // for use with getSearchResponseFromJson
-    public static List<NamedXContentRegistry.Entry> getDefaultNamedXContents() {
-        Map<String, ContextParser<Object, ? extends Aggregation>> map = new HashMap<>();
-        // Elasticsearch needs a hint to know what type of aggregation to
-        // parse this as. The hint is provided by elastic when
-        // adding ?typed_keys to the query.
-        // e.g. "sterms#group_by_terminology"
-        map.put(TopHitsAggregationBuilder.NAME, (p, c) ->
-                ParsedTopHits.fromXContent(p, (String) c));
-        map.put(StringTerms.NAME, (p, c) ->
-                ParsedStringTerms.fromXContent(p, (String) c));
-        map.put(MaxAggregationBuilder.NAME, (p, c) ->
-                ParsedMax.fromXContent(p, (String) c));
-        return map.entrySet().stream()
-                .map(entry -> new NamedXContentRegistry.Entry(
-                        Aggregation.class,
-                        new ParseField(entry.getKey()),
-                        entry.getValue()))
-                .collect(Collectors.toList());
-    }
-
-    // helper method for generating elasticsearch SearchResponse from JSON
-    private SearchResponse getSearchResponseFromJson(String jsonResponse) throws IOException {
-        NamedXContentRegistry registry = new NamedXContentRegistry(
-                getDefaultNamedXContents());
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
-                registry,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                jsonResponse);
-        SearchResponse searchResponse = SearchResponse.fromXContent(parser);
-        return searchResponse;
-    }
 }
