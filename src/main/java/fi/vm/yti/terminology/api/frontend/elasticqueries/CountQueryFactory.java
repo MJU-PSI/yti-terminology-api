@@ -48,10 +48,15 @@ public class CountQueryFactory {
     }
 
     public SearchRequest createConceptCountQuery(UUID vocabularyId) {
+
+        QueryBuilder query = QueryBuilders.boolQuery()
+                .mustNot(QueryBuilders.matchQuery("status", "INCOMPLETE"))
+                .must(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()));
+
         return new SearchRequest("concepts")
                 .source(new SearchSourceBuilder()
                         .size(0)
-                        .query(QueryBuilders.matchQuery("vocabulary.id", vocabularyId.toString()))
+                        .query(query)
                         .aggregation(this.createStatusAggregation())
                         .aggregation(this.createIndexAggregation()));
     }
