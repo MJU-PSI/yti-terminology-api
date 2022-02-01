@@ -13,6 +13,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +26,15 @@ public class CountQueryFactoryTest {
         String expected = EsUtils.getJsonString("/es/request/vocabulary_count_request.json");
 
         SearchRequest request = factory.createQuery();
+
+        JSONAssert.assertEquals(expected, request.source().toString(), JSONCompareMode.LENIENT);
+    }
+
+    @Test
+    public void testConceptCounts() throws Exception {
+        String expected = EsUtils.getJsonString("/es/request/concept_count_request.json");
+
+        SearchRequest request = factory.createConceptCountQuery(UUID.fromString("bab3aa74-a2c2-4750-ad5b-4fd7f007edca"));
 
         JSONAssert.assertEquals(expected, request.source().toString(), JSONCompareMode.LENIENT);
     }
