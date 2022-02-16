@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -137,5 +139,63 @@ public final class JsonUtils {
 			e.printStackTrace();
 		}
 		return "";
+	}
+
+	public static JsonNode sortedFromTermedProperties(JsonNode array, String language, String[] languages) {
+		ObjectMapper mapper = new ObjectMapper();
+		List<String> langsSortedByOrder = Arrays.stream(languages).filter(s -> !s.equals(language)).collect(Collectors.toList());
+		langsSortedByOrder.add(0, language);
+
+		List<JsonNode> nodeArray = StreamSupport.stream(array.spliterator(), false).sorted((t1, t2) -> {
+			var t1prefLabels = localizableFromTermedProperties(t1.get("properties"), "prefLabel");
+			var t2prefLabels = localizableFromTermedProperties(t2.get("properties"), "prefLabel");
+
+			if (t1prefLabels.isEmpty() || t2prefLabels.isEmpty()) {
+				return 0;
+			}
+
+			List<String> t1Label = t1prefLabels.get(langsSortedByOrder.stream()
+					.filter(s -> t1prefLabels.get(s) != null)
+					.findFirst().orElse(null));
+			List<String> t2Label = t2prefLabels.get(langsSortedByOrder.stream()
+					.filter(s -> t2prefLabels.get(s) != null)
+					.findFirst().orElse(null));
+
+			if (t1Label != null && t2Label != null) {
+				return t1Label.get(0).compareTo(t2Label.get(0));
+			} else {
+				return 0;
+			}
+		}).map(node -> {
+			var nodePrefLabels = localizableFromTermedProperties(node.get("properties"), "prefLabel");
+
+			for (var lang : langsSortedByOrder) {
+				if (lang.equals(language) && nodePrefLabels.get(language) != null) {
+					String newPrefLabel = "{\"lang\":\"" + language
+										+ "\", \"value\":\"" + nodePrefLabels.get(language).get(0)
+										+ "\", \"regex\":\"(?s)^.*$\"}";
+					try {
+						((ObjectNode)node.get("properties")).replace("prefLabel", mapper.readTree(newPrefLabel));
+						break;
+					} catch (JsonProcessingException e) {
+						e.printStackTrace();
+					}
+				} else if (nodePrefLabels.get(lang) != null) {
+					String newPrefLabel = "{\"lang\":\"" + lang
+							+ "\", \"value\":\"" + nodePrefLabels.get(lang).get(0) + " (" + lang + ")"
+							+ "\", \"regex\":\"(?s)^.*$\"}";
+					try {
+						((ObjectNode)node.get("properties")).replace("prefLabel", mapper.readTree(newPrefLabel));
+						break;
+					} catch (JsonProcessingException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+			return node;
+		}).collect(Collectors.toList());
+
+		return mapper.valueToTree(nodeArray);
 	}
 }
