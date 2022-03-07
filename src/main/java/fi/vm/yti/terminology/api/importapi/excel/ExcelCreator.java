@@ -98,8 +98,8 @@ public class ExcelCreator {
         for (JSONWrapper terminology : this.wrappersOfType(COLLECTION)) {
             builder.addDataToCurrentRow("IDENTIFIER", terminology.getCode());
             this.addProperty("PREFLABEL", "prefLabel", terminology, builder);
-            this.addProperty("DEFINITION", "definition", terminology, builder);
-            this.addCodeOfReference("COLLECTIONBROADER", "broader", terminology, builder);
+            // description is incorrectly named as definition in the database
+            this.addProperty("DESCRIPTION", "definition", terminology, builder);
             this.addCodeOfReference("MEMBER", "member", terminology, builder);
             this.addCommonProperties(builder, terminology);
 
@@ -164,7 +164,7 @@ public class ExcelCreator {
         var builder = new DTOBuilder();
         for (JSONWrapper terminology : this.wrappersOfType(TERM)) {
             builder.addDataToCurrentRow("IDENTIFIER", terminology.getCode());
-            this.addProperty("TERMLITERALVALUE", "prefLabel", terminology, builder);
+            this.addProperty("PREFLABEL", "prefLabel", terminology, builder);
             this.addProperty("SOURCE", "source", terminology, builder);
             this.addProperty("SCOPE", "scope", terminology, builder);
             this.addProperty("TERMSTYLE", "termStyle", terminology, builder);
@@ -180,8 +180,8 @@ public class ExcelCreator {
             this.addProperty("HISTORYNOTE", "historyNote", terminology, builder);
             this.addProperty("CHANGENOTE", "changeNote", terminology, builder);
             this.addProperty("STATUS", "status", terminology, builder);
-            this.addCommonProperties(builder, terminology);
-
+            builder.addDataToCurrentRow("URI", terminology.getURI());
+            builder.addDataToCurrentRow("OPERATION", "");
             builder.nextRow();
         }
 
