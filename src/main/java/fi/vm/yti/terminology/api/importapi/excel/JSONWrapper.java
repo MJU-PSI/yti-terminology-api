@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 /**
@@ -45,11 +46,11 @@ public class JSONWrapper {
     }
 
     public Instant getCreatedDate() {
-        return Instant.parse(this.json.get("createdDate").textValue());
+        return OffsetDateTime.parse(this.json.get("createdDate").textValue()).toInstant();
     }
 
     public Instant getLastModifiedDate() {
-        return Instant.parse(this.json.get("lastModifiedDate").textValue());
+        return OffsetDateTime.parse(this.json.get("lastModifiedDate").textValue()).toInstant();
     }
 
     public String getType() {
