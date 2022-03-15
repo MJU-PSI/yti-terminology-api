@@ -134,7 +134,7 @@ public class FrontendController {
     @PostMapping(path = "/request", produces = APPLICATION_JSON_VALUE)
     void sendRequest(
             @Parameter(description = "UUID for the organization") @RequestParam UUID organizationId,
-            @Parameter(description = "Comma separated list of roles for organisation") @RequestParam String roles) {
+            @Parameter(description = "Comma separated list of roles for organisation") @RequestParam(required = false) String[] roles) {
         logger.info("POST /request requested with organizationID: " + organizationId.toString());
         groupManagementService.sendRequest(organizationId, roles);
     }

@@ -89,12 +89,16 @@ public class FrontendGroupmanagementServiceTest {
     public void testAddMultipleRoles() throws Exception {
         var orgId = UUID.randomUUID();
 
-        service.sendRequest(orgId, Role.CODE_LIST_EDITOR + "," + Role.TERMINOLOGY_EDITOR);
+        service.sendRequest(orgId, new String[] {
+                Role.CODE_LIST_EDITOR.toString(),
+                Role.TERMINOLOGY_EDITOR.toString()
+        });
 
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST), eq(null), eq(String.class));
 
         URL url = new URL(urlCaptor.getValue());
 
-        assertTrue(url.getQuery().contains("role=" + Role.CODE_LIST_EDITOR + "," + Role.TERMINOLOGY_EDITOR.toString()));
+        assertTrue(url.getQuery().contains("role=" + Role.CODE_LIST_EDITOR.toString()));
+        assertTrue(url.getQuery().contains("role=" + Role.TERMINOLOGY_EDITOR.toString()));
     }
 }
