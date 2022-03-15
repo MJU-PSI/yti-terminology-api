@@ -59,7 +59,7 @@ public class FrontendGroupManagementService {
         return restTemplate.exchange(url, GET, null, new ParameterizedTypeReference<List<GroupManagementUserRequest>>() {}).getBody();
     }
 
-    void sendRequest(final UUID organizationId) {
+    public void sendRequest(final UUID organizationId, final String roles) {
 
         YtiUser user = userProvider.getUser();
 
@@ -69,7 +69,8 @@ public class FrontendGroupManagementService {
 
         Parameters parameters = new Parameters();
         parameters.add("userId", user.getId().toString());
-        parameters.add("role", Role.TERMINOLOGY_EDITOR.toString());
+        // If no roles specified, add TERMINOLOGY_EDITOR role (backwards compatibility)
+        parameters.add("role", roles != null ? roles : Role.TERMINOLOGY_EDITOR.toString());
         parameters.add("organizationId", organizationId.toString());
 
         String url = groupManagementUrl + "/private-api/request" + parameters;
