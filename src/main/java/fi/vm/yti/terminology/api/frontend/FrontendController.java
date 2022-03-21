@@ -132,9 +132,11 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "Request submitted successfully")
     @ApiResponse(responseCode = "401", description = "If the caller is not not authenticated user")
     @PostMapping(path = "/request", produces = APPLICATION_JSON_VALUE)
-    void sendRequest(@Parameter(description = "UUID for the organization") @RequestParam UUID organizationId) {
+    void sendRequest(
+            @Parameter(description = "UUID for the organization") @RequestParam UUID organizationId,
+            @Parameter(description = "Comma separated list of roles for organisation") @RequestParam(required = false) String[] roles) {
         logger.info("POST /request requested with organizationID: " + organizationId.toString());
-        groupManagementService.sendRequest(organizationId);
+        groupManagementService.sendRequest(organizationId, roles);
     }
 
     @Operation(summary = "Get terminology basic info as JSON")
