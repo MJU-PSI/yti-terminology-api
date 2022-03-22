@@ -1,9 +1,8 @@
 package fi.vm.yti.terminology.api.frontend;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import fi.vm.yti.terminology.api.frontend.searchdto.*;
 import org.jetbrains.annotations.Nullable;
@@ -283,6 +282,30 @@ public class FrontendController {
             logger.info(ident.getId().toString());
         }
         termedService.removeNodes(sync, disconnect, identifiers);
+    }
+
+    @Operation(
+            summary = "Update statuses",
+            description = "Update statuses of several terms or concepts at once")
+    @ApiResponse(
+            responseCode = "200",
+            description = "The operation was successful")
+    @PostMapping(
+            path = "/modifyStatuses",
+            consumes = APPLICATION_JSON_VALUE,
+            produces = APPLICATION_JSON_VALUE)
+    void updateStatuses(
+            @Parameter(description = "Graph to update") @RequestParam UUID graphId,
+            @Parameter(description = "Modify nodes matching this status") @RequestParam String oldStatus,
+            @Parameter(description = "New status to assign to all matched nodes") @RequestParam String newStatus,
+            @Parameter(description = "Modify nodes matching these types (Concept, Term)") @RequestParam Set<String> types) {
+        logger.debug(
+                "POST /modifyStatuses requested with graphId: {}, oldStatus: {}, newState: {}, types: {}",
+                graphId.toString(),
+                oldStatus,
+                newStatus,
+                String.join(",", types));
+        termedService.modifyStatuses(graphId, types, oldStatus, newStatus);
     }
 
     @Operation(summary = "Get meta model")

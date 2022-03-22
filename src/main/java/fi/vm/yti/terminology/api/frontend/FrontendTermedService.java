@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static fi.vm.yti.security.AuthorizationException.check;
@@ -352,6 +353,60 @@ public class FrontendTermedService {
 
     public void bulkChangeWithoutAuthorization(GenericDeleteAndSave deleteAndSave, boolean sync, UUID externalUserId) {
         updateAndDeleteInternalNodes(deleteAndSave, sync, externalUserId);
+    }
+
+    public void modifyStatuses(UUID graphId,
+                             Set<String> types,
+                             String oldStatus,
+                             String newStatus) {
+        check(authorizationManager.canModifyAllGraphs(singletonList(graphId)));
+
+        Set<String> validTypes = Stream
+                .of("Concept", "Term")
+                .collect(Collectors.toSet());
+
+        if (types.isEmpty() || !validTypes.containsAll(types)) {
+            throw new IllegalArgumentException("Invalid types: " + String.join(", ", types));
+        }
+
+        Set<String> validStatuses = Stream
+                .of("INCOMPLETE", "DRAFT", "VALID", "RETIRED", "SUPERSEDED")
+                .collect(Collectors.toSet());
+
+        if (!validStatuses.contains(oldStatus)) {
+            throw new IllegalArgumentException("Invalid oldStatus: " + oldStatus);
+        }
+        if (!validStatuses.contains(newStatus)) {
+            throw new IllegalArgumentException("Invalid newStatus: " + newStatus);
+        }
+
+        Parameters params = new Parameters();
+        params.add("append", "false");
+
+        // filter nodes to modify
+        params.add("where", "properties.status:" + oldStatus);
+
+        // specify new status with property values
+        var properties = singletonMap(
+                "properties",
+                singletonMap(
+                        "status",
+                        singletonList(singletonMap(
+                                "value",
+                                newStatus
+                        ))
+                )
+        );
+
+        // need to make separate calls for each type
+        for (var type : types) {
+            termedRequester.exchange(
+                    "/graphs/" + graphId + "/types/" + type + "/nodes",
+                    HttpMethod.PATCH,
+                    params,
+                    String.class,
+                    properties);
+        }
     }
 
     void removeNodes(boolean sync, boolean disconnect, List<Identifier> identifiers) {
