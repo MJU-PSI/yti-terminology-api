@@ -514,7 +514,9 @@ public class FrontendTermedService {
         Dump newVersion = new Dump(asList(graph), metaNodes, nodes);
 
         try {
-            termedRequester.exchange("/dump", POST, Parameters.empty(), String.class, newVersion);
+            UUID username = ensureTermedUser(null);
+            termedRequester.exchange("/dump", POST, Parameters.empty(), String.class,
+                    newVersion, username.toString(), USER_PASSWORD);
         } catch (Exception e) {
             logger.error("Error creating new version", e);
             throw e;

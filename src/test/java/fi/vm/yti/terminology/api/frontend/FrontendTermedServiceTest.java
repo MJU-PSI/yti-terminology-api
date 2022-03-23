@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.AuthorizationException;
+import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
@@ -29,6 +30,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -62,6 +69,9 @@ class FrontendTermedServiceTest {
 
     @Captor
     ArgumentCaptor<Dump> dumpCaptor;
+
+    @Captor
+    ArgumentCaptor<String> stringCaptor;
 
     ObjectMapper mapper = new ObjectMapper();
 
@@ -485,9 +495,11 @@ class FrontendTermedServiceTest {
     public void testCreateNewVersion() throws Exception {
         UUID vocabularyId = UUID.randomUUID();
         UUID organizationId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
 
         mockTermedGetGraphs();
         mockAuthorization();
+        mockUser(userId);
         mockTermedGetDump(new GraphId(vocabularyId), "prefix", organizationId);
 
         var dto = new CreateVersionDTO(vocabularyId, "prefix_v2");
@@ -499,13 +511,18 @@ class FrontendTermedServiceTest {
                 eq(HttpMethod.POST),
                 any(Parameters.class),
                 eq(String.class),
-                dumpCaptor.capture());
+                dumpCaptor.capture(),
+                stringCaptor.capture(),
+                anyString());
 
         // Modified new version data sent to termed-api
         Dump dump = dumpCaptor.getValue();
+        String requestUserId = stringCaptor.getValue();
 
         Graph graph = dump.getGraphs().get(0);
         String newUri = "http://uri.suomi.fi/terminology/" + dto.getNewCode() + "/";
+
+        assertEquals(userId.toString(), requestUserId);
 
         assertEquals(newUri, versionResponse.getUri());
 
@@ -585,6 +602,23 @@ class FrontendTermedServiceTest {
 
     private void mockAuthorization() {
         when(authorizationManager.canCreateNewVersion(any(UUID.class))).thenReturn(true);
+    }
+
+    private void mockUser(UUID userId) {
+        when(authenticatedUserProvider.getUser())
+                .thenReturn(new YtiUser(
+                        "admin@localhost",
+                        "Admin",
+                        "Test",
+                        userId,
+                        false,
+                        false,
+                        LocalDateTime.now(),
+                        LocalDateTime.now(),
+                        emptyMap(),
+                        null,
+                        null
+                ));
     }
 
     private void mockTermedGetGraphs(Graph... graphs) {
