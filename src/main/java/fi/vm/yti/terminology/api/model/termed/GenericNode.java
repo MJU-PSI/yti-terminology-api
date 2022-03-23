@@ -2,10 +2,9 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
@@ -180,5 +179,59 @@ public final class GenericNode implements Node {
         TypeId newType = type.copyToGraph(graphId);
 
         return new GenericNode(id, code, uri, number, createdBy, createdDate, lastModifiedBy, lastModifiedDate, newType, properties, references, referrers);
+    }
+
+    /**
+     * Copies all nodes and attributes to new graph with new ids
+     *
+     * @param graphId new graph id
+     * @return
+     */
+    public GenericNode copyAllToGraph(UUID graphId, Map<UUID, UUID> nodeIdMap) {
+
+        TypeId newType = type.copyToGraph(graphId);
+
+        var iteratorReferences = references.keySet().iterator();
+        var iteratorReferrers = referrers.keySet().iterator();
+
+        Map<String, List<Identifier>> referencesNewGraph = new HashMap<>();
+        Map<String, List<Identifier>> referrersNewGraph = new HashMap<>();
+
+        Function<Identifier, Identifier> mapper = i -> {
+            // use node's original id if not present in id map
+            UUID newId = nodeIdMap.getOrDefault(i.getId(), i.getId());
+            TypeId typeId;
+
+            // use original identifier for organization and group references
+            if (Arrays.asList(NodeType.Organization, NodeType.Group).contains(i.getType().getId())) {
+                typeId = i.getType();
+            } else {
+                typeId = new TypeId(i.getType().getId(), new GraphId(graphId));
+            }
+            return new Identifier(newId, typeId);
+        };
+
+        while(iteratorReferences.hasNext()) {
+            String key = iteratorReferences.next();
+
+            referencesNewGraph.put(key, references.get(key)
+                    .stream()
+                    .map(mapper)
+                    .collect(Collectors.toList())
+            );
+        }
+
+        while(iteratorReferrers.hasNext()) {
+            String key = iteratorReferrers.next();
+
+            referrersNewGraph.put(key, referrers.get(key)
+                    .stream()
+                    .map(mapper)
+                    .collect(Collectors.toList())
+            );
+        }
+
+        return new GenericNode(id, code, uri, number, createdBy, createdDate, lastModifiedBy, lastModifiedDate,
+                newType, properties, referencesNewGraph, referrersNewGraph);
     }
 }

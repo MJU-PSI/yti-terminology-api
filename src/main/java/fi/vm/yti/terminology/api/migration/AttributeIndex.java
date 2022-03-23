@@ -581,6 +581,24 @@ public final class AttributeIndex {
         );
     }
 
+    @NotNull
+    public static AttributeMeta origin(TypeId domain, long index) {
+        return new AttributeMeta(
+                "origin",
+                "http://uri.suomi.fi/datamodel/ns/st#origin",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Kopioitu sanastosta",
+                                "Copied from"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
     // prevent construction
     private AttributeIndex() {
     }
