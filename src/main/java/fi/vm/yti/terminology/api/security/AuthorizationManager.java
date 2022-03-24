@@ -65,7 +65,7 @@ public class AuthorizationManager {
         return user.isSuperuser() || userOrganization.isPresent();
     }
 
-    private boolean canModifyAllGraphs(Collection<UUID> graphIds) {
+    public boolean canModifyAllGraphs(Collection<UUID> graphIds) {
 
         Set<UUID> organizationIds = graphIds.stream()
                 .flatMap(graphId -> termedService.getOrganizationIds(graphId).stream())

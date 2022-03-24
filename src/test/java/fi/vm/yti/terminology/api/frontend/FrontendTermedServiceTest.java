@@ -12,15 +12,21 @@ import fi.vm.yti.terminology.api.util.Parameters;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
 @Import({
@@ -325,5 +331,109 @@ class FrontendTermedServiceTest {
         JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi");
 
         assertEquals(expectedNode, gotten);
+    }
+
+    @Test
+    public void modifyValidStatusesShouldSucceed() {
+        var graphId = UUID.fromString("0973d8f3-a129-4545-8d0d-d452e8acbc55");
+        var oldStatus = "DRAFT";
+
+        doReturn(true)
+                .when(this.authorizationManager)
+                .canModifyAllGraphs(any());
+
+        frontEndTermedService.modifyStatuses(
+                graphId,
+                new HashSet<>(Arrays.asList("Concept", "Term")),
+                oldStatus,
+                "VALID");
+
+        ArgumentCaptor<Map<String, Map<String, List<Map<String, String>>>>> propertiesCaptor =
+                ArgumentCaptor.forClass(Map.class);
+
+        // verify termed call to patch Concepts
+        verify(this.termedRequester).exchange(
+                eq("/graphs/" + graphId + "/types/Concept/nodes"),
+                eq(HttpMethod.PATCH),
+                argThat(i -> i.toString().equals(
+                        "?append=false&where=properties.status:" + oldStatus)),
+                eq(String.class),
+                propertiesCaptor.capture());
+
+        // verify termed call to patch Terms
+        verify(this.termedRequester).exchange(
+                eq("/graphs/" + graphId + "/types/Term/nodes"),
+                eq(HttpMethod.PATCH),
+                argThat(i -> i.toString().equals(
+                        "?append=false&where=properties.status:" + oldStatus)),
+                eq(String.class),
+                propertiesCaptor.capture());
+
+        // verify properties sent to termed
+        var capturedProperties = propertiesCaptor
+                .getAllValues()
+                .stream()
+                .map(properties -> properties
+                        .get("properties")
+                        .get("status")
+                        .get(0)
+                        .get("value"))
+                .collect(Collectors.toList())
+                .toArray();
+        assertArrayEquals(
+                new String[] { "VALID", "VALID" },
+                capturedProperties);
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "FOO,VALID", "VALID,FOO" })
+    public void modifyInvalidStatusesShouldFail(String oldStatus, String newStatus) {
+        var graphId = UUID.fromString("0973d8f3-a129-4545-8d0d-d452e8acbc55");
+
+        doReturn(true)
+                .when(this.authorizationManager)
+                .canModifyAllGraphs(any());
+
+        var ex = assertThrows(
+                IllegalArgumentException.class, () ->
+                        frontEndTermedService.modifyStatuses(
+                                graphId,
+                                new HashSet<>(Arrays.asList("Concept", "Term")),
+                                oldStatus,
+                                newStatus));
+
+        assertTrue(ex.getMessage().matches("^Invalid (old|new)Status: FOO$"));
+
+        verify(this.termedRequester, times(0)).exchange(
+                any(),
+                any(),
+                any(),
+                eq(String.class),
+                anyMap());
+    }
+
+    @Test
+    public void modifyInvalidTypesShouldFail() {
+        var graphId = UUID.fromString("0973d8f3-a129-4545-8d0d-d452e8acbc55");
+
+        doReturn(true)
+                .when(this.authorizationManager)
+                .canModifyAllGraphs(any());
+
+        var ex = assertThrows(
+                IllegalArgumentException.class, () ->
+                        frontEndTermedService.modifyStatuses(
+                                graphId,
+                                new HashSet<>(Arrays.asList("Concept", "Foo")),
+                                "DRAFT",
+                                "VALID"));
+        assertEquals("Invalid types: Concept, Foo", ex.getMessage());
+
+        verify(this.termedRequester, times(0)).exchange(
+                any(),
+                any(),
+                any(),
+                eq(String.class),
+                anyMap());
     }
 }
