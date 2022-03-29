@@ -6,9 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
-import fi.vm.yti.terminology.api.integration.IntegrationService;
+import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionDTO;
+import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionResponse;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
@@ -28,7 +30,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static fi.vm.yti.security.AuthorizationException.check;
 import static fi.vm.yti.terminology.api.model.termed.VocabularyNodeType.TerminologicalVocabulary;
@@ -450,6 +451,119 @@ public class FrontendTermedService {
         return requireNonNull(termedRequester.exchange("/graphs/" + graphId, GET, Parameters.empty(), Graph.class));
     }
 
+    public CreateVersionResponse createVersion(CreateVersionDTO createVersionDTO) throws Exception {
+        logger.info("Creating new version from vocabulary {}. New prefix {}",
+                createVersionDTO.getGraphId(), createVersionDTO.getNewCode());
+
+        check(authorizationManager.canCreateNewVersion(createVersionDTO.getGraphId()));
+
+        if (this.isNamespaceInUse(createVersionDTO.getNewCode())) {
+            throw new NamespaceInUseException();
+        }
+
+        Dump dump = termedRequester.exchange("/graphs/" + createVersionDTO.getGraphId() + "/dump",
+                GET, Parameters.empty(), Dump.class);
+
+        if (dump == null || dump.getGraphs().isEmpty()) {
+            throw new VocabularyNotFoundException(createVersionDTO.getGraphId());
+        }
+
+        Graph oldGraph = dump.getGraphs().get(0);
+        UUID newGraphId = UUID.randomUUID();
+
+        Graph graph = new Graph(newGraphId,
+                createVersionDTO.getNewCode(),
+                formatNamespace(createVersionDTO.getNewCode()),
+                oldGraph.getRoles(),
+                oldGraph.getPermissions(),
+                oldGraph.getProperties());
+
+        List<MetaNode> metaNodes = dump.getTypes().stream().map(t -> new MetaNode(
+                t.getId(),
+                t.getUri(),
+                t.getIndex(),
+                t.getGraph(),
+                t.getPermissions(),
+                t.getProperties(),
+                t.getTextAttributes(),
+                t.getReferenceAttributes())
+            .copyToGraph(newGraphId)
+        ).collect(Collectors.toList());
+
+        // Create id map for saving references
+        Map<UUID, UUID> nodeIdMap = new HashMap<>();
+        dump.getNodes().stream().forEach(n -> nodeIdMap.put(n.getId(), UUID.randomUUID()));
+
+        List<GenericNode> nodes = dump.getNodes().stream().map(n -> new GenericNode(
+                nodeIdMap.get(n.getId()),
+                n.getCode(),
+                String.format("%s%s/",
+                        formatNamespace(createVersionDTO.getNewCode()), n.getCode()),
+                n.getNumber(),
+                n.getCreatedBy(),
+                n.getCreatedDate(),
+                n.getLastModifiedBy(),
+                n.getLastModifiedDate(),
+                n.getType(),
+                getNewVersionProperties(n),
+                n.getReferences(),
+                n.getReferrers())
+            .copyAllToGraph(newGraphId, nodeIdMap)
+        ).collect(Collectors.toList());
+
+        Dump newVersion = new Dump(asList(graph), metaNodes, nodes);
+
+        try {
+            UUID username = ensureTermedUser(null);
+            termedRequester.exchange("/dump", POST, Parameters.empty(), String.class,
+                    newVersion, username.toString(), USER_PASSWORD);
+        } catch (Exception e) {
+            logger.error("Error creating new version", e);
+            throw e;
+        }
+
+        return new CreateVersionResponse(newGraphId, formatNamespace(createVersionDTO.getNewCode()));
+    }
+
+    private Map<String, List<Attribute>> getNewVersionProperties(GenericNode node) {
+        Map<String, List<Attribute>> properties = new HashMap<>();
+        var originalProperties = node.getProperties();
+
+        originalProperties.keySet().stream().forEach(key -> {
+
+            var originalAttributes = originalProperties.get(key);
+
+            // change all statuses to DRAFT
+            if ("status".equals(key)) {
+                var newAttributes = originalAttributes.stream().map(att ->
+                   new Attribute(att.getLang(), "DRAFT", null)
+                ).collect(Collectors.toList());
+
+                properties.put(key, newAttributes);
+            } else if ("prefLabel".equals(key) && isVocabulary(node)) {
+                var newAttributes = originalAttributes.stream().map(att ->
+                        new Attribute(att.getLang(), att.getValue() + " (Copy)", null)
+                ).collect(Collectors.toList());
+
+                properties.put(key, newAttributes);
+            } else {
+                properties.put(key, originalAttributes);
+            }
+        });
+
+        // store origin of new version
+        if (isVocabulary(node)) {
+            properties.put("origin", asList(new Attribute("", node.getUri())));
+        }
+
+        return properties;
+    }
+
+    private boolean isVocabulary(Node node) {
+        return asList(NodeType.TerminologicalVocabulary, NodeType.Vocabulary)
+                .contains(node.getType().getId());
+    }
+
     private @NotNull List<Identifier> getAllNodeIdentifiers(UUID graphId) {
 
         Parameters params = new Parameters();
@@ -601,4 +715,5 @@ public class FrontendTermedService {
             }
         }
     }
+
 }

@@ -4,6 +4,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
+import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.*;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -378,5 +380,24 @@ public class FrontendController {
         CountSearchResponse conceptCounts = elasticSearchService.getConceptCounts(graphId);
         conceptCounts.getCounts().getCategories().put(CountDTO.Category.COLLECTION.getName(), Long.valueOf(collectionList.size()));
         return conceptCounts;
+    }
+
+    @Operation(summary = "New version", description = "Creates new version of the terminology")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Terminology's uri and new prefix")
+    @ApiResponse(responseCode = "200", description = "")
+    @RequestMapping(value = "/createVersion", method = POST, produces = APPLICATION_JSON_VALUE)
+    CreateVersionResponse createTerminologyVersion(@RequestBody CreateVersionDTO createVersionDTO) {
+
+        logger.info("POST /createVersion requested");
+
+        try {
+            return termedService.createVersion(createVersionDTO);
+        } catch (NamespaceInUseException | VocabularyNotFoundException e) {
+            logger.error("Error creating new version", e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unhandled error occurred while creating new version", e);
+            throw new RuntimeException(e);
+        }
     }
 }

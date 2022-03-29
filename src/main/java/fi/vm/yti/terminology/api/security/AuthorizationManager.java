@@ -74,6 +74,12 @@ public class AuthorizationManager {
         return canModifyAllOrganizations(organizationIds);
     }
 
+    public boolean canCreateNewVersion(UUID graphId) {
+        Set<UUID> organizationIds = termedService.getOrganizationIds(graphId);
+
+        return canModifyAllOrganizations(organizationIds);
+    }
+
     private boolean canModifyAllOrganizations(Collection<UUID> organizationIds) {
         YtiUser user = userProvider.getUser();
         return user.isSuperuser() || user.isInAnyRole(EnumSet.of(ADMIN, TERMINOLOGY_EDITOR), organizationIds);
