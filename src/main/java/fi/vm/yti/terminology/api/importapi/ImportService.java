@@ -1,10 +1,9 @@
 package fi.vm.yti.terminology.api.importapi;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
-import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.Status;
+import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.ImportStatus;
 import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
 import fi.vm.yti.terminology.api.model.termed.Graph;
 import fi.vm.yti.terminology.api.model.termed.MetaNode;
@@ -113,9 +112,9 @@ public class ImportService {
                 // Remove status messages if not needed
                 response.getStatusMessage().clear();
             }
-            response.setStatus(ImportStatusResponse.Status.SUCCESS);
+            response.setStatus(ImportStatus.SUCCESS);
         } else if(status == HttpStatus.NOT_ACCEPTABLE){
-                response.setStatus(Status.FAILURE);
+                response.setStatus(ImportStatus.FAILURE);
                 response.getStatusMessage().clear();
                 response.addStatusMessage( new ImportStatusMessage("Vocabulary","Import operation already started"));
         } else if (status ==  HttpStatus.PROCESSING){
@@ -124,9 +123,9 @@ public class ImportService {
                 // Remove status messages if not needed
                 response.getStatusMessage().clear();
             }
-            response.setStatus(ImportStatusResponse.Status.PROCESSING);
+            response.setStatus(ImportStatus.PROCESSING);
         } else {
-                response.setStatus(ImportStatusResponse.Status.NOT_FOUND);
+                response.setStatus(ImportStatus.NOT_FOUND);
         }
         System.out.println("Response status json");
         // Construct return message
@@ -195,7 +194,7 @@ public class ImportService {
             List<?> l = voc.getRECORDAndHEADAndDIAG();
             System.out.println("Incoming objects count=" + l.size());
             ImportStatusResponse response = new ImportStatusResponse();
-            response.setStatus(Status.PREPROCESSING);
+            response.setStatus(ImportStatus.PREPROCESSING);
             response.addStatusMessage(new ImportStatusMessage("Vocabulary",l.size()+" items validated"));
             response.setProcessingTotal(l.size());
             ytiMQService.setStatus(YtiMQService.STATUS_PROCESSING, operationId.toString(), userProvider.getUser().getId().toString(), vocabulary.getUri(),response.toString());
