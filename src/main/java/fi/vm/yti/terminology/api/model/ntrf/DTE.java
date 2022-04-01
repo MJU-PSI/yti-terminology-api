@@ -14,7 +14,6 @@ import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlSchemaType;
 import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.XmlValue;
 
 
 /**
@@ -25,9 +24,9 @@ import jakarta.xml.bind.annotation.XmlValue;
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
- *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *       &lt;attribute name="href" use="required" type="{http://www.w3.org/2001/XMLSchema}anySimpleType" />
- *     &lt;/restriction>
+ *     &lt;extension base="{}termcontent">
+ *       &lt;attribute name="stat" type="{http://www.w3.org/2001/XMLSchema}anySimpleType" />
+ *     &lt;/extension>
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
@@ -35,64 +34,38 @@ import jakarta.xml.bind.annotation.XmlValue;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "", propOrder = {
-    "content"
-})
-@XmlRootElement(name = "ILLU")
-public class ILLU {
+@XmlType(name = "")
+@XmlRootElement(name = "DTE")
+public class DTE
+    extends Termcontent
+{
 
-    @XmlValue
-    protected String content;
-    @XmlAttribute(name = "href", required = true)
+    @XmlAttribute(name = "stat")
     @XmlSchemaType(name = "anySimpleType")
-    protected String href;
+    protected String stat;
 
     /**
-     * Gets the value of the content property.
+     * Gets the value of the stat property.
      * 
      * @return
      *     possible object is
      *     {@link String }
      *     
      */
-    public String getContent() {
-        return content;
+    public String getStat() {
+        return stat;
     }
 
     /**
-     * Sets the value of the content property.
+     * Sets the value of the stat property.
      * 
      * @param value
      *     allowed object is
      *     {@link String }
      *     
      */
-    public void setContent(String value) {
-        this.content = value;
-    }
-
-    /**
-     * Gets the value of the href property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getHref() {
-        return href;
-    }
-
-    /**
-     * Sets the value of the href property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setHref(String value) {
-        this.href = value;
+    public void setStat(String value) {
+        this.stat = value;
     }
 
 }
