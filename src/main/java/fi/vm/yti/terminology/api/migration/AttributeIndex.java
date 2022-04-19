@@ -1,5 +1,6 @@
 package fi.vm.yti.terminology.api.migration;
 
+import fi.vm.yti.terminology.api.frontend.TerminologyType;
 import fi.vm.yti.terminology.api.model.termed.AttributeMeta;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 import org.jetbrains.annotations.NotNull;
@@ -593,6 +594,25 @@ public final class AttributeIndex {
                         PropertyUtil.prefLabel(
                                 "Kopioitu sanastosta",
                                 "Copied from"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta terminologyType(TypeId domain, long index) {
+        return new AttributeMeta(
+                "^(" + TerminologyType.OTHER_VOCABULARY  + "|" + TerminologyType.TERMINOLOGICAL_VOCABULARY + ")$",
+                "terminologyType",
+                "http://uri.suomi.fi/datamodel/ns/term/#terminologyType",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Sanaston tyyppi",
+                                "Terminology type"
                         ),
                         type("string:single")
                 )

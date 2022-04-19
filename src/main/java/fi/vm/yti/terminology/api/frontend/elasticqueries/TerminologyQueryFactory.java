@@ -2,17 +2,14 @@ package fi.vm.yti.terminology.api.frontend.elasticqueries;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import fi.vm.yti.terminology.api.exception.InvalidQueryException;
-import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
-import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import fi.vm.yti.terminology.api.frontend.TerminologyType;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -131,14 +128,17 @@ public class TerminologyQueryFactory {
 
         QueryBuilder typeQuery = null;
         if (types != null && types.length > 0)  {
-            final var validTypes = new String[] { "TerminologicalVocabulary", "OtherVocabulary" };
+            final var validTypes = new String[] {
+                    TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
+                    TerminologyType.OTHER_VOCABULARY.name()
+            };
             if (!Arrays.asList(validTypes).containsAll(Arrays.asList(types))) {
                 log.error("One or more vocabulary types were invalid");
                 throw new InvalidQueryException("One or more vocabulary types were invalid");
             }
             // vocabulary type query must also be applied later when
             // filtering by additionalTerminologyIds
-            typeQuery = QueryBuilders.termsQuery("type.id", types);
+            typeQuery = QueryBuilders.termsQuery("terminologyType", types);
             mustQueries.add(typeQuery);
         }
 
