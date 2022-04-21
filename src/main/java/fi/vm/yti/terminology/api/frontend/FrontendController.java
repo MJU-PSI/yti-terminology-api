@@ -166,11 +166,10 @@ public class FrontendController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The JSON data for the new terminology node")
     @ApiResponse(responseCode = "200", description = "The ID for the newly created terminology")
     @PostMapping(path = "/vocabulary", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    String createVocabulary(@Parameter(description = "The meta model graph for the new terminology") @RequestParam UUID templateGraphId,
+    UUID createVocabulary(@Parameter(description = "The meta model graph for the new terminology") @RequestParam UUID templateGraphId,
                           @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace") @RequestParam String prefix,
                           @Parameter(description = "If given, tries to use the ID for the terminology") @RequestParam(required = false) @Nullable UUID graphId,
                           @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.") @RequestParam(required = false, defaultValue = "true") boolean sync,
-                          @Parameter(description = "Do not actually create vocabulary, only validate the input.") @RequestParam(required = false, defaultValue = "false") boolean validateOnly,
                           @ValidVocabularyNode @RequestBody GenericNode vocabularyNode) {
 
         try {
@@ -179,19 +178,32 @@ public class FrontendController {
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 
-            if (!validateOnly) {
-                termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
-                logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
-                return predefinedOrGeneratedGraphId.toString();
-            }
+            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
 
-            return "OK";
+            return predefinedOrGeneratedGraphId;
         } catch (RuntimeException | Error e) {
             logger.error("createVocabulary failed", e);
             throw e;
         } finally {
             logger.debug("Vocabulary creation finished");
         }
+    }
+
+    @Operation(summary = "Validate a terminology node")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The JSON data for the terminology node to validate")
+    @ApiResponse(responseCode = "200", description = "OK on success")
+    @PostMapping(path = "/vocabulary/validate", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    String validateVocabulary(@Parameter(description = "The meta model graph for the new terminology") @RequestParam UUID templateGraphId,
+                            @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace") @RequestParam String prefix,
+                            @Parameter(description = "If given, tries to use the ID for the terminology") @RequestParam(required = false) @Nullable UUID graphId,
+                            @ValidVocabularyNode @RequestBody GenericNode vocabularyNode) {
+
+        logger.info("POST /vocabulary/validate requested with params: templateGraphId: " +
+                templateGraphId.toString() + ", prefix: " +
+                prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+        // if we got this far, the validation was successful
+        return "OK";
     }
 
     @Operation(summary = "Delete a terminology")

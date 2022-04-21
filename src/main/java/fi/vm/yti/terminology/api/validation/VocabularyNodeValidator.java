@@ -1,10 +1,15 @@
 package fi.vm.yti.terminology.api.validation;
 
+import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import org.apache.commons.collections4.CollectionUtils;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.lang.annotation.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class VocabularyNodeValidator implements
         ConstraintValidator<ValidVocabularyNode, GenericNode>, Annotation {
@@ -28,14 +33,91 @@ public class VocabularyNodeValidator implements
                     "properties");
         }
 
+        //
+        // language
+        //
+        final var languages = properties.get("language");
+        if (languages == null || languages.size() == 0) {
+            this.addConstraintViolation(
+                    context,
+                    "Missing value",
+                    "language");
+        }
+
+        final var vocabularyType = genericNode.getType();
+        final var validTypes = new String[] {
+                "TerminologicalVocabulary",
+                "OtherVocabulary"
+        };
+        if (vocabularyType.getId() == null || !Arrays.asList(validTypes)
+                .contains(vocabularyType.getId().toString())) {
+            this.addConstraintViolation(
+                    context,
+                    "Missing value",
+                    "type");
+        }
+
+        //
+        // status
+        //
+        final var status = properties.get("status");
+        if (status == null || status.size() == 0) {
+            this.addConstraintViolation(
+                    context,
+                    "Missing value",
+                    "status");
+        } else {
+            // status must be one of Status enum
+            if (status.size() != 1 || !List.of(getStatusNames())
+                    .contains(status.get(0).getValue())) {
+                this.addConstraintViolation(
+                        context,
+                        "Invalid value",
+                        "status");
+            }
+        }
+
+        // list of language values, which will be used in later checks
+        var langValues = languages.stream()
+                .map(lang -> lang.getValue())
+                .collect(Collectors.toList());
+
+        //
+        // prefLabel
+        //
         final var prefLabel = properties.get("prefLabel");
-        if (prefLabel == null || prefLabel.size() == 0 || prefLabel.get(0).getValue().isEmpty()) {
+        if (prefLabel == null || prefLabel.size() == 0) {
             this.addConstraintViolation(
                     context,
                     "Missing value",
                     "prefLabel");
+        } else {
+            // should have one label for each language
+            var labelLanguages = prefLabel.stream()
+                    .map(label -> label.getLang())
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isEqualCollection(langValues, labelLanguages)) {
+                this.addConstraintViolation(
+                        context,
+                        "Language mismatch",
+                        "prefLabel");
+            }
+
+            // empty strings as values?
+            var emptyValues = prefLabel.stream()
+                    .filter(label -> label.getValue().trim().isEmpty())
+                    .collect(Collectors.toList());
+            if (emptyValues.size() > 0) {
+                this.addConstraintViolation(
+                        context,
+                        "Missing value",
+                        "prefLabel");
+            }
         }
 
+        //
+        // references
+        //
         final var references = genericNode.getReferences();
         if (references == null || references.size() == 0) {
             this.addConstraintViolation(
@@ -44,6 +126,7 @@ public class VocabularyNodeValidator implements
                     "references");
         }
 
+        // contributor
         if (!references.containsKey("contributor") || references.get("contributor").size() == 0) {
             this.addConstraintViolation(
                     context,
@@ -51,6 +134,7 @@ public class VocabularyNodeValidator implements
                     "contributor");
         }
 
+        // inGroup
         if (!references.containsKey("inGroup") || references.get("inGroup").size() == 0) {
             this.addConstraintViolation(
                     context,
@@ -74,5 +158,11 @@ public class VocabularyNodeValidator implements
         context.buildConstraintViolationWithTemplate(message)
                 .addPropertyNode(property)
                 .addConstraintViolation();
+    }
+
+    private static String[] getStatusNames() {
+        return Arrays.stream(Status.class.getEnumConstants())
+                .map(Enum::name)
+                .toArray(String[]::new);
     }
 }

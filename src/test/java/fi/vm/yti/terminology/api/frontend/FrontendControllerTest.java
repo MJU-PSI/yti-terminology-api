@@ -61,6 +61,8 @@ public class FrontendControllerTest {
 
     private LocalValidatorFactoryBean localValidatorFactory;
 
+    private static String testNodeId = "75ad9343-c3f7-417f-99e4-7aff07f5daf6";
+
     @BeforeEach
     public void setup() {
         this.mvc = MockMvcBuilders
@@ -81,14 +83,14 @@ public class FrontendControllerTest {
                 .perform(post("/api/v1/frontend/vocabulary")
                         .param("prefix", "test1")
                         .param("templateGraphId", templateGraphId)
-                        .param("validateOnly", "false")
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
+                //.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string(this.uuidMatcher));
 
-        verify(this.termedService, times(1))
+        verify(this.termedService)
                 .createVocabulary(
                         any(UUID.class),
                         any(String.class),
@@ -96,8 +98,6 @@ public class FrontendControllerTest {
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);
-        System.out.println("done!");
-
     }
 
     @ParameterizedTest
@@ -108,10 +108,9 @@ public class FrontendControllerTest {
         var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
 
         this.mvc
-                .perform(post("/api/v1/frontend/vocabulary")
+                .perform(post("/api/v1/frontend/vocabulary/validate")
                         .param("prefix", "test1")
                         .param("templateGraphId", templateGraphId)
-                        .param("validateOnly", "true")
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
                 .andExpect(status().isBadRequest())
@@ -127,8 +126,6 @@ public class FrontendControllerTest {
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);
-        System.out.println("done!");
-
     }
 
     @Test
@@ -137,38 +134,81 @@ public class FrontendControllerTest {
         // templateGraph UUID, predefined in database
         var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
 
-        UUID userId = UUID.fromString("c1094f2e-2be3-47d2-b27b-fbe5344b711e");
-
         var vocabularyNode = constructVocabularyNode();
 
         this.mvc
-                .perform(get("/api/v1/frontend/authenticated-user")
-                        .contentType("application/json"))
-                .andExpect(status().isOk());
-
-        this.mvc
-                .perform(post("/api/v1/frontend/vocabulary")
+                .perform(post("/api/v1/frontend/vocabulary/validate")
                         .param("prefix", "test1")
                         .param("templateGraphId", templateGraphId)
-                        .param("validateOnly", "true")
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
-                .andDo(print())
+                //.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string("OK"));
 
         verifyNoMoreInteractions(this.termedService);
-        System.out.println("done!");
+    }
 
+    @Test
+    public void shouldFailOnLanguageMismatch() throws Exception {
+
+        // templateGraph UUID, predefined in database
+        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
+        var properties = constructProperties();
+
+        properties.remove("language");
+        properties.put("language", Arrays.asList(
+                new Attribute("", "en"),
+                new Attribute("", "fi")
+        ));
+        var vocabularyNode = constructVocabularyNode(
+                properties,
+                constructReferences(),
+                constructReferrers());
+
+        this.mvc
+                .perform(post("/api/v1/frontend/vocabulary/validate")
+                        .param("prefix", "test1")
+                        .param("templateGraphId", templateGraphId)
+                        .contentType("application/json")
+                        .content(convertObjectToJsonString(vocabularyNode)))
+                //.andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.message").value("Object validation failed"))
+                .andExpect(jsonPath("$.details").exists());
+
+        verifyNoMoreInteractions(this.termedService);
     }
 
     private static Stream<Arguments> provideVocabularyNodesWithMissingData() {
         var args = new ArrayList<GenericNode>();
 
-        // without a property
+        // without a prefLabel
         var properties = constructProperties();
         properties.remove("prefLabel");
+        args.add(constructVocabularyNode(
+                properties, constructReferences(), constructReferrers()));
+
+        // with empty prefLabel
+        properties = constructProperties();
+        properties.remove("prefLabel");
+        properties.put("prefLabel",
+                singletonList(new Attribute("en", "")));
+        args.add(constructVocabularyNode(
+                properties, constructReferences(), constructReferrers()));
+
+        // without type
+        properties = constructProperties();
+        properties.remove("status");
+        args.add(constructVocabularyNode(
+                properties, constructReferences(), constructReferrers()));
+
+        // without a status
+        properties = constructProperties();
+        properties.remove("status");
         args.add(constructVocabularyNode(
                 properties, constructReferences(), constructReferrers()));
 
@@ -200,7 +240,7 @@ public class FrontendControllerTest {
         properties.put("description", new ArrayList());
         properties.put(
                 "language",
-                singletonList(new Attribute("", "fi")));
+                singletonList(new Attribute("", "en")));
         properties.put(
                 "status",
                 singletonList(new Attribute("", "DRAFT")));
@@ -258,7 +298,7 @@ public class FrontendControllerTest {
         var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
 
         var vocabularyNode = new GenericNode(
-                UUID.randomUUID(), // TODO node graph id predefined
+                UUID.fromString(testNodeId),
                 null,
                 null,
                 40L,
@@ -286,5 +326,5 @@ public class FrontendControllerTest {
     }
 
     private Matcher<String> uuidMatcher = Matchers.matchesRegex(
-            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+            "^\"?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\"?$");
 }
