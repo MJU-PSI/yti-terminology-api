@@ -36,6 +36,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.validation.constraints.Size;
+
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -166,11 +168,22 @@ public class FrontendController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The JSON data for the new terminology node")
     @ApiResponse(responseCode = "200", description = "The ID for the newly created terminology")
     @PostMapping(path = "/vocabulary", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    UUID createVocabulary(@Parameter(description = "The meta model graph for the new terminology") @RequestParam UUID templateGraphId,
-                          @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace") @RequestParam String prefix,
-                          @Parameter(description = "If given, tries to use the ID for the terminology") @RequestParam(required = false) @Nullable UUID graphId,
-                          @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.") @RequestParam(required = false, defaultValue = "true") boolean sync,
-                          @ValidVocabularyNode @RequestBody GenericNode vocabularyNode) {
+    UUID createVocabulary(
+            @Parameter(description = "The meta model graph for the new terminology")
+            @RequestParam UUID templateGraphId,
+
+            @Size(min = 3, message = "Prefix must be minimum of 3 characters")
+            @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace")
+            @RequestParam String prefix,
+
+            @Parameter(description = "If given, tries to use the ID for the terminology")
+            @RequestParam(required = false) @Nullable UUID graphId,
+
+            @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.")
+            @RequestParam(required = false, defaultValue = "true") boolean sync,
+
+            @ValidVocabularyNode
+            @RequestBody GenericNode vocabularyNode) {
 
         try {
             logger.info("POST /vocabulary requested with params: templateGraphId: " +
@@ -194,10 +207,19 @@ public class FrontendController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The JSON data for the terminology node to validate")
     @ApiResponse(responseCode = "200", description = "OK on success")
     @PostMapping(path = "/vocabulary/validate", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
-    String validateVocabulary(@Parameter(description = "The meta model graph for the new terminology") @RequestParam UUID templateGraphId,
-                            @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace") @RequestParam String prefix,
-                            @Parameter(description = "If given, tries to use the ID for the terminology") @RequestParam(required = false) @Nullable UUID graphId,
-                            @ValidVocabularyNode @RequestBody GenericNode vocabularyNode) {
+    String validateVocabulary(
+            @Parameter(description = "The meta model graph for the new terminology")
+            @RequestParam UUID templateGraphId,
+
+            @Size(min = 3, message = "Prefix must be minimum of 3 characters")
+            @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace")
+            @RequestParam String prefix,
+
+            @Parameter(description = "If given, tries to use the ID for the terminology")
+            @RequestParam(required = false) @Nullable UUID graphId,
+
+            @ValidVocabularyNode
+            @RequestBody GenericNode vocabularyNode) {
 
         logger.info("POST /vocabulary/validate requested with params: templateGraphId: " +
                 templateGraphId.toString() + ", prefix: " +

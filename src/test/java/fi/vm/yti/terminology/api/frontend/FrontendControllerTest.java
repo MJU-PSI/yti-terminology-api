@@ -81,11 +81,11 @@ public class FrontendControllerTest {
 
         this.mvc
                 .perform(post("/api/v1/frontend/vocabulary")
-                        .param("prefix", "test1")
+                        .param("prefix", "te")
                         .param("templateGraphId", templateGraphId)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
-                //.andDo(print())
+                // .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string(this.uuidMatcher));
@@ -98,6 +98,56 @@ public class FrontendControllerTest {
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);
+    }
+
+    @ParameterizedTest
+    @MethodSource("providePrefixes")
+    public void shouldValidatePrefix(String prefix, boolean shouldSucceed) throws Exception {
+
+        // templateGraph UUID, predefined in database
+        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+        var vocabularyNode = this.constructVocabularyNode();
+
+        var request = this.mvc
+                .perform(post("/api/v1/frontend/vocabulary")
+                        .param("prefix", prefix)
+                        .param("templateGraphId", templateGraphId)
+                        .contentType("application/json")
+                        .content(convertObjectToJsonString(vocabularyNode)));
+
+        if (shouldSucceed) {
+            request
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("application/json"))
+                    .andExpect(content().string(this.uuidMatcher));
+
+            verify(this.termedService)
+                    .createVocabulary(
+                            any(UUID.class),
+                            any(String.class),
+                            any(GenericNode.class),
+                            any(UUID.class),
+                            eq(true));
+
+        } else {
+            request
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType("application/json"))
+                    .andExpect(jsonPath("$.message").value(
+                            "Object validation failed"))
+                    .andExpect(jsonPath("$.details").exists());
+        }
+
+        verifyNoMoreInteractions(this.termedService);
+    }
+
+    private static Stream<Arguments> providePrefixes() {
+        return Stream.of(
+                Arguments.of("tes", true),
+                Arguments.of("te", false),
+                Arguments.of("", false)
+        );
     }
 
     @ParameterizedTest
