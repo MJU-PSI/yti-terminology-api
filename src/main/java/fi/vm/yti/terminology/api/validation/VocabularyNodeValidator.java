@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.validation;
 
 import fi.vm.yti.terminology.api.frontend.Status;
+import fi.vm.yti.terminology.api.frontend.TerminologyType;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -44,13 +45,38 @@ public class VocabularyNodeValidator implements
                     "language");
         }
 
+        //
+        // terminologyType
+        //
+        final var terminologyType = properties.get("terminologyType");
+        if (terminologyType == null) {
+            this.addConstraintViolation(
+                    context,
+                    "Missing value",
+                    "terminologyType");
+        } else if (languages.size() != 1) {
+            this.addConstraintViolation(
+                    context,
+                    "Invalid value",
+                    "terminologyType");
+        } else {
+            final var validTypes = new String[] {
+                    TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
+                    TerminologyType.OTHER_VOCABULARY.name()
+            };
+            if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
+                this.addConstraintViolation(
+                        context,
+                        "Invalid value",
+                        "terminologyType");
+            }
+
+        }
+
+        // type.id should always match TerminologicalVocabulary
         final var vocabularyType = genericNode.getType();
-        final var validTypes = new String[] {
-                "TerminologicalVocabulary",
-                "OtherVocabulary"
-        };
-        if (vocabularyType.getId() == null || !Arrays.asList(validTypes)
-                .contains(vocabularyType.getId().toString())) {
+        if (vocabularyType.getId() == null ||
+                !vocabularyType.getId().toString().equals("TerminologicalVocabulary")) {
             this.addConstraintViolation(
                     context,
                     "Missing value",

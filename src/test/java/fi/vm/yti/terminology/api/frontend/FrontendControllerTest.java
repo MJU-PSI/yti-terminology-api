@@ -81,7 +81,7 @@ public class FrontendControllerTest {
 
         this.mvc
                 .perform(post("/api/v1/frontend/vocabulary")
-                        .param("prefix", "te")
+                        .param("prefix", "test1")
                         .param("templateGraphId", templateGraphId)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
@@ -117,7 +117,7 @@ public class FrontendControllerTest {
 
         if (shouldSucceed) {
             request
-                    .andDo(print())
+                    // .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(content().contentType("application/json"))
                     .andExpect(content().string(this.uuidMatcher));
@@ -192,7 +192,7 @@ public class FrontendControllerTest {
                         .param("templateGraphId", templateGraphId)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
-                //.andDo(print())
+                // .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string("OK"));
@@ -250,9 +250,9 @@ public class FrontendControllerTest {
         args.add(constructVocabularyNode(
                 properties, constructReferences(), constructReferrers()));
 
-        // without type
+        // without terminologyType
         properties = constructProperties();
-        properties.remove("status");
+        properties.remove("terminologyType");
         args.add(constructVocabularyNode(
                 properties, constructReferences(), constructReferrers()));
 
@@ -291,6 +291,9 @@ public class FrontendControllerTest {
         properties.put(
                 "language",
                 singletonList(new Attribute("", "en")));
+        properties.put(
+                "terminologyType",
+                singletonList(new Attribute("", "TERMINOLOGICAL_VOCABULARY")));
         properties.put(
                 "status",
                 singletonList(new Attribute("", "DRAFT")));
