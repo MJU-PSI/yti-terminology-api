@@ -13,26 +13,34 @@ public final class GenericNode implements Node {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private UUID id = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String code = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String uri = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long number = null;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String createdBy = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Date createdDate = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String lastModifiedBy = null;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Date lastModifiedDate = null;
 
     private final TypeId type;
 
     private final Map<String, List<Attribute>> properties;
+
     private final Map<String, List<Identifier>> references;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private  Map<String, List<Identifier>> referrers = null;
 
