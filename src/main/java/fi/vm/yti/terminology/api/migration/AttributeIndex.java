@@ -619,6 +619,60 @@ public final class AttributeIndex {
         );
     }
 
+    @NotNull
+    public static AttributeMeta externalLink(TypeId domain, long index) {
+        return new AttributeMeta(
+                "externalLink",
+                "http://uri.suomi.fi/datamodel/ns/term#ExternalLink",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Ulkoinen linkki",
+                                "External link"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta subjectArea(TypeId domain, long index) {
+        return new AttributeMeta(
+                "subjectArea",
+                "http://uri.suomi.fi/datamodel/ns/term#subjectArea",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Aihealue",
+                                "Subject area"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public static AttributeMeta termEquivalencyRelation(TypeId domain, long index) {
+        return new AttributeMeta(
+                "termEquivalencyRelation",
+                "http://uri.suomi.fi/datamodel/ns/term#termEquivalencyRelation",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(
+                                "Termi, johon vastaavuus liittyy",
+                                "Term equivalency is related to"
+                        ),
+                        type("string:single")
+                )
+        );
+    }
+
     // prevent construction
     private AttributeIndex() {
     }
