@@ -126,6 +126,7 @@ public class VocabularyNodeValidator implements
                     "prefLabel");
         } else {
             // should have one label for each language
+            /* TODO enable language mismatch check after new version release
             var labelLanguages = prefLabel.stream()
                     .map(label -> label.getLang())
                     .collect(Collectors.toList());
@@ -135,6 +136,7 @@ public class VocabularyNodeValidator implements
                         "Language mismatch",
                         "prefLabel");
             }
+            */
 
             // empty strings as values?
             var emptyValues = prefLabel.stream()
