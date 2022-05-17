@@ -1,6 +1,8 @@
 package fi.vm.yti.terminology.api.importapi;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
+import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +32,7 @@ public class YtiMQService {
 
     private static final Logger logger = LoggerFactory.getLogger(YtiMQService.class);
 
-    public static final String[] SET_VALUES = new String[] { "Vocabulary", "Test", "CodeList" };
+    public static final String[] SET_VALUES = new String[] { "Vocabulary", "Test", "CodeList", "VocabularyExcel" };
     public static final Set<String> SUPPORTED_SYSTEMS = new HashSet<>(Arrays.asList(SET_VALUES));
 
     // JMS-client
@@ -40,6 +42,7 @@ public class YtiMQService {
     public final static int STATUS_PREPROCESSING = 1;
     public final static int STATUS_PROCESSING = 2;
     public final static int STATUS_READY = 3;
+    public final static int STATUS_FAILED = 4;
 
     private Map<String, Message> currentStatus = new HashMap<>();
 
@@ -66,6 +69,7 @@ public class YtiMQService {
         browseQueue(subSystem+"Processing");
         logger.info("ReadyQueue!");
         browseQueue(subSystem+"Ready");
+        browseQueue(subSystem + "ExcelImport");
         // Status not_found/running/errors
         Message mess = currentStatus.get(jobtoken.toString());
         if (mess != null) {
@@ -86,6 +90,10 @@ public class YtiMQService {
                 case YtiMQService.STATUS_PREPROCESSING:{
                     logger.warn("Import operation already started for "+jobtoken);
                     return  HttpStatus.NOT_ACCEPTABLE;
+                }
+                case YtiMQService.STATUS_FAILED: {
+                    logger.error("Import failed {}", jobtoken);
+                    return HttpStatus.INTERNAL_SERVER_ERROR;
                 }
             }
         }
@@ -320,20 +328,7 @@ public class YtiMQService {
         if(jobtoken == null) {
             jobtoken=UUID.randomUUID();
         }
-        MessageHeaderAccessor accessor = new MessageHeaderAccessor();
-        if (headers != null) {
-            // Add application specific headers
-            accessor.copyHeaders(headers.toMap());
-        }
-        // Authenticated user
-        accessor.setHeader("userId", userProvider.getUser().getId().toString());
-        // Token which is used when querying status
-        accessor.setHeader("jobtoken", jobtoken.toString());
-        // Target identification data
-        accessor.setHeader("system", subsystem);
-        accessor.setHeader("uri", uri);
-        // Use jobtoken as correlationID
-        accessor.setHeader("JMSCorrelationID", jobtoken.toString());
+        MessageHeaderAccessor accessor = getMessageHeaderAccessor(headers, jobtoken, subsystem, uri);
 
         Message mess = MessageBuilder
                     .withPayload(payload)
@@ -403,5 +398,58 @@ public class YtiMQService {
         logger.debug("Send Status to QUEUE {}", mess);
 
         return mess;
+    }
+
+    /**
+     * Send batches to queue
+     *
+     * @See fi.vm.yti.terminology.api.importapi.ExcelImportJmsListener
+     */
+    public void handleExcelImportAsync(UUID jobToken, MessageHeaderAccessor headers,
+                                      String uri, List<List<GenericNode>> batches) {
+
+        MessageHeaderAccessor accessor = getMessageHeaderAccessor(headers, jobToken, subSystem, uri);
+
+        // Set initial status
+        ImportStatusResponse response = new ImportStatusResponse();
+        response.setStatus(ImportStatusResponse.ImportStatus.PROCESSING);
+        response.setProcessingProgress(0);
+        response.setProcessingTotal(batches.size());
+
+        setStatus(STATUS_PROCESSING, jobToken.toString(),
+                accessor.getHeader("userId").toString(),
+                accessor.getHeader("uri").toString(),
+                response.toString());
+
+        int count = 1;
+
+        for(List<GenericNode> patch : batches) {
+            accessor.setHeader("currentBatch", count++);
+            accessor.setHeader("totalBatchCount", batches.size());
+
+            Message<GenericDeleteAndSave> message = MessageBuilder
+                    .withPayload(new GenericDeleteAndSave(Collections.emptyList(), patch))
+                    .setHeaders(accessor)
+                    .build();
+            jmsMessagingTemplate.send(subSystem + "ExcelImport", message);
+        }
+    }
+
+    private MessageHeaderAccessor getMessageHeaderAccessor(MessageHeaderAccessor headers, UUID jobToken, String subsystem, String uri) {
+        MessageHeaderAccessor accessor = new MessageHeaderAccessor();
+        if (headers != null) {
+            // Add application specific headers
+            accessor.copyHeaders(headers.toMap());
+        }
+        // Authenticated user
+        accessor.setHeader("userId", userProvider.getUser().getId().toString());
+        // Token which is used when querying status
+        accessor.setHeader("jobtoken", jobToken.toString());
+        // Target identification data
+        accessor.setHeader("system", subsystem);
+        accessor.setHeader("uri", uri);
+        // Use jobtoken as correlationID
+        accessor.setHeader("JMSCorrelationID", jobToken.toString());
+        return accessor;
     }
 }

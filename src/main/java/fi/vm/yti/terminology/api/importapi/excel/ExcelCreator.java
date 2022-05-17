@@ -1,13 +1,12 @@
 package fi.vm.yti.terminology.api.importapi.excel;
 
-import org.apache.poi.ss.formula.functions.Column;
+import fi.vm.yti.terminology.api.frontend.Status;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,6 +18,7 @@ public class ExcelCreator {
     private static final String COLLECTION = "Collection";
     private static final String CONCEPT = "Concept";
     private static final String TERM = "Term";
+    private static final String CONCEPT_LINK = "ConceptLink";
 
     /**
      * JSON data used as input.
@@ -28,22 +28,39 @@ public class ExcelCreator {
 
     private String filename;
 
+    private static final Map<String, List<TermPlaceHolderDTO>> placeHolderTerms = new HashMap<>();
+
+    private static final Map<String, JSONWrapper> wrapperNodeMap = new HashMap<>();
+
     public ExcelCreator(@NotNull List<JSONWrapper> wrappers) {
         this.wrappers = wrappers;
+
+        // create id map to make it easier to check if placeholder term needs to be generated
+        wrappers.forEach(wrapper -> wrapperNodeMap.put(wrapper.getID(), wrapper));
+    }
+
+    /**
+     * Create Excel workbook,
+     *
+     * @param placeHolderLanguages list of languages to create placeholder terms for
+     */
+    public @NotNull Workbook createExcel(List<String> placeHolderLanguages) {
+        Workbook workbook = new XSSFWorkbook();
+
+        this.createTerminologyDetailsSheet(workbook);
+        this.createCollectionsSheet(workbook);
+        this.createConceptsSheet(workbook, placeHolderLanguages);
+        this.createTermsSheet(workbook);
+        this.createConceptLinksSheet(workbook);
+
+        return workbook;
     }
 
     /**
      * Create Excel workbook
      */
     public @NotNull Workbook createExcel() {
-        Workbook workbook = new XSSFWorkbook();
-
-        this.createTerminologyDetailsSheet(workbook);
-        this.createCollectionsSheet(workbook);
-        this.createConceptsSheet(workbook);
-        this.createTermsSheet(workbook);
-
-        return workbook;
+        return createExcel(List.of());
     }
 
     /**
@@ -71,15 +88,17 @@ public class ExcelCreator {
             builder.addDataToCurrentRow("VOCABULARYTYPE", terminology.getTypeAsText());
             this.addProperty("DESCRIPTION", "description", terminology, builder);
             this.addProperty("STATUS", "status", terminology, builder);
-            this.addPropertyOfReference(
+            this.addUuidOfReference(
                     "CONTRIBUTOR",
                     "contributor",
-                    "prefLabel",
                     terminology,
                     builder
             );
             this.addProperty("CONTACT", "contact", terminology, builder);
             this.addCommonProperties(builder, terminology);
+            builder.addDataToCurrentRow("GRAPH_ID", terminology.getGraphId());
+            builder.addDataToCurrentRow("UUID", terminology.getID());
+            builder.addDataToCurrentRow("NAMESPACE", terminology.getNamespace());
 
             builder.nextRow();
         }
@@ -102,7 +121,7 @@ public class ExcelCreator {
             this.addProperty("DESCRIPTION", "definition", terminology, builder);
             this.addCodeOfReference("MEMBER", "member", terminology, builder);
             this.addCommonProperties(builder, terminology);
-
+            builder.addDataToCurrentRow("UUID", terminology.getID());
             builder.nextRow();
         }
 
@@ -115,21 +134,23 @@ public class ExcelCreator {
      * <p>
      * It loops over all concepts and creates a row for each.
      */
-    private void createConceptsSheet(@NotNull Workbook workbook) {
+    private void createConceptsSheet(@NotNull Workbook workbook,
+                                     List<String> placeHolderLanguages) {
         var builder = new DTOBuilder();
         for (JSONWrapper terminology : this.wrappersOfType(CONCEPT)) {
             builder.addDataToCurrentRow("IDENTIFIER", terminology.getCode());
-            this.addCodeOfReference("PREFERREDTERM", "prefLabelXl", terminology, builder);
-            this.addCodeOfReference("SYNONYM", "altLabelXl", terminology, builder);
-            this.addCodeOfReference("NONRECOMMENDEDSYNONYM", "notRecommendedSynonym", terminology, builder);
-            this.addCodeOfReference("HIDDENTERM", "hiddenTerm", terminology, builder);
+            // add preferred term name to concept sheet to make it easier to understand which concept
+            // information is displayed
+            Map<String, List<String>> prefLabel = terminology.getReference("prefLabelXl").get(0).getProperty("prefLabel");
+            builder.addDataToCurrentRow("PREFERRED_TERM_LABEL", prefLabel
+                    .get(prefLabel.keySet().iterator().next())
+                    .get(0));
             this.addProperty("DEFINITION", "definition", terminology, builder);
             this.addProperty("NOTE", "note", terminology, builder);
             // TODO: EDITORIALNOTE should be visible if the user has write permissions to the terminology.
 //            this.addProperty("EDITORIALNOTE", "editorialNote", terminology, builder);
             this.addProperty("EXAMPLE", "example", terminology, builder);
-            // TODO: Add data to SUBJECTAREA when implemented. Currently only placeholder column is added.
-            builder.ensureColumn("SUBJECTAREA", ColumnDTO.MULTI_COLUMN_MODE_ENABLED);
+            this.addProperty("SUBJECTAREA", "subjectArea", terminology, builder);
             this.addProperty("CONCEPTCLASS", "conceptClass", terminology, builder);
             this.addProperty("WORDCLASS", "wordClass", terminology, builder);
             this.addProperty("CHANGENOTE", "changeNote", terminology, builder);
@@ -137,16 +158,27 @@ public class ExcelCreator {
             this.addProperty("STATUS", "status", terminology, builder);
             this.addProperty("NOTATION", "notation", terminology, builder);
             this.addProperty("SOURCE", "source", terminology, builder);
+            this.addProperty("EXTERNALLINK", "externalLink", terminology, builder);
+
+            this.addCommonProperties(builder, terminology);
+
+            if (placeHolderLanguages.isEmpty()) {
+                this.addCodeOfReference("PREFERREDTERM", "prefLabelXl", terminology, builder);
+            } else {
+                this.addCodeOfReferenceWithPlaceHolder("PREFERREDTERM", "prefLabelXl", terminology, builder, placeHolderLanguages);
+            }
+            this.addCodeOfReference("SYNONYM", "altLabelXl", terminology, builder);
+            this.addCodeOfReference("NONRECOMMENDEDSYNONYM", "notRecommendedSynonym", terminology, builder);
+            this.addCodeOfReference("HIDDENTERM", "hiddenTerm", terminology, builder);
+            this.addCodeOfReference("SEARCHTERM", "searchTerm", terminology, builder);
+
             this.addCodeOfReference("BROADERCONCEPT", "broader", terminology, builder);
             this.addCodeOfReference("NARROWERCONCEPT", "narrower", terminology, builder);
-            this.addConceptLink("CLOSEMATCHINOTHERVOCABULARY", "closeMatch", terminology, builder);
             this.addCodeOfReference("RELATEDCONCEPT", "related", terminology, builder);
             this.addCodeOfReference("ISPARTOFCONCEPT", "isPartOf", terminology, builder);
             this.addCodeOfReference("HASPARTCONCEPT", "hasPart", terminology, builder);
-            this.addConceptLink("RELATEDCONCEPTINOTHERVOCABULARY", "relatedMatch", terminology, builder);
-            this.addConceptLink("MATCHINGCONCEPTINOTHERVOCABULARY", "exactMatch", terminology, builder);
-            this.addCodeOfReference("SEARCHTERM", "searchTerm", terminology, builder);
-            this.addCommonProperties(builder, terminology);
+
+            builder.addDataToCurrentRow("UUID", terminology.getID());
 
             builder.nextRow();
         }
@@ -163,6 +195,10 @@ public class ExcelCreator {
     private void createTermsSheet(@NotNull Workbook workbook) {
         var builder = new DTOBuilder();
         for (JSONWrapper terminology : this.wrappersOfType(TERM)) {
+
+            String uuid = terminology.getID();
+            List<TermPlaceHolderDTO> placeHolders = placeHolderTerms.getOrDefault(uuid, Collections.emptyList());
+
             builder.addDataToCurrentRow("IDENTIFIER", terminology.getCode());
             this.addProperty("PREFLABEL", "prefLabel", terminology, builder);
             this.addProperty("SOURCE", "source", terminology, builder);
@@ -181,11 +217,73 @@ public class ExcelCreator {
             this.addProperty("CHANGENOTE", "changeNote", terminology, builder);
             this.addProperty("STATUS", "status", terminology, builder);
             builder.addDataToCurrentRow("URI", terminology.getURI());
+            builder.addDataToCurrentRow("UUID", uuid);
             builder.addDataToCurrentRow("OPERATION", "");
             builder.nextRow();
+
+            String prefLabelValue = terminology.getFirstPropertyValue("prefLabel", "fi");
+            for(TermPlaceHolderDTO placeHolder : placeHolders) {
+                createTermPlaceholder(builder, placeHolder.getUuid().toString(), placeHolder.getLanguage(), prefLabelValue);
+                builder.nextRow();
+            }
         }
 
         Sheet sheet = workbook.createSheet("Terms");
+        new ExcelBuilder().renderSheetDTO(sheet, builder.getSheet());
+    }
+
+    private void createTermPlaceholder(DTOBuilder builder, String uuid, String lang, String defaultValue) {
+        String identifier = "term-" + uuid.substring(0,8);
+        builder.addDataToCurrentRow("IDENTIFIER", identifier);
+        builder.addDataToCurrentRow("PREFLABEL", String.format("%s (%s)", defaultValue, lang), lang);
+        builder.addDataToCurrentRow("SOURCE", "");
+        builder.addDataToCurrentRow("SCOPE", "");
+        builder.addDataToCurrentRow("TERMSTYLE", "");
+        builder.addDataToCurrentRow("TERMFAMILY", "");
+        builder.addDataToCurrentRow("TERMCONJUGATION", "");
+        builder.addDataToCurrentRow("TERMEQUIVALENCY", "");
+        builder.addDataToCurrentRow("TERMINFO", "");
+        builder.addDataToCurrentRow("WORDCLASS", "");
+        builder.addDataToCurrentRow("HOMOGRAPHNUMBER", "");
+        // TODO: EDITORIALNOTE should be visible if the user has write permissions to the terminology.
+//            this.addProperty("EDITORIALNOTE", "editorialNote", terminology, builder);
+        builder.addDataToCurrentRow("DRAFTCOMMENT", "");
+        builder.addDataToCurrentRow("HISTORYNOTE", "");
+        builder.addDataToCurrentRow("CHANGENOTE", "");
+        builder.addDataToCurrentRow("STATUS", Status.DRAFT.name());
+        builder.addDataToCurrentRow("URI", "");
+        builder.addDataToCurrentRow("UUID", uuid);
+        builder.addDataToCurrentRow("OPERATION", "");
+    }
+
+    private void createConceptLinksSheet(@NotNull Workbook workbook) {
+        var builder = new DTOBuilder();
+        for (JSONWrapper conceptLink : this.wrappersOfType(CONCEPT_LINK)) {
+            List<String> referrerTypes = conceptLink.getReferrerTypes();
+
+            // In some cases there are concept links without referrer
+            if (referrerTypes.isEmpty()) {
+                continue;
+            }
+            String referrerType = referrerTypes.get(0);
+            List<JSONWrapper> referrers = conceptLink.getReferrer(referrerType);
+            if (referrers.isEmpty()) {
+                continue;
+            }
+
+            builder.addDataToCurrentRow("UUID", conceptLink.getID());
+            builder.addDataToCurrentRow("IDENTIFIER", conceptLink.getCode());
+            builder.addDataToCurrentRow("LINK_TYPE", referrerType);
+            builder.addDataToCurrentRow("CONCEPT_ID", referrers.get(0).getID());
+            this.addProperty("TARGET_GRAPH", "targetGraph", conceptLink, builder);
+            this.addProperty("TARGET_ID", "targetId", conceptLink, builder);
+            this.addProperty("PREFLABEL", "prefLabel", conceptLink, builder);
+            this.addProperty("VOCABULARY_LABEL", "vocabularyLabel", conceptLink, builder);
+            builder.addDataToCurrentRow("URI", conceptLink.getURI());
+            builder.addDataToCurrentRow("OPERATION", "");
+            builder.nextRow();
+        }
+        Sheet sheet = workbook.createSheet("Concept links");
         new ExcelBuilder().renderSheetDTO(sheet, builder.getSheet());
     }
 
@@ -238,6 +336,20 @@ public class ExcelCreator {
         );
     }
 
+    private void addUuidOfReference(
+            @NotNull String columnName,
+            @NotNull String referenceName,
+            @NotNull JSONWrapper wrapper,
+            @NotNull DTOBuilder builder) {
+        this.addUuidOfReference(
+                columnName,
+                referenceName,
+                wrapper,
+                builder,
+                ColumnDTO.MULTI_COLUMN_MODE_ENABLED
+        );
+    }
+
     /**
      * Map given property of reference from JSON to SheetDTO.
      */
@@ -255,6 +367,19 @@ public class ExcelCreator {
         builder.addDataToCurrentRow(columnName, "", values, multiColumnModeDisabled);
     }
 
+    private void addUuidOfReference(
+            @NotNull String columnName,
+            @NotNull String referenceName,
+            @NotNull JSONWrapper wrapper,
+            @NotNull DTOBuilder builder,
+            boolean multiColumnModeDisabled) {
+        List<String> values = wrapper.getReference(referenceName).stream()
+                .map(group -> group.getID())
+                .collect(Collectors.toList());
+
+        builder.addDataToCurrentRow(columnName, "", values, multiColumnModeDisabled);
+    }
+
     /**
      * Map code of reference from JSON to SheetDTO.
      */
@@ -264,9 +389,54 @@ public class ExcelCreator {
             @NotNull JSONWrapper wrapper,
             @NotNull DTOBuilder builder) {
         List<String> values = wrapper.getReference(referenceName).stream()
-                .flatMap(group -> Stream.of(group.getCode()))
+                .flatMap(group -> Stream.of(group.getID()))
                 .collect(Collectors.toList());
 
+        builder.addDataToCurrentRow(columnName, values);
+    }
+
+    /**
+     * Creates term reference with placeholder in given languages.
+     * Placeholder is not created if term with specified language already exists.
+     */
+    private void addCodeOfReferenceWithPlaceHolder(
+            @NotNull String columnName,
+            @NotNull String referenceName,
+            @NotNull JSONWrapper wrapper,
+            @NotNull DTOBuilder builder,
+            @NotNull List<String> languages) {
+        List<String> values = wrapper.getReference(referenceName).stream()
+                .flatMap(group -> Stream.of(group.getID()))
+                .collect(Collectors.toList());
+
+        String key = values.get(0);
+        if (key == null) {
+            return;
+        }
+
+        // check if language version with particular language already exist
+        List<String> existingLanguages = new ArrayList<>();
+        for (String value : values) {
+            JSONWrapper jsonWrapper = wrapperNodeMap.get(value);
+            for (String lang : languages) {
+                if (jsonWrapper.getProperty("prefLabel").keySet().contains(lang)) {
+                    existingLanguages.add(lang);
+                }
+            }
+        }
+
+        List<TermPlaceHolderDTO> placeHolders = new ArrayList<>();
+        for (String language : languages) {
+
+            if (existingLanguages.contains(language)) {
+                continue;
+            }
+
+            UUID placeHolderId = UUID.randomUUID();
+            values.add(placeHolderId.toString());
+            placeHolders.add(new TermPlaceHolderDTO(placeHolderId, language));
+        }
+        placeHolderTerms.put(key, placeHolders);
         builder.addDataToCurrentRow(columnName, values);
     }
 
