@@ -48,29 +48,36 @@ public class VocabularyNodeValidator implements
         //
         // terminologyType
         //
-        final var terminologyType = properties.get("terminologyType");
+        //
+        /* TODO: add null check for terminologyType after release
         if (terminologyType == null) {
             this.addConstraintViolation(
                     context,
                     "Missing value",
                     "terminologyType");
-        } else if (languages.size() != 1) {
-            this.addConstraintViolation(
-                    context,
-                    "Invalid value",
-                    "terminologyType");
-        } else {
-            final var validTypes = new String[] {
-                    TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
-                    TerminologyType.OTHER_VOCABULARY.name()
-            };
-            if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
+        }
+        */
+        final var terminologyType = properties.get("terminologyType");
+        if (terminologyType != null) {
+            if (terminologyType.size() != 1) {
                 this.addConstraintViolation(
                         context,
                         "Invalid value",
                         "terminologyType");
+            } else {
+                // TODO: remove empty string from validTypes after release
+                final var validTypes = new String[]{
+                        "",
+                        TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
+                        TerminologyType.OTHER_VOCABULARY.name()
+                };
+                if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
+                    this.addConstraintViolation(
+                            context,
+                            "Invalid value",
+                            "terminologyType");
+                }
             }
-
         }
 
         // type.id should always match TerminologicalVocabulary

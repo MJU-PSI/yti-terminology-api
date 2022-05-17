@@ -8,10 +8,10 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 import org.springframework.stereotype.Component;
 
 @Component
-public class V22_LinkTermEquivalencyAndSubjectAreaProperties implements MigrationTask  {
+public class V22_LinkAndSubjectAreaProperties implements MigrationTask  {
     private final MigrationService migrationService;
 
-    V22_LinkTermEquivalencyAndSubjectAreaProperties(MigrationService migrationService) {
+    V22_LinkAndSubjectAreaProperties(MigrationService migrationService) {
         this.migrationService = migrationService;
     }
 
@@ -26,9 +26,6 @@ public class V22_LinkTermEquivalencyAndSubjectAreaProperties implements Migratio
                 meta.addAttribute(AttributeIndex.subjectArea(meta.getDomain(), 35));
             }
 
-            if (type.equals(NodeType.Term)) {
-                meta.addAttribute(AttributeIndex.termEquivalencyRelation(meta.getDomain(), 20));
-            }
         });
     }
 }
