@@ -16,6 +16,7 @@ import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,6 +229,7 @@ public class ImportService {
     }
 
     public UUID handleExcelImport(InputStream is) {
+        ZipSecureFile.setMinInflateRatio(0.0001);
         ExcelParser parser = new ExcelParser();
         try {
             // Map information domain names with uuid

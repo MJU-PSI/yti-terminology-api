@@ -434,11 +434,9 @@ public class ExcelParser {
             Integer columnIndex = columnMap.get(headerName.toUpperCase());
 
             if (columnIndex != null) {
-                Cell cell = row.getCell(columnIndex);
-
-                if (!isEmptyCell(cell)) {
-                    attributes.add(new Attribute(lang, cell.getStringCellValue()));
-                }
+                getMergedCellValues(row, columnIndex)
+                    .stream()
+                    .forEach(value -> attributes.add(new Attribute(lang, value)));
             }
         });
 

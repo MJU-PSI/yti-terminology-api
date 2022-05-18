@@ -76,8 +76,10 @@ public class ExcelParserTest {
         assertTrue(genericNodes.stream().allMatch(node -> node.getType().getGraph().getId().equals(terminologyId)));
 
         GenericNode node = genericNodes.get(0);
+        // finnish term
         assertEquals("term name fi", getPropertyValue(node, "prefLabel"));
-        assertEquals("term name en", getProperty(genericNodes.get(0), "prefLabel").get(1).getValue());
+        // english term
+        assertEquals("term name en", getProperty(genericNodes.get(1), "prefLabel").get(0).getValue());
         assertEquals("source", getPropertyValue(node, "source"));
         assertEquals("scope", getPropertyValue(node, "scope"));
         assertEquals("style", getPropertyValue(node, "termStyle"));
@@ -118,10 +120,18 @@ public class ExcelParserTest {
         assertEquals("http://uri.suomi.fi/terminology/testdev/concept-2", conceptNode.getUri());
         assertEquals(Status.DRAFT.name(), getPropertyValue(conceptNode, "status"));
 
-        assertEquals("Definition FI", getPropertyValue(conceptNode, "definition"));
-        assertEquals("Definition EN", getPropertyValue(conceptNode, "definition", 1));
+        assertEquals(2, conceptNode.getProperties().get("definition").stream().filter(p -> p.getLang().equals("fi")).count());
+        assertEquals(1, conceptNode.getProperties().get("definition").stream().filter(p -> p.getLang().equals("en")).count());
+
+        assertEquals(1, conceptNode.getProperties().get("note").stream().filter(p -> p.getLang().equals("fi")).count());
+        assertEquals(2, conceptNode.getProperties().get("note").stream().filter(p -> p.getLang().equals("en")).count());
+
+        assertEquals("Definition FI 1", getPropertyValue(conceptNode, "definition"));
+        assertEquals("Definition FI 2", getPropertyValue(conceptNode, "definition", 1));
+        assertEquals("Definition EN", getPropertyValue(conceptNode, "definition", 2));
         assertEquals("Note FI", getPropertyValue(conceptNode, "note"));
-        assertEquals("Note EN", getPropertyValue(conceptNode, "note", 1));
+        assertEquals("Note EN 1", getPropertyValue(conceptNode, "note", 1));
+        assertEquals("Note EN 2", getPropertyValue(conceptNode, "note", 2));
         assertEquals("Example", getPropertyValue(conceptNode, "example"));
         assertEquals("Subjectarea", getPropertyValue(conceptNode, "subjectArea"));
         assertEquals("Class", getPropertyValue(conceptNode, "conceptClass"));
