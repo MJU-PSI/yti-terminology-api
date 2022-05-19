@@ -72,7 +72,7 @@ public class ExcelParserTest {
                 Arrays.asList("fi", "en", "sv")
         );
 
-        assertEquals(2, genericNodes.size());
+        assertEquals(3, genericNodes.size());
         assertTrue(genericNodes.stream().allMatch(node -> node.getType().getGraph().getId().equals(terminologyId)));
 
         GenericNode node = genericNodes.get(0);
@@ -80,6 +80,8 @@ public class ExcelParserTest {
         assertEquals("term name fi", getPropertyValue(node, "prefLabel"));
         // english term
         assertEquals("term name en", getProperty(genericNodes.get(1), "prefLabel").get(0).getValue());
+        // placeholder term
+        assertEquals("term placeholder", getProperty(genericNodes.get(2), "prefLabel").get(0).getValue());
         assertEquals("source", getPropertyValue(node, "source"));
         assertEquals("scope", getPropertyValue(node, "scope"));
         assertEquals("style", getPropertyValue(node, "termStyle"));
@@ -96,6 +98,9 @@ public class ExcelParserTest {
 
         assertEquals("term-0", node.getCode());
         assertEquals("http://uri.suomi.fi/terminology/testdev/term-0", node.getUri());
+
+        assertNull(genericNodes.get(2).getUri());
+        assertNull(genericNodes.get(2).getCode());
     }
 
     @Test

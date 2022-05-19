@@ -224,6 +224,7 @@ public class ExcelCreator {
             String prefLabelValue = terminology.getFirstPropertyValue("prefLabel", "fi");
             for(TermPlaceHolderDTO placeHolder : placeHolders) {
                 createTermPlaceholder(builder, placeHolder.getUuid().toString(), placeHolder.getLanguage(), prefLabelValue);
+                placeHolderTerms.remove(uuid);
                 builder.nextRow();
             }
         }
@@ -233,8 +234,7 @@ public class ExcelCreator {
     }
 
     private void createTermPlaceholder(DTOBuilder builder, String uuid, String lang, String defaultValue) {
-        String identifier = "term-" + uuid.substring(0,8);
-        builder.addDataToCurrentRow("IDENTIFIER", identifier);
+        builder.addDataToCurrentRow("IDENTIFIER", "");
         builder.addDataToCurrentRow("PREFLABEL", String.format("%s (%s)", defaultValue, lang), lang);
         builder.addDataToCurrentRow("SOURCE", "");
         builder.addDataToCurrentRow("SCOPE", "");

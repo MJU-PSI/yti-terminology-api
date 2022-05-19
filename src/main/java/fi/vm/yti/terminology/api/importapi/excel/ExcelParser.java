@@ -59,7 +59,7 @@ public class ExcelParser {
 
         var languages = getSplittedCellValues(row, columnMap.get(Fields.LANGUAGE));
 
-        String namespace = getMandatoryCellValue(row, columnMap, Fields.NAMESPACE);
+        String namespace = getCellValue(row, columnMap, Fields.NAMESPACE, true);
 
         try {
             Map<String, List<Attribute>> properties = Map.of(
@@ -306,7 +306,7 @@ public class ExcelParser {
                 UUID conceptId = getUUID(row, columnMap.get(Fields.CONCEPT_ID));
                 Set<ConceptLinkImportDTO> conceptLinks = conceptLinkMap.getOrDefault(conceptId, new HashSet<>());
                 conceptLinks.add(new ConceptLinkImportDTO(
-                        getMandatoryCellValue(row, columnMap, Fields.LINK_TYPE),
+                        getCellValue(row, columnMap, Fields.LINK_TYPE, true),
                         node
                 ));
                 conceptLinkMap.putIfAbsent(conceptId, conceptLinks);
@@ -378,19 +378,40 @@ public class ExcelParser {
                                 Map<String, List<Attribute>> properties,
                                 Map<String, List<Identifier>> references,
                                 Map<String, List<Identifier>> referrers) throws ExcelParseException {
+        String identifier;
+        String uri = null;
+
+        // IDENTIFIER column is not mandatory for terms (placeholder terms does not have that information)
+        if (typeId.getId().equals(NodeType.Term)) {
+            identifier = getCellValue(row, columnMap, Fields.IDENTIFIER);
+
+            if (identifier != null && !identifier.trim().isEmpty()) {
+                uri = getURI(identifier, namespace);
+            } else {
+                identifier = null;
+            }
+        } else {
+            identifier = getCellValue(row, columnMap, Fields.IDENTIFIER, true);
+            uri = getURI(identifier, namespace);
+        }
+
         return new GenericNode(
                 getUUID(row, columnMap.get(Fields.UUID), true),
-                getMandatoryCellValue(row, columnMap, Fields.IDENTIFIER),
-                String.format("%s/%s/%s",
-                        URI_PREFIX,
-                        namespace,
-                        getMandatoryCellValue(row, columnMap, Fields.IDENTIFIER)
-                ),
+                identifier,
+                uri,
                 0L, null, null, null, null,
                 typeId,
                 properties,
                 references,
                 referrers
+        );
+    }
+
+    private String getURI(String identifier, String namespace) {
+        return String.format("%s/%s/%s",
+                URI_PREFIX,
+                namespace,
+                identifier
         );
     }
 
@@ -588,13 +609,20 @@ public class ExcelParser {
         return getRow(sheet, rowNumber, true);
     }
 
-    private String getMandatoryCellValue(Row row, Map<String, Integer> columnMap, String fieldName) {
+    private String getCellValue(Row row, Map<String, Integer> columnMap, String fieldName, boolean isMandatory) {
         Cell cell = row.getCell(columnMap.get(fieldName));
 
-        if (isEmptyCell(cell)) {
+        if (isEmptyCell(cell) && isMandatory) {
             throw new ExcelParseException("Missing value", row, fieldName);
+        } else if (isEmptyCell(cell) && !isMandatory) {
+            return null;
+        } else {
+            return cell.getStringCellValue();
         }
-        return cell.getStringCellValue();
+    }
+
+    private String getCellValue(Row row, Map<String, Integer> columnMap, String fieldName) {
+        return getCellValue(row, columnMap, fieldName, false);
     }
 
     private boolean isEmptyCell(Cell cell) {
