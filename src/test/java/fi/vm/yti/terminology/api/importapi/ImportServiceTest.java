@@ -121,7 +121,7 @@ public class ImportServiceTest {
         assertEquals(2, batchesCaptor.getValue().size());
 
         // terminology, concepts, concept links and terms
-        assertEquals(6, batchesCaptor.getValue().get(0).size());
+        assertEquals(7, batchesCaptor.getValue().get(0).size());
 
         // collections in separate batch
         assertEquals(1, batchesCaptor.getValue().get(1).size());
