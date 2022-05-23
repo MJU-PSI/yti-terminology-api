@@ -603,7 +603,6 @@ public final class AttributeIndex {
     @NotNull
     public static AttributeMeta terminologyType(TypeId domain, long index) {
         return new AttributeMeta(
-                "^(" + TerminologyType.OTHER_VOCABULARY  + "|" + TerminologyType.TERMINOLOGICAL_VOCABULARY + ")$",
                 "terminologyType",
                 "http://uri.suomi.fi/datamodel/ns/term/#terminologyType",
                 index,
