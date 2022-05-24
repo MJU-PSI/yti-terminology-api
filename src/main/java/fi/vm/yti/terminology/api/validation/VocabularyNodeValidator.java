@@ -49,34 +49,28 @@ public class VocabularyNodeValidator implements
         // terminologyType
         //
         //
-        /* TODO: add null check for terminologyType after release
+        final var terminologyType = properties.get("terminologyType");
         if (terminologyType == null) {
             this.addConstraintViolation(
                     context,
                     "Missing value",
                     "terminologyType");
         }
-        */
-        final var terminologyType = properties.get("terminologyType");
-        if (terminologyType != null) {
-            if (terminologyType.size() != 1) {
+        else if (terminologyType.size() != 1) {
+            this.addConstraintViolation(
+                    context,
+                    "Invalid value",
+                    "terminologyType");
+        } else {
+            final var validTypes = new String[]{
+                    TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
+                    TerminologyType.OTHER_VOCABULARY.name()
+            };
+            if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
                 this.addConstraintViolation(
                         context,
                         "Invalid value",
                         "terminologyType");
-            } else {
-                // TODO: remove empty string from validTypes after release
-                final var validTypes = new String[]{
-                        "",
-                        TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
-                        TerminologyType.OTHER_VOCABULARY.name()
-                };
-                if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
-                    this.addConstraintViolation(
-                            context,
-                            "Invalid value",
-                            "terminologyType");
-                }
             }
         }
 
@@ -126,7 +120,6 @@ public class VocabularyNodeValidator implements
                     "prefLabel");
         } else {
             // should have one label for each language
-            /* TODO enable language mismatch check after new version release
             var labelLanguages = prefLabel.stream()
                     .map(label -> label.getLang())
                     .collect(Collectors.toList());
@@ -136,7 +129,6 @@ public class VocabularyNodeValidator implements
                         "Language mismatch",
                         "prefLabel");
             }
-            */
 
             // empty strings as values?
             var emptyValues = prefLabel.stream()

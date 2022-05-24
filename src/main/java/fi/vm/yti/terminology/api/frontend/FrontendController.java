@@ -182,12 +182,50 @@ public class FrontendController {
             @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.")
             @RequestParam(required = false, defaultValue = "true") boolean sync,
 
-            @ValidVocabularyNode
             @RequestBody GenericNode vocabularyNode) {
 
         try {
             logger.info("POST /vocabulary requested with params: templateGraphId: " +
                 templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+
+            UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
+
+            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
+
+            return predefinedOrGeneratedGraphId;
+        } catch (RuntimeException | Error e) {
+            logger.error("createVocabulary failed", e);
+            throw e;
+        } finally {
+            logger.debug("Vocabulary creation finished");
+        }
+    }
+
+    @Operation(summary = "Create a new terminology")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The JSON data for the new terminology node")
+    @ApiResponse(responseCode = "200", description = "The ID for the newly created terminology")
+    @PostMapping(path = "/validatedVocabulary", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    UUID createValidatedVocabulary(
+            @Parameter(description = "The meta model graph for the new terminology")
+            @RequestParam UUID templateGraphId,
+
+            @Size(min = 3, message = "Prefix must be minimum of 3 characters")
+            @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace")
+            @RequestParam String prefix,
+
+            @Parameter(description = "If given, tries to use the ID for the terminology")
+            @RequestParam(required = false) @Nullable UUID graphId,
+
+            @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.")
+            @RequestParam(required = false, defaultValue = "true") boolean sync,
+
+            @ValidVocabularyNode
+            @RequestBody GenericNode vocabularyNode) {
+
+        try {
+            logger.info("POST /validatedVocabulary requested with params: templateGraphId: " +
+                    templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 

@@ -80,7 +80,7 @@ public class FrontendControllerTest {
         var vocabularyNode = this.constructVocabularyNode();
 
         this.mvc
-                .perform(post("/api/v1/frontend/vocabulary")
+                .perform(post("/api/v1/frontend/validatedVocabulary")
                         .param("prefix", "test1")
                         .param("templateGraphId", templateGraphId)
                         .contentType("application/json")
@@ -109,7 +109,7 @@ public class FrontendControllerTest {
         var vocabularyNode = this.constructVocabularyNode();
 
         var request = this.mvc
-                .perform(post("/api/v1/frontend/vocabulary")
+                .perform(post("/api/v1/frontend/validatedVocabulary")
                         .param("prefix", prefix)
                         .param("templateGraphId", templateGraphId)
                         .contentType("application/json")
