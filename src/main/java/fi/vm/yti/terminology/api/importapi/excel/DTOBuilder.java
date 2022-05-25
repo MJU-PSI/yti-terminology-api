@@ -27,6 +27,10 @@ public class DTOBuilder {
         this.currentRowIndex++;
     }
 
+    public void addDataToCurrentRow(@NotNull String columnName, @NotNull String value, String language) {
+        this.addDataToCurrentRow(columnName, language, List.of(value), ColumnDTO.MULTI_COLUMN_MODE_ENABLED);
+    }
+
     public void addDataToCurrentRow(@NotNull String columnName, @NotNull String value) {
         this.addDataToCurrentRow(columnName, "", List.of(value), ColumnDTO.MULTI_COLUMN_MODE_ENABLED);
     }

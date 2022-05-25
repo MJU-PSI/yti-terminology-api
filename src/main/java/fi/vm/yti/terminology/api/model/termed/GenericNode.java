@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.model.termed;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -9,7 +10,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.emptyMap;
 import static java.util.UUID.randomUUID;
 
-public final class GenericNode implements Node {
+public final class GenericNode implements Node, Serializable {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private UUID id = null;

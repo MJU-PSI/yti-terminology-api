@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Wrapper component with helper functions that allow to extract data from JSON.
@@ -55,6 +57,20 @@ public class JSONWrapper {
 
     public String getType() {
         return this.json.get("type").get("id").textValue();
+    }
+
+    public String getGraphId() {
+        return this.json.get("type").get("graph").get("id").textValue();
+    }
+
+    public String getNamespace() {
+        String uri = this.json.get("uri").textValue();
+        Pattern p = Pattern.compile("uri.suomi.fi/terminology/(\\w+)/");
+        Matcher m = p.matcher(uri);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return "";
     }
 
     /**
@@ -152,5 +168,11 @@ public class JSONWrapper {
 
     public void setMemo(String memo) {
         this.memo = memo;
+    }
+
+    public List<String> getReferrerTypes() {
+        List<String> fieldNames = new ArrayList<>();
+        this.json.get("referrers").fieldNames().forEachRemaining(name -> fieldNames.add(name));
+        return fieldNames;
     }
 }

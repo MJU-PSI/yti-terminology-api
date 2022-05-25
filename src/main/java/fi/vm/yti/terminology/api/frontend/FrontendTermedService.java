@@ -70,7 +70,7 @@ public class FrontendTermedService {
         this.namespaceRoot = namespaceRoot;
     }
 
-    boolean isNamespaceInUse(String prefix) {
+    public boolean isNamespaceInUse(String prefix) {
 
         String namespace = formatNamespace(prefix);
 
@@ -171,7 +171,7 @@ public class FrontendTermedService {
         return requireNonNull(mapper.convertValue(nodes,JsonNode.class));
     }
 
-    void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId, boolean sync) {
+    public void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId, boolean sync) {
 
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
 
@@ -309,7 +309,7 @@ public class FrontendTermedService {
     }
 
     @NotNull
-    JsonNode getNodeListWithoutReferencesOrReferrers(NodeType nodeType) {
+    public JsonNode getNodeListWithoutReferencesOrReferrers(NodeType nodeType) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
