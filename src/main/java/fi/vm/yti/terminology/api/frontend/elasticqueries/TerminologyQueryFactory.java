@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import fi.vm.yti.terminology.api.exception.InvalidQueryException;
+import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.frontend.TerminologyType;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -13,6 +14,8 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +67,8 @@ public class TerminologyQueryFactory {
                 pageSize(request),
                 pageFrom(request),
                 superUser,
-                privilegedOrganizations);
+                privilegedOrganizations,
+                request.getPrefLang());
     }
 
     private SearchRequest createQuery(String query,
@@ -76,7 +80,8 @@ public class TerminologyQueryFactory {
                                       int pageSize,
                                       int pageFrom,
                                       boolean superUser,
-                                      Set<String> privilegedOrganizations) {
+                                      Set<String> privilegedOrganizations,
+                                      String prefLang) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
             .from(pageFrom)
             .size(pageSize);
@@ -100,6 +105,17 @@ public class TerminologyQueryFactory {
         if (statuses != null && statuses.length > 0) {
             mustQueries.add(ElasticRequestUtils.buildStatusQuery(
                     statuses, "properties.status.value"));
+        } else if (statuses != null && statuses.length == 0) {
+            // By default, do not show RETIRED and SUPERSEDED statuses
+            // for old application (statuses == null) show all statuses
+            mustQueries.add(ElasticRequestUtils.buildStatusQuery(
+                    new String[] {
+                            Status.DRAFT.name(),
+                            Status.VALID.name(),
+                            Status.INCOMPLETE.name(),
+                            Status.SUGGESTED.name()
+                    }, "properties.status.value")
+            );
         }
 
         if (groupIds != null && groupIds.length > 0)  {
@@ -186,7 +202,12 @@ public class TerminologyQueryFactory {
             ((BoolQueryBuilder) shouldQuery).minimumShouldMatch(1);
         }
 
-        sourceBuilder.query(shouldQuery != null ? shouldQuery : mustQuery);
+        String sortLanguage = prefLang != null ? prefLang : "fi";
+        sourceBuilder
+                .query(shouldQuery != null ? shouldQuery : mustQuery)
+                .sort(SortBuilders
+                        .fieldSort("sortByLabel." + sortLanguage)
+                        .order(SortOrder.ASC));
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
