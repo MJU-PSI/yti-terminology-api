@@ -201,21 +201,21 @@ public class ExcelCreator {
 
             builder.addDataToCurrentRow("IDENTIFIER", terminology.getCode());
             this.addProperty("PREFLABEL", "prefLabel", terminology, builder);
-            this.addProperty("SOURCE", "source", terminology, builder);
-            this.addProperty("SCOPE", "scope", terminology, builder);
-            this.addProperty("TERMSTYLE", "termStyle", terminology, builder);
-            this.addProperty("TERMFAMILY", "termFamily", terminology, builder);
-            this.addProperty("TERMCONJUGATION", "termConjugation", terminology, builder);
-            this.addProperty("TERMEQUIVALENCY", "termEquivalency", terminology, builder);
-            this.addProperty("TERMINFO", "termInfo", terminology, builder);
-            this.addProperty("WORDCLASS", "wordClass", terminology, builder);
-            this.addProperty("HOMOGRAPHNUMBER", "termHomographNumber", terminology, builder);
+            this.addPropertyIgnoreLanguage("SOURCE", "source", terminology, builder);
+            this.addPropertyIgnoreLanguage("SCOPE", "scope", terminology, builder);
+            this.addPropertyIgnoreLanguage("TERMSTYLE", "termStyle", terminology, builder);
+            this.addPropertyIgnoreLanguage("TERMFAMILY", "termFamily", terminology, builder);
+            this.addPropertyIgnoreLanguage("TERMCONJUGATION", "termConjugation", terminology, builder);
+            this.addPropertyIgnoreLanguage("TERMEQUIVALENCY", "termEquivalency", terminology, builder);
+            this.addPropertyIgnoreLanguage("TERMINFO", "termInfo", terminology, builder);
+            this.addPropertyIgnoreLanguage("WORDCLASS", "wordClass", terminology, builder);
+            this.addPropertyIgnoreLanguage("HOMOGRAPHNUMBER", "termHomographNumber", terminology, builder);
             // TODO: EDITORIALNOTE should be visible if the user has write permissions to the terminology.
 //            this.addProperty("EDITORIALNOTE", "editorialNote", terminology, builder);
-            this.addProperty("DRAFTCOMMENT", "draftComment", terminology, builder);
-            this.addProperty("HISTORYNOTE", "historyNote", terminology, builder);
-            this.addProperty("CHANGENOTE", "changeNote", terminology, builder);
-            this.addProperty("STATUS", "status", terminology, builder);
+            this.addPropertyIgnoreLanguage("DRAFTCOMMENT", "draftComment", terminology, builder);
+            this.addPropertyIgnoreLanguage("HISTORYNOTE", "historyNote", terminology, builder);
+            this.addPropertyIgnoreLanguage("CHANGENOTE", "changeNote", terminology, builder);
+            this.addPropertyIgnoreLanguage("STATUS", "status", terminology, builder);
             builder.addDataToCurrentRow("URI", terminology.getURI());
             builder.addDataToCurrentRow("UUID", uuid);
             builder.addDataToCurrentRow("OPERATION", "");
@@ -317,6 +317,18 @@ public class ExcelCreator {
         builder.ensureColumn(columnName, multiColumnModeDisabled);
         wrapper.getProperty(propertyName).forEach((language, values) -> {
             builder.addDataToCurrentRow(columnName, language, values, multiColumnModeDisabled);
+        });
+    }
+
+    private void addPropertyIgnoreLanguage(
+            @NotNull String columnName,
+            @NotNull String propertyName,
+            @NotNull JSONWrapper wrapper,
+            @NotNull DTOBuilder builder
+            ) {
+        builder.ensureColumn(columnName, ColumnDTO.MULTI_COLUMN_MODE_ENABLED);
+        wrapper.getProperty(propertyName).forEach((language, values) -> {
+            builder.addDataToCurrentRow(columnName, "", values, ColumnDTO.MULTI_COLUMN_MODE_ENABLED);
         });
     }
 
