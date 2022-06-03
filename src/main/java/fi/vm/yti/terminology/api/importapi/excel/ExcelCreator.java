@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -469,7 +470,10 @@ public class ExcelCreator {
      */
     private void updateFilename(@NotNull JSONWrapper terminology) {
         if (this.filename == null) {
-            this.filename = terminology.getFirstPropertyValue("prefLabel", "en");
+            this.filename = Normalizer
+                    .normalize(terminology.getFirstPropertyValue("prefLabel", "en"), Normalizer.Form.NFD)
+                    .replaceAll("[^\\p{ASCII}]", "")
+                    .replaceAll("[^a-zA-Z0-9-\\s]", "_");
         }
     }
 
