@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.util;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -21,9 +22,14 @@ public class IndexUtil {
             result.put(language, singleLocalizationAsLower);
         }
 
+        if (result.isEmpty()) {
+            return result;
+        }
+
         // Add default sort label for missing languages
+        String defaultKey = result.keySet().iterator().next();
         List<String> defaultValue = result
-                .getOrDefault("fi", result.get(0))
+                .getOrDefault("fi", result.get(defaultKey))
                 .stream()
                 .map(String::toLowerCase)
                 .collect(toList());
