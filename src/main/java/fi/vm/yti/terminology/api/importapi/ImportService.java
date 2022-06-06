@@ -109,35 +109,36 @@ public class ImportService {
         // Query status information from ActiveMQ
         HttpStatus status;
         StringBuffer statusString= new StringBuffer();
-        System.out.println(" ImportService.getStatus Status_full="+full);
         ImportStatusResponse response = new ImportStatusResponse();
 
         // Get always full state
         status = ytiMQService.getStatus(jobtoken, statusString);
 
         // Construct  response
-        if(status == HttpStatus.OK){
+        if (status == HttpStatus.OK) {
             response = ImportStatusResponse.fromString(statusString.toString());
-            if(!full){
+            if (!full) {
                 // Remove status messages if not needed
                 response.getStatusMessage().clear();
             }
             response.setStatus(ImportStatus.SUCCESS);
-        } else if(status == HttpStatus.NOT_ACCEPTABLE){
+        } else if (status == HttpStatus.NOT_ACCEPTABLE) {
                 response.setStatus(ImportStatus.FAILURE);
                 response.getStatusMessage().clear();
-                response.addStatusMessage( new ImportStatusMessage("Vocabulary","Import operation already started"));
-        } else if (status ==  HttpStatus.PROCESSING){
+                response.addStatusMessage(new ImportStatusMessage("Vocabulary","Import operation already started"));
+        } else if (status == HttpStatus.PROCESSING) {
             response = ImportStatusResponse.fromString(statusString.toString());
-            if(!full){
+            if (!full) {
                 // Remove status messages if not needed
                 response.getStatusMessage().clear();
             }
             response.setStatus(ImportStatus.PROCESSING);
+        } else if (status == HttpStatus.INTERNAL_SERVER_ERROR) {
+            response = ImportStatusResponse.fromString(statusString.toString());
+            response.setStatus(ImportStatus.FAILURE);
         } else {
-                response.setStatus(ImportStatus.NOT_FOUND);
+            response.setStatus(ImportStatus.NOT_FOUND);
         }
-        System.out.println("Response status json");
         // Construct return message
         JsonUtils.prettyPrintJson(response);
 

@@ -47,7 +47,7 @@ public class ExcelImportJmsListener {
                             @Header Integer currentBatch,
                             @Header Integer totalBatchCount) {
 
-        LOGGER.info("Handling batch {}/{}. Sent by user {}", currentBatch, totalBatchCount, userId);
+        LOGGER.info("Handling batch {}/{}, jobtoken {}. Sent by user {}", currentBatch, totalBatchCount, jobtoken, userId);
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
@@ -65,14 +65,14 @@ public class ExcelImportJmsListener {
 
             if (response.getStatus() == ImportStatusResponse.ImportStatus.FAILURE) {
                 // Previous batch failed. Do not handle rest of batches
-                LOGGER.info("Skip batch due to previous error");
+                LOGGER.info("Skip batch due to previous error, {}", jobtoken);
                 return;
             }
 
             requester.exchange("/nodes", POST, params, String.class, message.getPayload(), userId, "user");
 
-            LOGGER.info("Batch {}/{} handled. Imported {} nodes",
-                    currentBatch, totalBatchCount, message.getPayload().getSave().size());
+            LOGGER.info("Batch {}/{} handled, jobtoken {}. Imported {} nodes",
+                    currentBatch, totalBatchCount, jobtoken, message.getPayload().getSave().size());
 
             response.setProcessingProgress(currentBatch);
             response.setProcessingTotal(totalBatchCount);
@@ -90,10 +90,13 @@ public class ExcelImportJmsListener {
         } catch (Exception e) {
             response.setStatus(ImportStatusResponse.ImportStatus.FAILURE);
             response.setResultsError(response.getResultsError() == null ? 1 : response.getResultsError() + 1);
-
+            response.addStatusMessage(new ImportStatusMessage(
+                            ImportStatusMessage.Level.ERROR,
+                            "Vocabulary",
+                            String.format("Termed error, reference: %s", jobtoken)));
             status = YtiMQService.STATUS_FAILED;
 
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error(String.format("Error saving nodes: jobtoken %s, message: %s", jobtoken, e.getMessage()), e);
         }
         statusResponseCache.put(jobtoken, response);
         mqService.setStatus(status, jobtoken, userId, uri, response.toString());
