@@ -144,6 +144,9 @@ public class YtiMQService {
                     logger.warn("Import operation already started for {}", jobtoken);
                     return HttpStatus.NOT_ACCEPTABLE;
                 }
+                case YtiMQService.STATUS_FAILED: {
+                    return HttpStatus.INTERNAL_SERVER_ERROR;
+                }
             }
         }
 

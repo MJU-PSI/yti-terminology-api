@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -22,6 +24,8 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 public final class JsonUtils {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(JsonUtils.class);
 
 	private JsonUtils() {
 		// prevent construction
@@ -123,7 +127,7 @@ public final class JsonUtils {
 	public static void prettyPrintJson(Object node){
 		ObjectMapper mapper = new ObjectMapper();
 		try {
-			System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node));
+			LOGGER.debug(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node));
 		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 			e.printStackTrace();
 		}
