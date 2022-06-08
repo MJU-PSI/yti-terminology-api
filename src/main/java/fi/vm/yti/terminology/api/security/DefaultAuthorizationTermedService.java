@@ -22,7 +22,6 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.web.util.TagUtils.SCOPE_REQUEST;
 
 @Service
-@Scope(value = SCOPE_REQUEST, proxyMode = INTERFACES)
 public class DefaultAuthorizationTermedService implements AuthorizationTermedService {
 
     private final Map<UUID, Set<UUID>> cache = new HashMap<>();
