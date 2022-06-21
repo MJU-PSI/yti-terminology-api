@@ -63,6 +63,7 @@ public class TerminologyQueryFactory {
                 request.getGroups(),
                 request.getTypes(),
                 request.getOrganizations(),
+                request.getLanguage(),
                 additionalTerminologyIds,
                 pageSize(request),
                 pageFrom(request),
@@ -76,6 +77,7 @@ public class TerminologyQueryFactory {
                                       String[] groupIds,
                                       String[] types,
                                       String[] organizationIds,
+                                      String language,
                                       Collection<String> additionalTerminologyIds,
                                       int pageSize,
                                       int pageFrom,
@@ -156,6 +158,11 @@ public class TerminologyQueryFactory {
             // filtering by additionalTerminologyIds
             typeQuery = QueryBuilders.termsQuery("terminologyType", types);
             mustQueries.add(typeQuery);
+        }
+
+        if (language != null ) {
+            mustQueries.add(QueryBuilders.matchQuery(
+                    "properties.language.value", language));
         }
 
         // if the search was also done to concepts, we may have
