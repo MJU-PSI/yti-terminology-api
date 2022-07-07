@@ -134,7 +134,7 @@ public class YtiMQService {
                     logger.debug("Timestamp={}", mess.getHeaders().get("timestamp"));
                     long expirationtime = System.currentTimeMillis() - (long)mess.getHeaders().get("timestamp");
                     logger.debug("current_time-stamp={}", expirationtime);
-                    if( expirationtime > 60 * 1000) {
+                    if( expirationtime > 10 * 60 * 1000) {
                         return HttpStatus.OK;
                     } else {
                         return HttpStatus.PROCESSING;
@@ -256,7 +256,7 @@ public class YtiMQService {
                 javax.jms.Message m = (javax.jms.Message)messages.nextElement();
                 if (m instanceof TextMessage) {
                     TextMessage message = (TextMessage) m;
-                    logger.info(" browse message = {}", message);
+                    logger.trace(" browse message = {}", message);
                 }
                 total++;
             }
@@ -426,12 +426,12 @@ public class YtiMQService {
 
         int count = 1;
 
-        for(List<GenericNode> patch : batches) {
+        for(List<GenericNode> batch : batches) {
             accessor.setHeader("currentBatch", count++);
             accessor.setHeader("totalBatchCount", batches.size());
 
-            Message<GenericDeleteAndSave> message = MessageBuilder
-                    .withPayload(new GenericDeleteAndSave(Collections.emptyList(), patch))
+            Message<List<GenericNode>> message = MessageBuilder
+                    .withPayload(batch)
                     .setHeaders(accessor)
                     .build();
             jmsMessagingTemplate.send(subSystem + "ExcelImport", message);
