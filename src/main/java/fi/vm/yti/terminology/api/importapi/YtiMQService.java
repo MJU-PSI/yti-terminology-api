@@ -256,7 +256,7 @@ public class YtiMQService {
                 javax.jms.Message m = (javax.jms.Message)messages.nextElement();
                 if (m instanceof TextMessage) {
                     TextMessage message = (TextMessage) m;
-                    logger.trace(" browse message = {}", message);
+                    logger.info(" browse message = {}", message);
                 }
                 total++;
             }

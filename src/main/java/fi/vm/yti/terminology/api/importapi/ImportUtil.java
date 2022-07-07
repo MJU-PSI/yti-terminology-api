@@ -74,7 +74,7 @@ public class ImportUtil {
     }
 
     private static Set<UUID> getReferencesRecursive(List<GenericNode> allNodes, UUID current,
-                                                    Set<UUID> result, Set<UUID> currentBatch) {
+                                                    Set<UUID> result, Set<UUID> handledIds) {
 
         // add current node to result set
         result.add(current);
@@ -91,11 +91,8 @@ public class ImportUtil {
 
         for (UUID refId : conceptRefs) {
             boolean added = result.add(refId);
-            if (added && !currentBatch.contains(refId)) {
-                // System.out.println("Recursion");
-                getReferencesRecursive(allNodes, refId, result, currentBatch);
-            } else {
-                // System.out.println("No recursion");
+            if (added && !handledIds.contains(refId)) {
+                getReferencesRecursive(allNodes, refId, result, handledIds);
             }
         }
 
