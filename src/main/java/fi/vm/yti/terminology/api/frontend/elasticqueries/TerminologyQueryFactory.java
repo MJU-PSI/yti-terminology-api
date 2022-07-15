@@ -161,7 +161,7 @@ public class TerminologyQueryFactory {
         }
 
         if (language != null ) {
-            mustQueries.add(QueryBuilders.matchQuery(
+            mustQueries.add(QueryBuilders.termsQuery(
                     "properties.language.value", language));
         }
 
