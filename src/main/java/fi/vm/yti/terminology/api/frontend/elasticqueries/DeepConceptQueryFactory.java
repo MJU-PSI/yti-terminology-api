@@ -63,7 +63,9 @@ public class DeepConceptQueryFactory {
         var mustQueries = new ArrayList<QueryBuilder>();
 
         // NOTE: In deep concept query the query should always be non-empty.
-        var labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(query).field("label.*");
+        var labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(query)
+                .field("label.*", 5.0f)
+                .field("altLabel.*", 3.0f);
         mustQueries.add(labelQuery);
 
         if (statuses != null && statuses.length > 0) {
