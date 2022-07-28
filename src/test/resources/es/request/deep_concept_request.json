@@ -4,7 +4,14 @@
       "must": [
         {
           "query_string": {
-            "query": "test test* *test"
+            "query": "test test* *test",
+            "fields" : [
+              "label.*^5.0",
+              "altLabel.*^3.0",
+              "searchTerm.*^3.0",
+              "hiddenTerm.*^3.0",
+              "notRecommendedSynonym.*^1.5"
+            ]
           }
         },
         {

@@ -15,7 +15,6 @@ import fi.vm.yti.terminology.api.frontend.Status;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -38,10 +37,10 @@ import fi.vm.yti.terminology.api.util.ElasticRequestUtils;
 public class ConceptQueryFactory {
 
     // Default options
-    private final static boolean CONFIG_ONLY_CHECK_TERMINOLOGY_STATE = true;
-    private final static boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES = true;
-    private final static boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS = true;
-    private final static boolean CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS = true;
+    private static final boolean CONFIG_ONLY_CHECK_TERMINOLOGY_STATE = true;
+    private static final boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES = true;
+    private static final boolean CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS = true;
+    private static final boolean CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS = true;
 
     private static final Logger log = LoggerFactory.getLogger(ConceptQueryFactory.class);
 
@@ -64,7 +63,13 @@ public class ConceptQueryFactory {
         List<QueryBuilder> mustNotParts = new ArrayList<>();
 
         if (request.getQuery() != null && !request.getQuery().isEmpty()) {
-            mustParts.add(ElasticRequestUtils.buildPrefixSuffixQuery(request.getQuery()).field("label.*"));
+            mustParts.add(ElasticRequestUtils.buildPrefixSuffixQuery(request.getQuery())
+                .field("label.*", 5.0f)
+                .field("altLabel.*", 3.0f)
+                .field("searchTerm.*", 3.0f)
+                .field("hiddenTerm.*", 3.0f)
+                .field("notRecommendedSynonym.*", 1.5f)
+            );
         }
 
         final boolean directConceptsGiven = request.getConceptId() != null && request.getConceptId().length > 0;
@@ -161,7 +166,7 @@ public class ConceptQueryFactory {
         ssb.sort(SortBuilders.fieldSort("sortByLabel." + sortLanguage).order(sortBy == ConceptSearchRequest.SortBy.PREF_LABEL ? sortDirection.getEsOrder() : SortOrder.ASC));
 
         SearchRequest sr = new SearchRequest("concepts").source(ssb);
-        log.debug("Concept Query request: " + sr.toString());
+        log.debug("Concept Query request: {}", sr.toString());
         return sr;
     }
 

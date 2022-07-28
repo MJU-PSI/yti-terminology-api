@@ -35,6 +35,33 @@
       }
     },
     {
+      "altLabel": {
+        "path_match": "searchTerm.*",
+        "mapping": {
+          "type": "text",
+          "analyzer": "termed"
+        }
+      }
+    },
+    {
+      "altLabel": {
+        "path_match": "hiddenTerm.*",
+        "mapping": {
+          "type": "text",
+          "analyzer": "termed"
+        }
+      }
+    },
+    {
+      "altLabel": {
+        "path_match": "notRecommendedSynonym.*",
+        "mapping": {
+          "type": "text",
+          "analyzer": "termed"
+        }
+      }
+    },
+    {
       "definition": {
         "path_match": "definition.*",
         "mapping": {
