@@ -2,35 +2,31 @@ package fi.vm.yti.terminology.api.validation;
 
 import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.frontend.TerminologyType;
+import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import fi.vm.yti.terminology.api.model.termed.Identifier;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
-import java.lang.annotation.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class VocabularyNodeValidator implements
-        ConstraintValidator<ValidVocabularyNode, GenericNode>, Annotation {
-
-    private boolean constraintViolationAdded;
-
-    @Override
-    public Class<? extends Annotation> annotationType() {
-        return null;
-    }
+public class VocabularyNodeValidator extends BaseValidator implements
+        ConstraintValidator<ValidVocabularyNode, GenericNode> {
 
     @Override
     public boolean isValid(GenericNode genericNode, ConstraintValidatorContext context) {
-        this.constraintViolationAdded = false;
+        setConstraintViolationAdded(false);
 
         final var properties = genericNode.getProperties();
-        if (properties.size() == 0) {
-            this.addConstraintViolation(
+        if (properties.isEmpty()) {
+            addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "properties");
         }
 
@@ -38,10 +34,10 @@ public class VocabularyNodeValidator implements
         // language
         //
         final var languages = properties.get("language");
-        if (languages == null || languages.size() == 0) {
-            this.addConstraintViolation(
+        if (languages == null || languages.isEmpty()) {
+            addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "language");
         }
 
@@ -49,25 +45,26 @@ public class VocabularyNodeValidator implements
         // terminologyType
         //
         //
-        final var terminologyType = properties.get("terminologyType");
+        final var terminologyTypeProperty = "terminologyType";
+        final var terminologyType = properties.get(terminologyTypeProperty);
         if (terminologyType == null) {
-            this.addConstraintViolation(
+            addConstraintViolation(
                     context,
-                    "Missing value",
-                    "terminologyType");
+                    MISSING_VALUE,
+                    terminologyTypeProperty);
         }
         else if (terminologyType.size() != 1) {
-            this.addConstraintViolation(
+            addConstraintViolation(
                     context,
                     "Invalid value",
-                    "terminologyType");
+                    terminologyTypeProperty);
         } else {
             final var validTypes = new String[]{
                     TerminologyType.TERMINOLOGICAL_VOCABULARY.name(),
                     TerminologyType.OTHER_VOCABULARY.name()
             };
             if (!Arrays.asList(validTypes).contains(terminologyType.get(0).getValue())) {
-                this.addConstraintViolation(
+                addConstraintViolation(
                         context,
                         "Invalid value",
                         "terminologyType");
@@ -78,67 +75,69 @@ public class VocabularyNodeValidator implements
         final var vocabularyType = genericNode.getType();
         if (vocabularyType.getId() == null ||
                 !vocabularyType.getId().toString().equals("TerminologicalVocabulary")) {
-            this.addConstraintViolation(
+            addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "type");
         }
 
         //
         // status
         //
-        final var status = properties.get("status");
-        if (status == null || status.size() == 0) {
-            this.addConstraintViolation(
+        final var statusProperty = "status";
+        final var status = properties.get(statusProperty);
+        if (status == null || status.isEmpty()) {
+            addConstraintViolation(
                     context,
-                    "Missing value",
-                    "status");
+                    MISSING_VALUE,
+                    statusProperty);
         } else {
             // status must be one of Status enum
             if (status.size() != 1 || !List.of(getStatusNames())
                     .contains(status.get(0).getValue())) {
-                this.addConstraintViolation(
+                addConstraintViolation(
                         context,
                         "Invalid value",
-                        "status");
+                        statusProperty);
             }
         }
 
         // list of language values, which will be used in later checks
-        var langValues = languages.stream()
-                .map(lang -> lang.getValue())
+        var langValues = languages == null ? Collections.emptyList() : languages.stream()
+                .map(Attribute::getValue)
                 .collect(Collectors.toList());
 
         //
         // prefLabel
         //
-        final var prefLabel = properties.get("prefLabel");
-        if (prefLabel == null || prefLabel.size() == 0) {
-            this.addConstraintViolation(
+        final var prefLabelProperty = "prefLabel";
+        final var prefLabel = properties.get(prefLabelProperty);
+        if (prefLabel == null || prefLabel.isEmpty()) {
+            addConstraintViolation(
                     context,
-                    "Missing value",
-                    "prefLabel");
+                    MISSING_VALUE,
+                    prefLabelProperty);
         } else {
             // should have one label for each language
             var labelLanguages = prefLabel.stream()
-                    .map(label -> label.getLang())
+                    .map(Attribute::getLang)
                     .collect(Collectors.toList());
             if (!CollectionUtils.isEqualCollection(langValues, labelLanguages)) {
-                this.addConstraintViolation(
+                addConstraintViolation(
                         context,
                         "Language mismatch",
-                        "prefLabel");
+                        prefLabelProperty);
             }
 
             // empty strings as values?
             var emptyValues = prefLabel.stream()
                     .filter(label -> label.getValue().trim().isEmpty())
                     .collect(Collectors.toList());
-            if (emptyValues.size() > 0) {
-                this.addConstraintViolation(
+            if (!emptyValues.isEmpty()) {
+                addConstraintViolation(
                         context,
-                        "Missing value",
-                        "prefLabel");
+                        MISSING_VALUE,
+                        prefLabelProperty);
             }
         }
 
@@ -169,22 +168,7 @@ public class VocabularyNodeValidator implements
                     "inGroup");
         }
 
-        return !this.constraintViolationAdded;
-    }
-
-    private void addConstraintViolation(
-            ConstraintValidatorContext context,
-            String message,
-            String property) {
-
-        if (!this.constraintViolationAdded) {
-            context.disableDefaultConstraintViolation();
-            this.constraintViolationAdded = true;
-        }
-
-        context.buildConstraintViolationWithTemplate(message)
-                .addPropertyNode(property)
-                .addConstraintViolation();
+        return !isConstraintViolationAdded();
     }
 
     private static String[] getStatusNames() {
