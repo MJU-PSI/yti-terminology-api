@@ -4,7 +4,6 @@ import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.frontend.TerminologyType;
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
-import fi.vm.yti.terminology.api.model.termed.Identifier;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.validation.ConstraintValidator;
@@ -12,7 +11,6 @@ import javax.validation.ConstraintValidatorContext;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class VocabularyNodeValidator extends BaseValidator implements
@@ -145,26 +143,26 @@ public class VocabularyNodeValidator extends BaseValidator implements
         // references
         //
         final var references = genericNode.getReferences();
-        if (references == null || references.size() == 0) {
+        if (references == null || references.isEmpty()) {
             this.addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "references");
         }
 
         // contributor
-        if (!references.containsKey("contributor") || references.get("contributor").size() == 0) {
+        if (!references.containsKey("contributor") || references.get("contributor").isEmpty()) {
             this.addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "contributor");
         }
 
         // inGroup
-        if (!references.containsKey("inGroup") || references.get("inGroup").size() == 0) {
+        if (!references.containsKey("inGroup") || references.get("inGroup").isEmpty()) {
             this.addConstraintViolation(
                     context,
-                    "Missing value",
+                    MISSING_VALUE,
                     "inGroup");
         }
 
