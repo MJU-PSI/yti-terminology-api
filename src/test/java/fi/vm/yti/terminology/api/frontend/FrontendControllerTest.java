@@ -28,8 +28,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @TestPropertySource(properties = {
@@ -37,6 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @WebMvcTest(controllers = FrontendController.class)
 public class FrontendControllerTest {
+
+    public static final String TEMPLATE_GRAPH_ID = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
+    private static final String TEST_NODE_ID = "75ad9343-c3f7-417f-99e4-7aff07f5daf6";
 
     @Autowired
     private MockMvc mvc;
@@ -61,8 +63,6 @@ public class FrontendControllerTest {
 
     private LocalValidatorFactoryBean localValidatorFactory;
 
-    private static String testNodeId = "75ad9343-c3f7-417f-99e4-7aff07f5daf6";
-
     @BeforeEach
     public void setup() {
         this.mvc = MockMvcBuilders
@@ -73,16 +73,12 @@ public class FrontendControllerTest {
 
     @Test
     public void shouldValidateAndCreate() throws Exception {
-
-        // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
-
         var vocabularyNode = this.constructVocabularyNode();
 
         this.mvc
                 .perform(post("/api/v1/frontend/validatedVocabulary")
                         .param("prefix", "test1")
-                        .param("templateGraphId", templateGraphId)
+                        .param("templateGraphId", TEMPLATE_GRAPH_ID)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
                 // .andDo(print())
@@ -105,13 +101,13 @@ public class FrontendControllerTest {
     public void shouldValidatePrefix(String prefix, boolean shouldSucceed) throws Exception {
 
         // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
         var vocabularyNode = this.constructVocabularyNode();
 
         var request = this.mvc
                 .perform(post("/api/v1/frontend/validatedVocabulary")
                         .param("prefix", prefix)
-                        .param("templateGraphId", templateGraphId)
+                        .param("templateGraphId", TEMPLATE_GRAPH_ID)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)));
 
@@ -155,12 +151,12 @@ public class FrontendControllerTest {
     public void shouldFailOnMissingData(GenericNode vocabularyNode) throws Exception {
 
         // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
 
         this.mvc
                 .perform(post("/api/v1/frontend/vocabulary/validate")
                         .param("prefix", "test1")
-                        .param("templateGraphId", templateGraphId)
+                        .param("templateGraphId", TEMPLATE_GRAPH_ID)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
                 .andExpect(status().isBadRequest())
@@ -182,14 +178,14 @@ public class FrontendControllerTest {
     public void shouldValidateOnly() throws Exception {
 
         // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
 
         var vocabularyNode = constructVocabularyNode();
 
         this.mvc
                 .perform(post("/api/v1/frontend/vocabulary/validate")
                         .param("prefix", "test1")
-                        .param("templateGraphId", templateGraphId)
+                        .param("templateGraphId", TEMPLATE_GRAPH_ID)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
                 // .andDo(print())
@@ -204,7 +200,7 @@ public class FrontendControllerTest {
     public void shouldFailOnLanguageMismatch() throws Exception {
 
         // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
 
         var properties = constructProperties();
 
@@ -221,7 +217,7 @@ public class FrontendControllerTest {
         this.mvc
                 .perform(post("/api/v1/frontend/vocabulary/validate")
                         .param("prefix", "test1")
-                        .param("templateGraphId", templateGraphId)
+                        .param("templateGraphId", TEMPLATE_GRAPH_ID)
                         .contentType("application/json")
                         .content(convertObjectToJsonString(vocabularyNode)))
                 //.andDo(print())
@@ -348,10 +344,10 @@ public class FrontendControllerTest {
             Map<String, List<Identifier>> referrers) {
 
         // templateGraph UUID, predefined in database
-        var templateGraphId = "61cf6bde-46e6-40bb-b465-9b2c66bf4ad8";
+
 
         var vocabularyNode = new GenericNode(
-                UUID.fromString(testNodeId),
+                UUID.fromString(TEST_NODE_ID),
                 null,
                 null,
                 40L,
@@ -363,7 +359,7 @@ public class FrontendControllerTest {
                 // type
                 new TypeId(
                         NodeType.TerminologicalVocabulary,
-                        new GraphId(UUID.fromString(templateGraphId))),
+                        new GraphId(UUID.fromString(TEMPLATE_GRAPH_ID))),
 
                 properties,             // properties
                 references,             // references
@@ -378,6 +374,6 @@ public class FrontendControllerTest {
         return mapper.writeValueAsString(node);
     }
 
-    private Matcher<String> uuidMatcher = Matchers.matchesRegex(
+    private final Matcher<String> uuidMatcher = Matchers.matchesRegex(
             "^\"?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\"?$");
 }

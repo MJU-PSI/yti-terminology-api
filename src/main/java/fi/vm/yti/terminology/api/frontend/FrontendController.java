@@ -5,6 +5,7 @@ import java.util.*;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.*;
+import fi.vm.yti.terminology.api.validation.ValidGenericDeleteAndSave;
 import fi.vm.yti.terminology.api.validation.ValidVocabularyNode;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -338,6 +339,7 @@ public class FrontendController {
     @PostMapping(path = "/modify", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     void updateAndDeleteInternalNodes(@Parameter(description = "Whether to do synchronous modification, i.e., wait for the result. This is recommended.")
                                       @RequestParam(required = false, defaultValue = "true") boolean sync,
+                                      @ValidGenericDeleteAndSave
                                       @RequestBody GenericDeleteAndSave deleteAndSave) {
         logger.info("POST /modify requested with deleteAndSave: delete ids: ");
         for (int i = 0; i < deleteAndSave.getDelete().size(); i++) {
@@ -349,6 +351,20 @@ public class FrontendController {
         }
 
         termedService.bulkChange(deleteAndSave, sync);
+    }
+
+    @Operation(summary = "Validate a bulk modification request", description = "Validate several nodes")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON for the bulk request containing nodes to validate")
+    @ApiResponse(responseCode = "200", description = "OK on success")
+    @PostMapping(path = "/validate", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
+    public String validateInternalNodes(@ValidGenericDeleteAndSave
+                                      @RequestBody GenericDeleteAndSave deleteAndSave) {
+        logger.info("POST /validate requested with deleteAndSave: delete ids: ");
+        deleteAndSave.getDelete().forEach(e -> logger.info(e.getId().toString()));
+        logger.info("and save ids: ");
+        deleteAndSave.getSave().forEach(e -> logger.info(e.getId().toString()));
+
+        return "OK";
     }
 
     @Operation(summary = "Delete several nodes", description = "May be used, e.g., to delete a concept and its terms in one request")
