@@ -163,7 +163,10 @@ public class ConceptQueryFactory {
             ssb.sort(SortBuilders.fieldSort("modified").order(sortDirection.getEsOrder()));
         }
         String sortLanguage = request.getSortLanguage() != null && !request.getSortLanguage().isEmpty() ? request.getSortLanguage() : "fi";
-        ssb.sort(SortBuilders.fieldSort("sortByLabel." + sortLanguage).order(sortBy == ConceptSearchRequest.SortBy.PREF_LABEL ? sortDirection.getEsOrder() : SortOrder.ASC));
+        ssb.sort(SortBuilders
+                    .fieldSort("sortByLabel." + sortLanguage)
+                    .order(sortBy == ConceptSearchRequest.SortBy.PREF_LABEL ? sortDirection.getEsOrder() : SortOrder.ASC)
+                    .unmappedType("keyword"));
 
         SearchRequest sr = new SearchRequest("concepts").source(ssb);
         log.debug("Concept Query request: {}", sr.toString());
