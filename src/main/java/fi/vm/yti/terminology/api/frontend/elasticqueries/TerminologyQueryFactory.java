@@ -122,7 +122,7 @@ public class TerminologyQueryFactory {
 
         if (groupIds != null && groupIds.length > 0)  {
             try {
-                Arrays.stream(groupIds).forEach(x -> UUID.fromString(x));
+                Arrays.stream(groupIds).forEach(UUID::fromString);
             } catch (IllegalArgumentException exception){
                 log.error("One or more group IDs were invalid");
                 throw new InvalidQueryException("One or more group IDs were invalid");
@@ -134,7 +134,7 @@ public class TerminologyQueryFactory {
 
         if (organizationIds != null && organizationIds.length > 0)  {
             try {
-                Arrays.stream(organizationIds).forEach(x -> UUID.fromString(x));
+                Arrays.stream(organizationIds).forEach(UUID::fromString);
             } catch (IllegalArgumentException exception){
                 log.error("One or more organization IDs were invalid");
                 throw new InvalidQueryException("One or organization IDs were invalid");
@@ -214,11 +214,12 @@ public class TerminologyQueryFactory {
                 .query(shouldQuery != null ? shouldQuery : mustQuery)
                 .sort(SortBuilders
                         .fieldSort("sortByLabel." + sortLanguage)
-                        .order(SortOrder.ASC));
+                        .order(SortOrder.ASC)
+                        .unmappedType("keyword"));
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
-        log.debug("Terminology Query request: " + sr.toString());
+        log.debug("Terminology Query request: {}", sr.toString());
         return sr;
     }
 
