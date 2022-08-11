@@ -50,5 +50,6 @@ public class TerminologyQueryFactoryTest {
         assertEquals("Test contributor", dto.getContributors().get(0).getLabel().get("fi"));
         assertEquals("DRAFT", dto.getStatus());
         assertEquals("Testipalveluluokka label", dto.getInformationDomains().get(0).getLabel().get("fi"));
+        assertEquals("TERMINOLOGICAL_VOCABULARY", dto.getType());
     }
 }

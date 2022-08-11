@@ -214,6 +214,7 @@ public class ConceptQueryFactory {
                                 final String terminologyId = ElasticRequestUtils.getTextValueOrNull(terminologyNode, "id");
                                 final String terminologyStatus = ElasticRequestUtils.getTextValueOrNull(terminologyNode, "status");
                                 final String terminologyUri = ElasticRequestUtils.getTextValueOrNull(terminologyNode, "uri");
+                                final String terminologyType = ElasticRequestUtils.getTextValueOrNull(terminologyNode, "type");
                                 final Map<String, String> terminologyLabelMap = ElasticRequestUtils.labelFromKeyValueNode(terminologyNode.get("label"));
                                 String terminologyCode = null;
                                 if (terminologyUri != null) {
@@ -222,7 +223,7 @@ public class ConceptQueryFactory {
                                         terminologyCode = m.group(1);
                                     }
                                 }
-                                terminology = new TerminologySimpleDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, terminologyLabelMap);
+                                terminology = new TerminologySimpleDTO(terminologyId, terminologyCode, terminologyUri, terminologyStatus, terminologyType, terminologyLabelMap);
                             }
 
                             if (highlightPattern != null) {
