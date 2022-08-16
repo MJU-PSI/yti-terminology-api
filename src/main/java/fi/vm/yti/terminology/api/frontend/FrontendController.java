@@ -41,6 +41,7 @@ import javax.validation.constraints.Size;
 
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -211,7 +212,7 @@ public class FrontendController {
             @Parameter(description = "The meta model graph for the new terminology")
             @RequestParam UUID templateGraphId,
 
-            @Size(min = 3, message = "Prefix must be minimum of 3 characters")
+            @Size(min = 3, max = TEXT_FIELD_MAX_LENGTH, message = "Prefix must be minimum of 3 characters and a maximum of " + TEXT_FIELD_MAX_LENGTH + " characters")
             @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace")
             @RequestParam String prefix,
 
