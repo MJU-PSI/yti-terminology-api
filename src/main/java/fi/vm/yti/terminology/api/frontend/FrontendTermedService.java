@@ -206,7 +206,7 @@ public class FrontendTermedService {
 
         check(authorizationManager.canDeleteVocabulary(graphId));
 
-        removeNodes(true, false, getAllNodeIdentifiers(graphId));
+        removeNodes(true, false, getAllNodeIdentifiers(Set.of(graphId)));
         removeTypes(graphId, getTypes(graphId));
         deleteGraph(graphId);
     }
@@ -592,12 +592,15 @@ public class FrontendTermedService {
                 .contains(node.getType().getId());
     }
 
-    private @NotNull List<Identifier> getAllNodeIdentifiers(UUID graphId) {
+    public @NotNull List<Identifier> getAllNodeIdentifiers(Set<UUID> graphIds) {
 
         Parameters params = new Parameters();
         params.add("select", "id");
         params.add("select", "type");
-        params.add("where", "graph.id:" + graphId);
+        params.add("where", "graph.id:" + graphIds.stream()
+                .map(UUID::toString)
+                .collect(Collectors.joining(" OR graph.id:"))
+        );
         params.add("max", "-1");
 
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params,
@@ -623,6 +626,7 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
+        params.add("append", "false");
 
         UUID username = ensureTermedUser(externalUserId);
 
