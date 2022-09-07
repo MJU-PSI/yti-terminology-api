@@ -27,7 +27,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 @RestController
-@RequestMapping("/api/v1/import")
+@RequestMapping({"/api/v1/import", "/api/v1/frontend/import"})
 @Tag(name = "Import-Export")
 public class ImportController {
 
