@@ -338,7 +338,7 @@ public class ExcelParser {
 
                 Map<String, List<Attribute>> properties = Map.of(
                         "prefLabel", getLocalizedProperty(row, columnMap, Fields.PREFLABEL, languages),
-                        "description", getLocalizedProperty(row, columnMap, Fields.DESCRIPTION, languages)
+                        "definition", getLocalizedProperty(row, columnMap, Fields.DESCRIPTION, languages)
                 );
 
                 Map<String, List<Identifier>> references = Map.of(
