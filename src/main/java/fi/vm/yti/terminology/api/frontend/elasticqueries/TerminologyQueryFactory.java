@@ -252,6 +252,17 @@ public class TerminologyQueryFactory {
         return sr;
     }
 
+    public SearchRequest createFindTerminologyByIdQuery(UUID terminologyId) {
+        QueryBuilder query = QueryBuilders.boolQuery()
+                .must(QueryBuilders.matchQuery("type.graph.id", terminologyId.toString()));
+
+        return new SearchRequest("vocabularies")
+                .source(new SearchSourceBuilder()
+                        .size(1)
+                        .query(query)
+                );
+    }
+
     public Set<String> parseMatchingTerminologiesResponse(SearchResponse response) {
         Set<String> ret = new HashSet<>();
         for (SearchHit hit : response.getHits()) {
