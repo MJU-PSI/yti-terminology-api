@@ -75,7 +75,7 @@ public class GenericDeleteAndSaveValidator extends BaseValidator implements
             checkStatus(node, context);
             if (nodeType.equals(NodeType.Concept)) {
                 final var prefLabelXl = node.getReferences().get("prefLabelXl");
-                if (prefLabelXl == null || prefLabelXl.size() != 1) {
+                if (prefLabelXl == null || prefLabelXl.size() == 0) {
                     addConstraintViolation(context, MISSING_VALUE, "prefLabelXl");
                 }
             }
