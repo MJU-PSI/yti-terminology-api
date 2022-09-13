@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
 import fi.vm.yti.terminology.api.model.termed.*;
@@ -202,15 +203,12 @@ public class IndexTermedService {
 
         Parameters params = new Parameters();
         params.add("select", "*");
-/*
-        params.add("select", "id");
-        params.add("select", "type");
-        params.add("select", "properties.*");
-        params.add("select", "lastModifiedDate");
-        */
         params.add("where", "graph.id:" + graphId);
         params.add("where", "type.id:" + vocabularyType.name());
         params.add("max", "-1");
+        params.add("graphTypeId", graphId.toString());
+        params.add("graphTypeId", DomainIndex.ORGANIZATION_DOMAIN.getGraphId().toString());
+        params.add("graphTypeId", DomainIndex.GROUP_DOMAIN.getGraphId().toString());
 
         return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
