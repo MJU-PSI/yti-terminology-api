@@ -211,11 +211,14 @@ public class TerminologyQueryFactory {
 
         String sortLanguage = prefLang != null ? prefLang : "fi";
         sourceBuilder
-                .query(shouldQuery != null ? shouldQuery : mustQuery)
-                .sort(SortBuilders
-                        .fieldSort("sortByLabel." + sortLanguage)
-                        .order(SortOrder.ASC)
-                        .unmappedType("keyword"));
+                .query(shouldQuery != null ? shouldQuery : mustQuery);
+
+        if (query.isEmpty()) {
+            sourceBuilder.sort(SortBuilders
+                    .fieldSort("sortByLabel." + sortLanguage)
+                    .order(SortOrder.ASC)
+                    .unmappedType("keyword"));
+        }
 
         SearchRequest sr = new SearchRequest("vocabularies")
             .source(sourceBuilder);
