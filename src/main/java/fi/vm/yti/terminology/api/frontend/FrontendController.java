@@ -38,10 +38,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static fi.vm.yti.terminology.api.validation.ValidationConstants.PREFIX_REGEX;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -222,6 +224,7 @@ public class FrontendController {
             @Parameter(description = "The meta model graph for the new terminology")
             @RequestParam UUID templateGraphId,
 
+            @Pattern(regexp = PREFIX_REGEX)
             @Size(min = 3, max = TEXT_FIELD_MAX_LENGTH, message = "Prefix must be minimum of 3 characters and a maximum of " + TEXT_FIELD_MAX_LENGTH + " characters")
             @Parameter(description = "The prefix, i.e., freely selectable part of terminology namespace")
             @RequestParam String prefix,
