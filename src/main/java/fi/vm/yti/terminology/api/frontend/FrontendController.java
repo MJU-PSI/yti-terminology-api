@@ -364,7 +364,7 @@ public class FrontendController {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
         }
 
-        termedService.bulkChange(new GenericDeleteAndSave(deleteAndSave.getDelete(), deleteAndSave.getSave()), sync);
+        termedService.bulkChange(deleteAndSave, sync);
     }
 
     @Operation(summary = "Validate a bulk modification request", description = "Validate several nodes")
