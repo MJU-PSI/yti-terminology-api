@@ -486,9 +486,9 @@ public class FrontendController {
         logger.info("GET /conceptCounts requested");
 
         // fetch collections separately and add the count to dto because collections are not stored in elastic search
-        JsonNode collectionList = termedService.getCollectionList(graphId);
+        Long collectionCount = termedService.getCollectionCount(graphId);
         CountSearchResponse conceptCounts = elasticSearchService.getConceptCounts(graphId);
-        conceptCounts.getCounts().getCategories().put(CountDTO.Category.COLLECTION.getName(), Long.valueOf(collectionList.size()));
+        conceptCounts.getCounts().getCategories().put(CountDTO.Category.COLLECTION.getName(), collectionCount);
         return conceptCounts;
     }
 

@@ -13,6 +13,7 @@ import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionDTO;
 import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionResponse;
+import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
@@ -112,6 +113,7 @@ public class FrontendTermedService {
                 + TerminologicalVocabulary + ")");
 
         params.add("max", "-1");
+        addGraphTypeIds(graphId, params);
 
         List<GenericNodeInlined> result = requireNonNull(termedRequester.exchange("/node-trees", GET, params,
                 new ParameterizedTypeReference<List<GenericNodeInlined>>() {
@@ -231,6 +233,7 @@ public class FrontendTermedService {
         params.add("where", "graph.id:" + graphId);
         params.add("where", "id:" + conceptId);
         params.add("max", "-1");
+        addGraphTypeIds(graphId, params);
 
         List<GenericNodeInlined> result = requireNonNull(termedRequester.exchange("/node-trees", GET, params,
                 new ParameterizedTypeReference<List<GenericNodeInlined>>() {
@@ -262,6 +265,7 @@ public class FrontendTermedService {
         params.add("where", "graph.id:" + graphId);
         params.add("where", "id:" + collectionId);
         params.add("max", "-1");
+        addGraphTypeIds(graphId, params);
 
         List<GenericNodeInlined> result = requireNonNull(termedRequester.exchange("/node-trees", GET, params,
                 new ParameterizedTypeReference<List<GenericNodeInlined>>() {
@@ -292,8 +296,18 @@ public class FrontendTermedService {
         params.add("where", "graph.id:" + graphId);
         params.add("where", "type.id:" + "Collection");
         params.add("max", "-1");
+        addGraphTypeIds(graphId, params);
 
         return requireNonNull(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
+    }
+
+    public Long getCollectionCount(UUID graphId) {
+        JsonNode collections = termedRequester.exchange(
+                String.format("/graphs/%s/types/%s/nodes", graphId, NodeType.Collection),
+                GET,
+                new Parameters(),
+                JsonNode.class);
+        return collections != null ? Long.valueOf(collections.size()) : 0L;
     }
 
     public @NotNull List<GenericNode> getNodes(UUID graphId) {
@@ -720,6 +734,12 @@ public class FrontendTermedService {
 
     private static boolean isUUID(String s) {
         return UUID_PATTERN.matcher(s).matches();
+    }
+
+    private static void addGraphTypeIds(UUID graphId, Parameters params) {
+        params.add("graphTypeId", graphId.toString());
+        params.add("graphTypeId", DomainIndex.ORGANIZATION_DOMAIN.getGraphId().toString());
+        params.add("graphTypeId", DomainIndex.GROUP_DOMAIN.getGraphId().toString());
     }
 
     // XXX consider cache spanning to multiple requests
