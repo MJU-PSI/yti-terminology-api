@@ -600,7 +600,7 @@ public class ExcelParser {
     private XSSFRow getRow(XSSFSheet sheet, int rowNumber, boolean isMandatory) {
         XSSFRow row = sheet.getRow(rowNumber);
         if (row == null && isMandatory) {
-            throw new ExcelParseException(String.format("Row %d doesn't exist", rowNumber));
+            throw new ExcelParseException(String.format("Row %d doesn't exist, sheet %s", rowNumber, sheet.getSheetName()));
         }
         return row;
     }
