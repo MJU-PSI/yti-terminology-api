@@ -364,28 +364,7 @@ public class FrontendController {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
         }
 
-        // All graph ids in the payload (usually only one)
-        Set<UUID> graphIds = mapToSet(deleteAndSave.getSave(), node -> node.getType().getGraph().getId());
-
-        // All node ids in the graphs
-        var nodeIds = termedService.getAllNodeIdentifiers(graphIds)
-                .stream()
-                .map(identifier -> identifier.getId())
-                .collect(Collectors.toList());
-
-        // If the node exists, add it to the patch list, so it will be merged with the old one
-        List<GenericNode> save = new ArrayList<>();
-        List<GenericNode> patch = new ArrayList<>();
-
-        for (var node : deleteAndSave.getSave()) {
-            if (nodeIds.contains(node.getId())) {
-                patch.add(node);
-            } else {
-                save.add(node);
-            }
-        }
-
-        termedService.bulkChange(new GenericDeleteAndSave(deleteAndSave.getDelete(), save, patch), sync);
+        termedService.bulkChange(deleteAndSave, sync);
     }
 
     @Operation(summary = "Validate a bulk modification request", description = "Validate several nodes")

@@ -626,7 +626,6 @@ public class FrontendTermedService {
         Parameters params = new Parameters();
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
-        params.add("append", "false");
 
         UUID username = ensureTermedUser(externalUserId);
 

@@ -83,47 +83,8 @@ public class FrontEndControllerInternalNodeTests {
                         .content(convertObjectToJsonString(nodes)))
                 .andExpect(status().isOk());
 
-        verify(termedService).getAllNodeIdentifiers(any(Set.class));
         verify(termedService).bulkChange(any(GenericDeleteAndSave.class), anyBoolean());
         verifyNoMoreInteractions(this.termedService);
-    }
-
-    @Test
-    public void shouldPatchExistingNodes() throws Exception {
-        var termNode1 = constructNodeWithType(NodeType.Term, constructTermProperties(), constructTermReferences());
-        var termNode2 = constructNodeWithType(NodeType.Term, constructTermProperties(), constructTermReferences());
-        var conceptNode = constructNodeWithType(NodeType.Concept, constructConceptProperties(), constructConceptReferences());
-        var nodes = new GenericDeleteAndSave(Collections.emptyList(), List.of(termNode1, termNode2, conceptNode));
-
-        // conceptNode and termNode1 already exists in the graph
-        when(termedService.getAllNodeIdentifiers(any(Set.class)))
-                .thenReturn(
-                        List.of(
-                                new Identifier(
-                                    termNode1.getId(),
-                                    new TypeId(NodeType.Term, new GraphId(UUID.fromString(TEMPLATE_GRAPH_ID)))
-                                ),
-                                new Identifier(
-                                        conceptNode.getId(),
-                                        new TypeId(NodeType.Concept, new GraphId(UUID.fromString(TEMPLATE_GRAPH_ID)))
-                                )
-                        )
-                );
-
-        this.mvc
-                .perform(post("/api/v1/frontend/modify")
-                        .contentType("application/json")
-                        .content(convertObjectToJsonString(nodes)))
-                .andExpect(status().isOk());
-
-        ArgumentCaptor<GenericDeleteAndSave> captor = ArgumentCaptor.forClass(GenericDeleteAndSave.class);
-
-        verify(termedService).bulkChange(captor.capture(), eq(true));
-
-        // New nodes should be included in save and existing nodes to patch
-        assertEquals(2, captor.getValue().getPatch().size());
-        assertEquals(1, captor.getValue().getSave().size());
-        assertEquals(termNode2.getId(), captor.getValue().getSave().get(0).getId());
     }
 
     @ParameterizedTest
