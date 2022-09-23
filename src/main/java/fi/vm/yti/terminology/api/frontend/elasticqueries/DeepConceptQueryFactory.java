@@ -64,7 +64,8 @@ public class DeepConceptQueryFactory {
                 .field("altLabel.*", 3.0f)
                 .field("searchTerm.*", 3.0f)
                 .field("hiddenTerm.*", 3.0f)
-                .field("notRecommendedSynonym.*", 1.5f);
+                .field("notRecommendedSynonym.*", 1.5f)
+                .field("definition.*", 3.0f);
         mustQueries.add(labelQuery);
 
         if (statuses != null && statuses.length > 0) {

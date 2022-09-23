@@ -4,7 +4,8 @@
       "label": {
         "path_match": "label.*",
         "mapping": {
-          "type": "text"
+          "type": "text",
+          "analyzer": "termed"
         }
       }
     },
@@ -35,7 +36,7 @@
       }
     },
     {
-      "altLabel": {
+      "searchTerm": {
         "path_match": "searchTerm.*",
         "mapping": {
           "type": "text",
@@ -44,7 +45,7 @@
       }
     },
     {
-      "altLabel": {
+      "hiddenTerm": {
         "path_match": "hiddenTerm.*",
         "mapping": {
           "type": "text",
@@ -53,7 +54,7 @@
       }
     },
     {
-      "altLabel": {
+      "notRecommendedSynonym": {
         "path_match": "notRecommendedSynonym.*",
         "mapping": {
           "type": "text",
