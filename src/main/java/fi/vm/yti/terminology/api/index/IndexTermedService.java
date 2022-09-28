@@ -141,6 +141,9 @@ public class IndexTermedService {
         params.add("select", "properties.status");
         params.add("select", "references.prefLabelXl:2");
         params.add("select", "references.altLabelXl:2");
+        params.add("select", "references.searchTerm:2");
+        params.add("select", "references.notRecommendedSynonym:2");
+        params.add("select", "references.hiddenTerm:2");
         params.add("select", "references.broader");
         params.add("select", "referrers.broader");
         params.add("where", "graph.id:" + vocabulary.getGraphId());

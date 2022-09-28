@@ -10,7 +10,8 @@
               "altLabel.*^3.0",
               "searchTerm.*^3.0",
               "hiddenTerm.*^3.0",
-              "notRecommendedSynonym.*^1.5"
+              "notRecommendedSynonym.*^1.5",
+              "definition.*^3.0"
             ]
           }
         },
