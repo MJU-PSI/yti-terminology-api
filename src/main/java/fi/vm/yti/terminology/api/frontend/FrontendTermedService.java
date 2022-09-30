@@ -556,6 +556,15 @@ public class FrontendTermedService {
                     newVersion, username.toString(), USER_PASSWORD);
         } catch (Exception e) {
             logger.error("Error creating new version", e);
+
+            try {
+                // If an error occurs, graph has been created in some cases. Try to delete that
+                removeTypes(newGraphId, getTypes(newGraphId));
+                deleteGraph(newGraphId);
+            } catch (Exception ex) {
+                logger.error("Cannot delete graph " + newGraphId, ex);
+            }
+
             throw e;
         }
 
