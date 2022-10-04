@@ -218,7 +218,7 @@ public class IndexTermedService {
         return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
     private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId, @NotNull VocabularyType vocabularyType) {
-        return findSingle(termedRequester.exchange(String.format("/graphs/%s/types/%s/nodes",
+        return findSingleOrNull(termedRequester.exchange(String.format("/graphs/%s/types/%s/nodes",
                     graphId, vocabularyType), GET, new Parameters(), JsonNode.class));
     }
 
