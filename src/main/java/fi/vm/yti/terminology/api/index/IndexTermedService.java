@@ -21,8 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static fi.vm.yti.terminology.api.util.JsonUtils.asStream;
-import static fi.vm.yti.terminology.api.util.JsonUtils.findSingle;
+import static fi.vm.yti.terminology.api.util.JsonUtils.*;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -219,8 +218,8 @@ public class IndexTermedService {
         return findSingle(termedRequester.exchange("/node-trees", GET, params, JsonNode.class));
     }
     private @Nullable JsonNode getVocabularyNode(@NotNull UUID graphId, @NotNull VocabularyType vocabularyType) {
-        return termedRequester.exchange(String.format("/graphs/%s/types/%s/nodes",
-                graphId, vocabularyType), GET, new Parameters(), JsonNode.class);
+        return findSingleOrNull(termedRequester.exchange(String.format("/graphs/%s/types/%s/nodes",
+                    graphId, vocabularyType), GET, new Parameters(), JsonNode.class));
     }
 
     private @NotNull AllNodesResult fetchAllNodesInGraph(UUID graphId) {
