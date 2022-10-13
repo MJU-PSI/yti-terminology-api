@@ -188,20 +188,28 @@ public class FrontendTermedService {
 
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
 
-        List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
-        List<Property> prefLabel = mapToList(vocabularyNode.getProperties().get("prefLabel"), Attribute::asProperty);
+        try {
+            List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
+            List<Property> prefLabel = mapToList(vocabularyNode.getProperties().get("prefLabel"), Attribute::asProperty);
 
-        logger.debug("Creating graph for \"" + prefix + "\"");
-        createGraph(prefix, prefLabel, graphId);
-        logger.debug("Graph created for \"" + prefix + "\"");
-        List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
+            logger.debug("Creating graph for \"" + prefix + "\"");
+            createGraph(prefix, prefLabel, graphId);
+            logger.debug("Graph created for \"" + prefix + "\"");
+            List<MetaNode> graphMetaNodes = mapToList(templateMetaNodes, node -> node.copyToGraph(graphId));
 
-        logger.debug("Updating types for \"" + prefix + "\"");
-        updateTypes(graphId, graphMetaNodes);
-        logger.debug("Handling nodes for \"" + prefix + "\"");
-        updateAndDeleteInternalNodes(
-                new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))), sync, null);
-        logger.debug("Finished for \"" + prefix + "\"");
+            logger.debug("Updating types for \"" + prefix + "\"");
+            updateTypes(graphId, graphMetaNodes);
+            logger.debug("Handling nodes for \"" + prefix + "\"");
+            updateAndDeleteInternalNodes(
+                    new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))), sync, null);
+            logger.debug("Finished for \"" + prefix + "\"");
+        } catch (Exception e) {
+            logger.error("Error occurred while creating terminology " + graphId, e);
+
+            removeTypes(graphId, getTypes(graphId));
+            deleteGraph(graphId);
+            throw new RuntimeException(e);
+        }
     }
 
     void deleteVocabulary(UUID graphId) {
@@ -641,7 +649,7 @@ public class FrontendTermedService {
 
         Graph graph = new Graph(graphId, code, uri, roles, permissions, properties);
 
-        termedRequester.exchange("/graphs", POST, Parameters.empty(), String.class, graph);
+        termedRequester.exchange("/graphs", POST, Parameters.single("sync", "true"), String.class, graph);
     }
 
     private void updateAndDeleteInternalNodes(GenericDeleteAndSave deleteAndSave, boolean sync, UUID externalUserId) {
@@ -664,6 +672,7 @@ public class FrontendTermedService {
 
         Parameters params = new Parameters();
         params.add("batch", "true");
+        params.add("sync", "true");
 
         termedRequester.exchange("/graphs/" + graphId + "/types", POST, params, String.class, metaNodes);
     }
