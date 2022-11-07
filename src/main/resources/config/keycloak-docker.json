@@ -1,0 +1,6 @@
+{
+  "realm": "iow",
+  "auth-server-url": "http://yti-keycloak:8080/auth",
+  "resource": "iow-backend",
+  "bearer-only": "true"
+}
