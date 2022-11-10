@@ -69,6 +69,7 @@ public class ConceptQueryFactory {
                 .field("searchTerm.*", 3.0f)
                 .field("hiddenTerm.*", 3.0f)
                 .field("notRecommendedSynonym.*", 1.5f)
+                .field("definition.*", 3.0f)
             );
         }
 
@@ -157,19 +158,20 @@ public class ConceptQueryFactory {
             .size(request.getPageSize() != null ? request.getPageSize().intValue() : 100)
             .from(request.getPageFrom() != null ? request.getPageFrom().intValue() : 0);
 
-        ConceptSearchRequest.SortBy sortBy = request.getSortBy() != null ? request.getSortBy() : ConceptSearchRequest.SortBy.PREF_LABEL;
-        ConceptSearchRequest.SortDirection sortDirection = request.getSortDirection() != null ? request.getSortDirection() : ConceptSearchRequest.SortDirection.ASC;
-        if (sortBy == ConceptSearchRequest.SortBy.MODIFIED) {
-            ssb.sort(SortBuilders.fieldSort("modified").order(sortDirection.getEsOrder()));
-        }
-        String sortLanguage = request.getSortLanguage() != null && !request.getSortLanguage().isEmpty() ? request.getSortLanguage() : "fi";
-        ssb.sort(SortBuilders
+        if ("".equals(request.getQuery()) || request.getQuery() == null || request.getSortBy() != null) {
+            ConceptSearchRequest.SortBy sortBy = request.getSortBy() != null ? request.getSortBy() : ConceptSearchRequest.SortBy.PREF_LABEL;
+            ConceptSearchRequest.SortDirection sortDirection = request.getSortDirection() != null ? request.getSortDirection() : ConceptSearchRequest.SortDirection.ASC;
+            if (sortBy == ConceptSearchRequest.SortBy.MODIFIED) {
+                ssb.sort(SortBuilders.fieldSort("modified").order(sortDirection.getEsOrder()));
+            }
+            String sortLanguage = request.getSortLanguage() != null && !request.getSortLanguage().isEmpty() ? request.getSortLanguage() : "fi";
+            ssb.sort(SortBuilders
                     .fieldSort("sortByLabel." + sortLanguage)
                     .order(sortBy == ConceptSearchRequest.SortBy.PREF_LABEL ? sortDirection.getEsOrder() : SortOrder.ASC)
                     .unmappedType("keyword"));
-
+        }
         SearchRequest sr = new SearchRequest("concepts").source(ssb);
-        log.debug("Concept Query request: {}", sr.toString());
+        log.debug("Concept Query request: {}", sr);
         return sr;
     }
 
