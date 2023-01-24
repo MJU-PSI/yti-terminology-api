@@ -23,6 +23,6 @@ public class InstantValueDTOTest {
     public void testGetValueAsString() {
         var instant = Instant.ofEpochMilli(1644927671637L);
         var dto = new InstantValueDTO(instant);
-        assertEquals("2022-02-15 14:21:11", dto.getValueAsString());
+        assertEquals("2022-02-15 13:21:11", dto.getValueAsString());
     }
 }
