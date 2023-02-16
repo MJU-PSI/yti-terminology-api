@@ -181,8 +181,9 @@ class FrontendTermedServiceTest {
         JsonNode expectedNode = mapper.readTree(jsonData);
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initGroupsNode);
-
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "random_string");
+        
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "fi", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -210,7 +211,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initGroupsNode);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "fi");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "fi", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -238,7 +240,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initGroupsNode);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "en");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Group, "en", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -261,7 +264,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initOrgsNode);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "random_string");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -284,7 +288,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initOrgsNode);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -307,7 +312,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initOrgsNode);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "en");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "en", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -330,7 +336,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initOrgsNodeMissing);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "en");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "en", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
@@ -358,7 +365,8 @@ class FrontendTermedServiceTest {
 
         when(termedRequester.exchange(eq("/node-trees"), eq(HttpMethod.GET), any(Parameters.class), eq(JsonNode.class))).thenReturn(initGroupsNodeMissing);
 
-        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi");
+        final String[] validLanguages = {"fi", "en", "sv"};
+        JsonNode gotten = frontEndTermedService.getNodeListWithoutReferencesOrReferrersV2(NodeType.Organization, "fi", validLanguages);
 
         assertEquals(expectedNode, gotten);
     }
