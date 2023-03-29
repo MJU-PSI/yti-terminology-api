@@ -70,7 +70,6 @@ dependencies {
 
     implementation 'fi.vm.yti:yti-spring-security:0.2.1'
     implementation 'fi.vm.yti:yti-spring-migration:0.2.0'
-    implementation "org.keycloak:keycloak-spring-security-adapter:16.1.1"
 
     implementation 'org.apache.activemq:activemq-broker'
     implementation 'org.elasticsearch:elasticsearch:6.8.22'
