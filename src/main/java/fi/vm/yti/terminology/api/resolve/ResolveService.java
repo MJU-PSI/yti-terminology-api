@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.ResourceNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
@@ -32,27 +33,27 @@ public class ResolveService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResolveService.class);
     private final TermedRequester termedRequester;
-    private final String namespaceRoot;
+    private final UriProperties uriProperties;
 
     private static final Pattern PREFIX_PATTERN = Pattern.compile("^(?<prefix>[\\w\\-]+)/$");
     private static final Pattern PREFIX_AND_RESOURCE_PATTERN = Pattern.compile("^(?<prefix>[\\w\\-]+)/(?<resource>[\\w\\-]+)$");
 
     @Autowired
     ResolveService(TermedRequester termedRequester,
-                   @Value("${namespace.root}") String namespaceRoot) {
+                    UriProperties uriProperties) {
         this.termedRequester = termedRequester;
-        this.namespaceRoot = namespaceRoot;
+        this.uriProperties = uriProperties;
     }
 
     ResolvedResource resolveResource(String uri) {
 
-        if (!uri.startsWith(namespaceRoot)) {
+        if (!uri.startsWith(this.uriProperties.getUriHostPathAddress())) {
             logger.error("Unsupported URI namespace URI: " + uri);
             throw new RuntimeException("Unsupported URI namespace: " + uri);
         }
 
         String uriWithoutParameters = uri.replaceFirst("\\?.*$", "");
-        String path = uriWithoutParameters.substring(namespaceRoot.length());
+        String path = uriWithoutParameters.substring(this.uriProperties.getUriHostPathAddress().length());
 
         Matcher prefixMatcher = PREFIX_PATTERN.matcher(path);
         if (prefixMatcher.matches()) {

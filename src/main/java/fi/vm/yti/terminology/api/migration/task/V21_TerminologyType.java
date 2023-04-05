@@ -18,9 +18,11 @@ import org.springframework.stereotype.Component;
 public class V21_TerminologyType implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V21_TerminologyType(MigrationService migrationService) {
+    V21_TerminologyType(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -30,7 +32,7 @@ public class V21_TerminologyType implements MigrationTask {
             NodeType type = meta.getDomain().getId();
 
             if (type.equals(NodeType.TerminologicalVocabulary)) {
-                meta.addAttribute(AttributeIndex.terminologyType(meta.getDomain(), 25));
+                meta.addAttribute(this.attributeIndex.terminologyType(meta.getDomain(), 25));
             }
         });
     }

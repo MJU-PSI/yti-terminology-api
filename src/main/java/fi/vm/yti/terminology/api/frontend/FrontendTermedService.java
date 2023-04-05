@@ -8,6 +8,7 @@ import com.google.common.cache.CacheBuilder;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.NodeNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
@@ -61,20 +62,20 @@ public class FrontendTermedService {
     private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
-    private final String namespaceRoot;
+    private final UriProperties uriProperties;
 
     private final Cache<String, JsonNode> nodeListCache;
 
     @Autowired
     public FrontendTermedService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             AuthenticatedUserProvider userProvider, AuthorizationManager authorizationManager,
-            @Value("${namespace.root}") String namespaceRoot,
+            UriProperties uriProperties,
             @Value("${termed.cache.expiration:1800}") Long cacheExpireTime) {
         this.termedRequester = termedRequester;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.authorizationManager = authorizationManager;
-        this.namespaceRoot = namespaceRoot;
+        this.uriProperties = uriProperties;
 
         this.nodeListCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(cacheExpireTime, TimeUnit.SECONDS)
@@ -724,7 +725,7 @@ public class FrontendTermedService {
     }
 
     private String formatNamespace(@NotNull String prefix) {
-        return this.namespaceRoot + prefix + '/';
+        return this.uriProperties.getUriHostPathAddress() + prefix + '/';
     }
 
     private GenericNodeInlined userNameToDisplayName(GenericNodeInlined node,

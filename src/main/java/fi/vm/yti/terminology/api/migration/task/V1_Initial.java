@@ -1,6 +1,7 @@
 package fi.vm.yti.terminology.api.migration.task;
 
 import fi.vm.yti.migration.MigrationTask;
+import fi.vm.yti.terminology.api.config.DatamodelProperties;
 import fi.vm.yti.terminology.api.migration.AttributeIndex;
 import fi.vm.yti.terminology.api.migration.MigrationService;
 import fi.vm.yti.terminology.api.migration.ReferenceIndex;
@@ -21,11 +22,21 @@ import static java.util.Collections.*;
 @Component
 public class V1_Initial implements MigrationTask {
 
-    private final MigrationService migrationService;
+    private final MigrationService migrationService; 
+    private final AttributeIndex attributeIndex; 
+    private final ReferenceIndex referenceIndex; 
+    private final DatamodelProperties datamodelProperties; 
 
     @Autowired
-    V1_Initial(MigrationService migrationService) {
+    V1_Initial(
+        MigrationService migrationService, 
+        AttributeIndex attributeIndex,
+        ReferenceIndex referenceIndex,
+        DatamodelProperties datamodelProperties) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
+        this.referenceIndex = referenceIndex;
+        this.datamodelProperties = datamodelProperties;
     }
 
     @Override
@@ -58,16 +69,16 @@ public class V1_Initial implements MigrationTask {
                         "Classification"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
-                        AttributeIndex.definition(domain, 1, false),
-                        AttributeIndex.order(domain, 2),
-                        AttributeIndex.notation(domain, 3,
+                        this.attributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
+                        this.attributeIndex.definition(domain, 1, false),
+                        this.attributeIndex.order(domain, 2),
+                        this.attributeIndex.notation(domain, 3,
                                 "Koodiarvo",
                                 "Code value"
                         )
                 ),
                 singletonList(
-                        ReferenceIndex.broader(GROUP_DOMAIN, 0,"Yläluokka", "Broader")
+                        this.referenceIndex.broader(GROUP_DOMAIN, 0,"Yläluokka", "Broader")
                 )
         ));
 
@@ -95,7 +106,7 @@ public class V1_Initial implements MigrationTask {
                         "Organization"
                 ),
                 singletonList(
-                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name")
+                        this.attributeIndex.prefLabel(domain, 0, "Nimi", "Name")
                 ),
                 emptyList()
         ));
@@ -156,10 +167,10 @@ public class V1_Initial implements MigrationTask {
                         "Linked concept"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0, "Suositettava termi", "Preferred label"),
+                        this.attributeIndex.prefLabel(domain, 0, "Suositettava termi", "Preferred label"),
                         new AttributeMeta(
                                 "vocabularyLabel",
-                                "http://uri.suomi.fi/datamodel/ns/st#vocabularyLabel",
+                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#vocabularyLabel",
                                 1L,
                                 domain,
                                 emptyMap(),
@@ -174,7 +185,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetId",
-                                "http://uri.suomi.fi/datamodel/ns/st#targetId",
+                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#targetId",
                                 2L,
                                 domain,
                                 emptyMap(),
@@ -189,7 +200,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetGraph",
-                                "http://uri.suomi.fi/datamodel/ns/st#targetUri",
+                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#targetUri",
                                 3L,
                                 domain,
                                 emptyMap(),
@@ -222,34 +233,34 @@ public class V1_Initial implements MigrationTask {
                         "Concept"
                 ),
                 asList(
-                        AttributeIndex.definition(domain, 2, true),
-                        AttributeIndex.note(domain, 3, true),
-                        AttributeIndex.editorialNote(domain, 4),
-                        AttributeIndex.example(domain, 5),
-                        AttributeIndex.changeNote(domain, 6),
-                        AttributeIndex.historyNote(domain, 7),
-                        AttributeIndex.status(domain, 8,
+                        this.attributeIndex.definition(domain, 2, true),
+                        this.attributeIndex.note(domain, 3, true),
+                        this.attributeIndex.editorialNote(domain, 4),
+                        this.attributeIndex.example(domain, 5),
+                        this.attributeIndex.changeNote(domain, 6),
+                        this.attributeIndex.historyNote(domain, 7),
+                        this.attributeIndex.status(domain, 8,
                                 "Käsitteen tila",
                                 "Concept status"
                         ),
-                        AttributeIndex.notation(domain, 9,
+                        this.attributeIndex.notation(domain, 9,
                                 "Systemaattinen merkintätapa",
                                 "Notatation"
                         ),
-                        AttributeIndex.source(domain, 10)
+                        this.attributeIndex.source(domain, 10)
                 ),
                 asList(
-                        ReferenceIndex.prefLabelXl(domain, 0),
-                        ReferenceIndex.altLabelXl(domain, 1),
-                        ReferenceIndex.broader(domain, 11,
+                        this.referenceIndex.prefLabelXl(domain, 0),
+                        this.referenceIndex.altLabelXl(domain, 1),
+                        this.referenceIndex.broader(domain, 11,
                                 "Hierarkkinen yläkäsite",
                                 "Broader concept"
                         ),
-                        ReferenceIndex.relatedConcept(domain, 12),
-                        ReferenceIndex.partOfConcept(domain, 13),
-                        ReferenceIndex.relatedMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN,14),
-                        ReferenceIndex.exactMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 15),
-                        ReferenceIndex.closeMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 16)
+                        this.referenceIndex.relatedConcept(domain, 12),
+                        this.referenceIndex.partOfConcept(domain, 13),
+                        this.referenceIndex.relatedMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN,14),
+                        this.referenceIndex.exactMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 15),
+                        this.referenceIndex.closeMatch(domain, TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN, 16)
                 )
         );
     }
@@ -270,27 +281,27 @@ public class V1_Initial implements MigrationTask {
                         "Concept"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0,"Suositettava termi", "Preferred label"),
-                        AttributeIndex.altLabel(domain, 1),
-                        AttributeIndex.definition(domain, 2, false),
-                        AttributeIndex.note(domain, 3, false),
-                        AttributeIndex.hiddenLabel(domain, 4),
-                        AttributeIndex.scopeNote(domain, 5),
-                        AttributeIndex.example(domain, 6),
-                        AttributeIndex.historyNote(domain, 7),
-                        AttributeIndex.editorialNote(domain, 8),
-                        AttributeIndex.changeNote(domain, 9)
+                        this.attributeIndex.prefLabel(domain, 0,"Suositettava termi", "Preferred label"),
+                        this.attributeIndex.altLabel(domain, 1),
+                        this.attributeIndex.definition(domain, 2, false),
+                        this.attributeIndex.note(domain, 3, false),
+                        this.attributeIndex.hiddenLabel(domain, 4),
+                        this.attributeIndex.scopeNote(domain, 5),
+                        this.attributeIndex.example(domain, 6),
+                        this.attributeIndex.historyNote(domain, 7),
+                        this.attributeIndex.editorialNote(domain, 8),
+                        this.attributeIndex.changeNote(domain, 9)
                 ),
                 asList(
-                        ReferenceIndex.broader(domain, 11,
+                        this.referenceIndex.broader(domain, 11,
                                 "Yläkäsite",
                                 "Broader concept"
                         ),
-                        ReferenceIndex.narrower(domain, 12,
+                        this.referenceIndex.narrower(domain, 12,
                                 "Alakäsite",
                                 "Narrower concept"
                         ),
-                        ReferenceIndex.relatedConcept(domain, 13)
+                        this.referenceIndex.relatedConcept(domain, 13)
                 )
         );
     }
@@ -311,14 +322,14 @@ public class V1_Initial implements MigrationTask {
                         "Term"
                 ),
                 asList(
-                        AttributeIndex.prefLabelXl(domain,0),
-                        AttributeIndex.source(domain, 1),
-                        AttributeIndex.scope(domain, 2),
-                        AttributeIndex.editorialNote(domain, 3),
-                        AttributeIndex.draftComment(domain, 4),
-                        AttributeIndex.historyNote(domain, 5),
-                        AttributeIndex.changeNote(domain, 6),
-                        AttributeIndex.status(domain, 7,
+                        this.attributeIndex.prefLabelXl(domain,0),
+                        this.attributeIndex.source(domain, 1),
+                        this.attributeIndex.scope(domain, 2),
+                        this.attributeIndex.editorialNote(domain, 3),
+                        this.attributeIndex.draftComment(domain, 4),
+                        this.attributeIndex.historyNote(domain, 5),
+                        this.attributeIndex.changeNote(domain, 6),
+                        this.attributeIndex.status(domain, 7,
                                 "Termin tila",
                                 "Term status"
                         )
@@ -343,8 +354,8 @@ public class V1_Initial implements MigrationTask {
                         "Collection"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
-                        AttributeIndex.definition(domain, 1, false)
+                        this.attributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
+                        this.attributeIndex.definition(domain, 1, false)
                 ),
                 asList(
                         new ReferenceMeta(
@@ -362,7 +373,7 @@ public class V1_Initial implements MigrationTask {
                                         type("reference:single")
                                 )
                         ),
-                        ReferenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_TEMPLATE_DOMAIN, 3)
+                        this.referenceIndex.member(domain, TERMINOLOGICAL_CONCEPT_TEMPLATE_DOMAIN, 3)
                 )
         );
     }
@@ -383,13 +394,13 @@ public class V1_Initial implements MigrationTask {
                         "Collection"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 1, "Nimi", "Name"),
-                        AttributeIndex.definition(domain, 2, false),
-                        AttributeIndex.description(domain, 3),
-                        AttributeIndex.notation(domain, 4, "Koodiarvo", "Code value")
+                        this.attributeIndex.prefLabel(domain, 1, "Nimi", "Name"),
+                        this.attributeIndex.definition(domain, 2, false),
+                        this.attributeIndex.description(domain, 3),
+                        this.attributeIndex.notation(domain, 4, "Koodiarvo", "Code value")
                 ),
                 singletonList(
-                        ReferenceIndex.member(domain, CONCEPT_DOMAIN, 5)
+                        this.referenceIndex.member(domain, CONCEPT_DOMAIN, 5)
                 )
         );
     }
@@ -410,18 +421,18 @@ public class V1_Initial implements MigrationTask {
                         "Terminological Dictionary"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
-                        AttributeIndex.language(domain, 1),
-                        AttributeIndex.status(domain, 2,
+                        this.attributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
+                        this.attributeIndex.language(domain, 1),
+                        this.attributeIndex.status(domain, 2,
                                 "Sanaston tila",
                                 "Terminology status"
                         ),
-                        AttributeIndex.description(domain, 3),
-                        AttributeIndex.priority(domain, 4)
+                        this.attributeIndex.description(domain, 3),
+                        this.attributeIndex.priority(domain, 4)
                 ),
                 asList(
-                        ReferenceIndex.contributor(domain, 5),
-                        ReferenceIndex.group(domain, 6)
+                        this.referenceIndex.contributor(domain, 5),
+                        this.referenceIndex.group(domain, 6)
                 )
         );
     }
@@ -442,18 +453,18 @@ public class V1_Initial implements MigrationTask {
                         "Thesaurus"
                 ),
                 asList(
-                        AttributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
-                        AttributeIndex.description(domain, 1),
-                        AttributeIndex.language(domain, 2),
-                        AttributeIndex.status(domain, 3,
+                        this.attributeIndex.prefLabel(domain, 0, "Nimi", "Name"),
+                        this.attributeIndex.description(domain, 1),
+                        this.attributeIndex.language(domain, 2),
+                        this.attributeIndex.status(domain, 3,
                                 "Sanaston tila",
                                 "Terminology status"
                         ),
-                        AttributeIndex.priority(domain, 4)
+                        this.attributeIndex.priority(domain, 4)
                 ),
                 asList(
-                        ReferenceIndex.contributor(domain, 5),
-                        ReferenceIndex.group(domain, 6)
+                        this.referenceIndex.contributor(domain, 5),
+                        this.referenceIndex.group(domain, 6)
                 )
         );
     }

@@ -1,7 +1,11 @@
 package fi.vm.yti.terminology.api.importapi.excel;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import fi.vm.yti.terminology.api.config.UriProperties;
+
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -29,6 +33,9 @@ public class JSONWrapper {
      * Internal memo. This is used by concept links when fetching uri of the linked concept in other vocabulary.
      */
     private String memo;
+
+    @Autowired
+    private UriProperties uriProperties;
 
     public JSONWrapper(@NotNull JsonNode json, @NotNull List<JSONWrapper> others) {
         this.json = json;
@@ -65,7 +72,7 @@ public class JSONWrapper {
 
     public String getNamespace() {
         String uri = this.json.get("uri").textValue();
-        Pattern p = Pattern.compile("uri.suomi.fi/terminology/(\\w+)/");
+        Pattern p = Pattern.compile(this.uriProperties.getHost() + "/terminology/(\\w+)/");
         Matcher m = p.matcher(uri);
         if (m.find()) {
             return m.group(1);

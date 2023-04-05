@@ -25,9 +25,11 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 public class V12_UpdateTermHelps implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V12_UpdateTermHelps(MigrationService migrationService) {
+    V12_UpdateTermHelps(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -76,7 +78,7 @@ public class V12_UpdateTermHelps implements MigrationTask {
             // termInfo
             TypeId domain = meta.getDomain();
             if (meta.isOfType(NodeType.Term)) {
-                meta.addAttribute(AttributeIndex.termInfo(domain, 7));
+                meta.addAttribute(this.attributeIndex.termInfo(domain, 7));
             }
             // Add info texts
             AttributeMeta att = meta.getAttribute("termInfo");

@@ -17,9 +17,11 @@ import java.util.stream.Collectors;
 public class V6_UpdateSourceMeta implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V6_UpdateSourceMeta(MigrationService migrationService) {
+    V6_UpdateSourceMeta(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -129,7 +131,7 @@ public class V6_UpdateSourceMeta implements MigrationTask {
         //Not implemented yet
         TypeId domain = meta.getDomain();
         if (meta.isOfType(NodeType.Concept)) {
-            meta.addAttribute(AttributeIndex.conceptClass(domain, 9));
+            meta.addAttribute(this.attributeIndex.conceptClass(domain, 9));
         }
     }
 
@@ -137,7 +139,7 @@ public class V6_UpdateSourceMeta implements MigrationTask {
         //Not implemented yet
         TypeId domain = meta.getDomain();
         if (meta.isOfType(NodeType.Term)) {
-            meta.addAttribute(AttributeIndex.termHomographNumber(domain, 8));
+            meta.addAttribute(this.attributeIndex.termHomographNumber(domain, 8));
         }
     }
 }

@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.ConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.DeepConceptQueryFactory;
 import fi.vm.yti.terminology.api.frontend.elasticqueries.TerminologyQueryFactory;
@@ -49,11 +50,12 @@ public class FrontendElasticSearchService {
     private final DeepConceptQueryFactory deepConceptQueryFactory;
     private final CountQueryFactory countQueryFactory;
     private final ConceptQueryFactory conceptQueryFactory;
+    private final UriProperties uriProperties;
 
     @Autowired
     public FrontendElasticSearchService(@Value("${search.index.name}") String indexName,
                                         @Value("${search.index.mapping.type}") String indexMappingType,
-                                        @Value("${namespace.root}") String namespaceRoot,
+                                        UriProperties uriProperties,
                                         RestHighLevelClientWrapper esRestClient,
                                         ObjectMapper objectMapper,
                                         AuthenticatedUserProvider userProvider) {
@@ -62,9 +64,10 @@ public class FrontendElasticSearchService {
         this.esRestClient = esRestClient;
         this.objectMapper = objectMapper;
         this.userProvider = userProvider;
+        this.uriProperties = uriProperties;
         this.terminologyQueryFactory = new TerminologyQueryFactory(objectMapper);
         this.deepConceptQueryFactory = new DeepConceptQueryFactory(objectMapper);
-        this.conceptQueryFactory = new ConceptQueryFactory(objectMapper, namespaceRoot);
+        this.conceptQueryFactory = new ConceptQueryFactory(objectMapper, this.uriProperties.getUriHostPathAddress());
         this.countQueryFactory = new CountQueryFactory(objectMapper);
     }
 

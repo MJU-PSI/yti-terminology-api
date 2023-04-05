@@ -15,9 +15,11 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 public class V11_AddSearchTerm implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final ReferenceIndex referenceIndex;
 
-    V11_AddSearchTerm(MigrationService migrationService) {
+    V11_AddSearchTerm(MigrationService migrationService, ReferenceIndex referenceIndex) {
         this.migrationService = migrationService;
+        this.referenceIndex = referenceIndex;
     }
 
     @Override
@@ -54,7 +56,7 @@ public class V11_AddSearchTerm implements MigrationTask {
      */
     boolean updateReferenceMeta(MetaNode meta){
         boolean rv = false;        
-        meta.getReferenceAttributes().add(ReferenceIndex.searchTerm(meta.getDomain(), 19));
+        meta.getReferenceAttributes().add(this.referenceIndex.searchTerm(meta.getDomain(), 19));
         return rv;
     }
 }

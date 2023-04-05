@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
 import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
@@ -92,6 +93,7 @@ public class IntegrationService {
     private final String VOCABULARY_INDEX = "vocabularies";
     private final String CONCEPTS_INDEX = "concepts";
     private final Pattern namespacePattern;
+    private final UriProperties uriProperties;
 
     /**
      * Map containing metadata types. used when creating nodes.
@@ -102,12 +104,13 @@ public class IntegrationService {
     public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
             AuthenticatedUserProvider userProvider, @Value("${search.index.name}") String indexName,
-            @Value("${namespace.root}") String namespaceRoot) {
+            UriProperties uriProperties) {
         this.termedService = frontendTermedService;
         this.elasticSearchService = elasticSearchService;
         this.userProvider = userProvider;
         this.indexName = indexName;
-        this.namespacePattern = Pattern.compile(Pattern.quote(namespaceRoot) + "[a-z0-9][^/]+/");
+        this.uriProperties = uriProperties;
+        this.namespacePattern = Pattern.compile(Pattern.quote(this.uriProperties.getUriHostPathAddress()) + "[a-z0-9][^/]+/");
     }
 
     ResponseEntity<String> handleContainers(IntegrationContainerRequest request) {

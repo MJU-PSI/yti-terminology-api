@@ -1,23 +1,36 @@
 package fi.vm.yti.terminology.api.migration;
 
+import fi.vm.yti.terminology.api.config.DatamodelProperties;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
 import fi.vm.yti.terminology.api.model.termed.ReferenceMeta;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
+
+import org.elasticsearch.common.inject.Inject;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Collections.emptyMap;
 
+@Service
 public final class ReferenceIndex {
 
-    private static final TypeId termDomainFromConceptDomain(TypeId conceptDomain) {
+    private final DatamodelProperties datamodelProperties;
+
+    @Inject
+    private ReferenceIndex(DatamodelProperties datamodelProperties){
+        this.datamodelProperties = datamodelProperties;
+    }
+
+    private final TypeId termDomainFromConceptDomain(TypeId conceptDomain) {
         return new TypeId(NodeType.Term, conceptDomain.getGraph());
     }
 
     @NotNull
-    public static ReferenceMeta contributor(TypeId domain, long index) {
+    public ReferenceMeta contributor(TypeId domain, long index) {
         return new ReferenceMeta(
                 ORGANIZATION_DOMAIN,
                 "contributor",
@@ -33,7 +46,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta group(TypeId domain, long index) {
+    public ReferenceMeta group(TypeId domain, long index) {
         return new ReferenceMeta(
                 GROUP_DOMAIN,
                 "inGroup",
@@ -49,7 +62,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta broader(TypeId domain, long index, String fi, String en) {
+    public ReferenceMeta broader(TypeId domain, long index, String fi, String en) {
         return new ReferenceMeta(
                 domain,
                 "broader",
@@ -62,7 +75,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta narrower(TypeId domain, long index, String fi, String en) {
+    public ReferenceMeta narrower(TypeId domain, long index, String fi, String en) {
         return new ReferenceMeta(
                 domain,
                 "narrower",
@@ -75,7 +88,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta relatedConcept(TypeId domain, long index) {
+    public ReferenceMeta relatedConcept(TypeId domain, long index) {
         return new ReferenceMeta(
                 domain,
                 "related",
@@ -91,7 +104,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta partOfConcept(TypeId domain, long index) {
+    public ReferenceMeta partOfConcept(TypeId domain, long index) {
         return new ReferenceMeta(
                 domain,
                 "isPartOf",
@@ -107,7 +120,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta hasPartConcept(TypeId domain, long index) {
+    public ReferenceMeta hasPartConcept(TypeId domain, long index) {
         return new ReferenceMeta(
                 domain,
                 "hasPart",
@@ -123,7 +136,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta relatedMatch(TypeId domain, TypeId externalLinkDomain, long index) {
+    public ReferenceMeta relatedMatch(TypeId domain, TypeId externalLinkDomain, long index) {
         return new ReferenceMeta(
                 externalLinkDomain,
                 "relatedMatch",
@@ -142,7 +155,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta exactMatch(TypeId domain, TypeId externalLinkDomain, long index) {
+    public ReferenceMeta exactMatch(TypeId domain, TypeId externalLinkDomain, long index) {
         return new ReferenceMeta(
                 externalLinkDomain,
                 "exactMatch",
@@ -161,7 +174,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta closeMatch(TypeId domain, TypeId externalLinkDomain, long index) {
+    public ReferenceMeta closeMatch(TypeId domain, TypeId externalLinkDomain, long index) {
         return new ReferenceMeta(
                 externalLinkDomain,
                 "closeMatch",
@@ -180,7 +193,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta member(TypeId domain, TypeId targetDomain, long index) {
+    public ReferenceMeta member(TypeId domain, TypeId targetDomain, long index) {
         return new ReferenceMeta(
                 targetDomain,
                 "member",
@@ -196,7 +209,7 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta prefLabelXl(TypeId domain, long index) {
+    public ReferenceMeta prefLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "prefLabelXl",
@@ -212,11 +225,11 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta altLabelXl(TypeId domain, long index) {
+    public ReferenceMeta altLabelXl(TypeId domain, long index) {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "altLabelXl",
-                "http://uri.suomi.fi/datamodel/ns/st#synonym",
+                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#synonym",
                 index,
                 domain,
                 emptyMap(),
@@ -228,11 +241,11 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta notRecommendedSynonym(TypeId domain, long index) {
+    public ReferenceMeta notRecommendedSynonym(TypeId domain, long index) {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "notRecommendedSynonym",
-                "http://uri.suomi.fi/datamodel/ns/st#notRecommendedSynonym",
+                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#notRecommendedSynonym",
                 index,
                 domain,
                 emptyMap(),
@@ -244,11 +257,11 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta hiddenTerm(TypeId domain, long index) {
+    public ReferenceMeta hiddenTerm(TypeId domain, long index) {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "hiddenTerm",
-                "http://uri.suomi.fi/datamodel/ns/st#hiddenTerm",
+                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#hiddenTerm",
                 index,
                 domain,
                 emptyMap(),
@@ -260,11 +273,11 @@ public final class ReferenceIndex {
     }
 
     @NotNull
-    public static ReferenceMeta searchTerm(TypeId domain, long index) {
+    public ReferenceMeta searchTerm(TypeId domain, long index) {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "searchTerm",
-                "http://uri.suomi.fi/datamodel/ns/st#searchTerm",
+                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#searchTerm",
                 index,
                 domain,
                 emptyMap(),
@@ -273,9 +286,5 @@ public final class ReferenceIndex {
                         "Search term"
                 )
         );
-    }
-
-    // prevent construction
-    private ReferenceIndex() {
     }
 }

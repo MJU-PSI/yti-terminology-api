@@ -13,9 +13,11 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 public class V4_UpdateTerminologicalConceptMeta implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V4_UpdateTerminologicalConceptMeta(MigrationService migrationService) {
+    V4_UpdateTerminologicalConceptMeta(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -24,7 +26,7 @@ public class V4_UpdateTerminologicalConceptMeta implements MigrationTask {
 
             TypeId domain = meta.getDomain();
             if (meta.isOfType(NodeType.Concept)) {
-                meta.addAttribute(AttributeIndex.conceptScope(domain, 8));
+                meta.addAttribute(this.attributeIndex.conceptScope(domain, 8));
             }
         });
     }

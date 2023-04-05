@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fi.vm.yti.terminology.api.config.UriProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,18 +26,18 @@ public class SystemController {
 
     private final SystemService systemService;
     private final ServiceUrls serviceUrls;
-    private final String namespaceRoot;
     private final boolean restrictFilterOptions;
+    private final UriProperties uriProperties;
 
     private static final Logger logger = LoggerFactory.getLogger(SystemController.class);
 
     public SystemController(SystemService systemService,
                             ServiceUrls serviceUrls,
-                            @Value("${namespace.root}") String namespaceRoot,
+                            UriProperties uriProperties,
                             @Value("${front.restrictFilterOptions}") boolean restrictFilterOptions) {
         this.systemService = systemService;
         this.serviceUrls = serviceUrls;
-        this.namespaceRoot = namespaceRoot;
+        this.uriProperties = uriProperties;
         this.restrictFilterOptions = restrictFilterOptions;
     }
 
@@ -64,7 +65,7 @@ public class SystemController {
         conf.groupmanagementUrl = this.serviceUrls.getGroupManagementUrl();
         conf.messagingEnabled = this.serviceUrls.getMessagingEnabled();
         conf.env = this.serviceUrls.getEnv();
-        conf.namespaceRoot = this.namespaceRoot;
+        conf.namespaceRoot = this.uriProperties.getUriHostPathAddress();
         conf.restrictFilterOptions = this.restrictFilterOptions;
 
         return conf;

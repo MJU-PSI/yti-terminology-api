@@ -17,9 +17,11 @@ import java.util.stream.Collectors;
 public class V14_AddContact implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V14_AddContact(MigrationService migrationService) {
+    V14_AddContact(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -45,7 +47,7 @@ public class V14_AddContact implements MigrationTask {
         System.out.println("DomainName:"+domainName);
         if (domainName.equals("TerminologicalVocabulary")) {
             System.out.println("Add  info-texts for contact:"+domainName);
-            meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 20));
+            meta.addAttribute(this.attributeIndex.contact(meta.getDomain(), 20));
             updateTextAttributeDescription(meta, "contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta."
                             + " Suositeltava muoto esimerkiksi: \"Sanastotyöryhmän ylläpito: yllapito@example.org\"",

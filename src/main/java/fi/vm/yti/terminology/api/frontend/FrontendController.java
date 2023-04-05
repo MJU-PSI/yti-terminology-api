@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.frontend;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.*;
@@ -61,9 +62,9 @@ public class FrontendController {
     private final FrontendGroupManagementService groupManagementService;
     private final AuthenticatedUserProvider userProvider;
     private final ObjectMapper objectMapper;
-    private final String namespaceRoot;
     private final String groupManagementUrl;
     private final boolean fakeLoginAllowed;
+    private final UriProperties uriProperties;
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendController.class);
 
@@ -72,7 +73,7 @@ public class FrontendController {
                               FrontendGroupManagementService groupManagementService,
                               ObjectMapper objectMapper,
                               AuthenticatedUserProvider userProvider,
-                              @Value("${namespace.root}") String namespaceRoot,
+                              UriProperties uriProperties,
                               @Value("${groupmanagement.public.url}") String groupManagementUrl,
                               @Value("${fake.login.allowed:false}") boolean fakeLoginAllowed) {
         this.termedService = termedService;
@@ -80,7 +81,7 @@ public class FrontendController {
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.objectMapper = objectMapper;
-        this.namespaceRoot = namespaceRoot;
+        this.uriProperties = uriProperties;
         this.groupManagementUrl = groupManagementUrl;
         this.fakeLoginAllowed = fakeLoginAllowed;
     }
@@ -119,7 +120,7 @@ public class FrontendController {
     @GetMapping(path = "/namespaceRoot", produces = APPLICATION_JSON_VALUE)
     String getNamespaceRoot() {
         logger.info("GET /namespaceRoot requested");
-        return namespaceRoot;
+        return this.uriProperties.getUriHostPathAddress();
     }
 
     @Operation(summary = "Get the currently authenticated use, i.e., the caller")

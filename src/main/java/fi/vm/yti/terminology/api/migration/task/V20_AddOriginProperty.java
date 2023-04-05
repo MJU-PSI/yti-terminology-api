@@ -11,9 +11,11 @@ import org.springframework.stereotype.Component;
 public class V20_AddOriginProperty implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V20_AddOriginProperty(MigrationService migrationService) {
+    V20_AddOriginProperty(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -23,7 +25,7 @@ public class V20_AddOriginProperty implements MigrationTask {
             NodeType type = meta.getDomain().getId();
 
             if (type.equals(NodeType.TerminologicalVocabulary)) {
-                meta.addAttribute(AttributeIndex.origin(meta.getDomain(), 21));
+                meta.addAttribute(this.attributeIndex.origin(meta.getDomain(), 21));
             }
         });
     }

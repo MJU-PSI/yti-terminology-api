@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import fi.vm.yti.migration.MigrationTask;
+import fi.vm.yti.terminology.api.config.DatamodelProperties;
 import fi.vm.yti.terminology.api.migration.MigrationService;
 import fi.vm.yti.terminology.api.migration.PropertyUtil;
 import fi.vm.yti.terminology.api.model.termed.AttributeMeta;
@@ -26,9 +27,11 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 public class V15_AddContactInfoTexts implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final DatamodelProperties datamodelProperties;
 
-    V15_AddContactInfoTexts(MigrationService migrationService) {
+    V15_AddContactInfoTexts(MigrationService migrationService, DatamodelProperties datamodelProperties) {
         this.migrationService = migrationService;
+        this.datamodelProperties = datamodelProperties;
     }
 
     @Override
@@ -50,7 +53,7 @@ public class V15_AddContactInfoTexts implements MigrationTask {
         String domainName = meta.getDomain().getId().name();
         if (domainName.equals("TerminologicalVocabulary")) {
             // meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 20));
-            updateTextAttributeDescription(meta, "http://uri.suomi.fi/datamodel/ns/st#contact",
+            updateTextAttributeDescription(meta, this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta."
                             + " Suositeltava muoto esimerkiksi: \"Sanastotyöryhmän ylläpito: yllapito@example.org\"",
                     "Description for the feedback channel. Do not use personal email addresses."

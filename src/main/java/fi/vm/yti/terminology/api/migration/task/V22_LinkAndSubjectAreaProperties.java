@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class V22_LinkAndSubjectAreaProperties implements MigrationTask  {
     private final MigrationService migrationService;
+    private final AttributeIndex attributeIndex;
 
-    V22_LinkAndSubjectAreaProperties(MigrationService migrationService) {
+    V22_LinkAndSubjectAreaProperties(MigrationService migrationService, AttributeIndex attributeIndex) {
         this.migrationService = migrationService;
+        this.attributeIndex = attributeIndex;
     }
 
     @Override
@@ -22,8 +24,8 @@ public class V22_LinkAndSubjectAreaProperties implements MigrationTask  {
             NodeType type = meta.getDomain().getId();
 
             if (type.equals(NodeType.Concept)) {
-                meta.addAttribute(AttributeIndex.externalLink(meta.getDomain(), 30));
-                meta.addAttribute(AttributeIndex.subjectArea(meta.getDomain(), 35));
+                meta.addAttribute(this.attributeIndex.externalLink(meta.getDomain(), 30));
+                meta.addAttribute(this.attributeIndex.subjectArea(meta.getDomain(), 35));
             }
 
         });

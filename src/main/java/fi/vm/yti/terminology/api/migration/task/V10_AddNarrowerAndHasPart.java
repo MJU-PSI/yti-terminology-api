@@ -15,9 +15,11 @@ import fi.vm.yti.terminology.api.model.termed.VocabularyNodeType;
 public class V10_AddNarrowerAndHasPart implements MigrationTask {
 
     private final MigrationService migrationService;
+    private final ReferenceIndex referenceIndex;
 
-    V10_AddNarrowerAndHasPart(MigrationService migrationService) {
+    V10_AddNarrowerAndHasPart(MigrationService migrationService, ReferenceIndex referenceIndex) {
         this.migrationService = migrationService;
+        this.referenceIndex = referenceIndex;
     }
 
     @Override
@@ -54,8 +56,8 @@ public class V10_AddNarrowerAndHasPart implements MigrationTask {
      */
     boolean updateReferenceMeta(MetaNode meta){
         boolean rv = false;        
-        meta.getReferenceAttributes().add(ReferenceIndex.narrower(meta.getDomain(), 17, "Hierarkkinen alakäsite","Narrower concept"));
-        meta.getReferenceAttributes().add(ReferenceIndex.hasPartConcept(meta.getDomain(), 18));
+        meta.getReferenceAttributes().add(this.referenceIndex.narrower(meta.getDomain(), 17, "Hierarkkinen alakäsite","Narrower concept"));
+        meta.getReferenceAttributes().add(this.referenceIndex.hasPartConcept(meta.getDomain(), 18));
         return rv;
     }
 

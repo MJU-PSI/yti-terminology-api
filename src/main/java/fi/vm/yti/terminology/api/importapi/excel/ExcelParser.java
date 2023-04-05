@@ -1,5 +1,6 @@
 package fi.vm.yti.terminology.api.importapi.excel;
 
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.migration.DomainIndex;
@@ -14,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +29,16 @@ public class ExcelParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelParser.class);
 
     private static final String SEPARATOR = ";";
-    private static final String URI_PREFIX = "http://uri.suomi.fi/terminology";
+    private static final String URI_CONTEXT_PATH = "/terminology";
 
     public static final String SHEET_TERMINOLOGY = "Terminology details";
     public static final String SHEET_CONCEPTS = "Concepts";
     public static final String SHEET_TERMS = "Terms";
     public static final String SHEET_COLLECTIONS = "Collections";
     public static final String SHEET_CONCEPT_LINKS = "Concept links";
+
+    @Autowired
+    private UriProperties uriProperties;
 
     public XSSFWorkbook getWorkbook(InputStream is) throws IOException {
         try {
@@ -409,7 +414,7 @@ public class ExcelParser {
 
     private String getURI(String identifier, String namespace) {
         return String.format("%s/%s/%s",
-                URI_PREFIX,
+                this.uriProperties.getUriHostAddress()  + URI_CONTEXT_PATH,
                 namespace,
                 identifier
         );
