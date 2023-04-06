@@ -10,12 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ElasticRequestUtilsTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"+", "-", "=", "&", "|", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", ":", "\\", "/"})
-    void testBuildSpecialCharacters(String prefix){
+    @ValueSource(strings = { "+", "-", "=", "&", "|", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", ":",
+            "\\", "/" })
+    void testBuildSpecialCharacters(String prefix) {
         QueryStringQueryBuilder request = ElasticRequestUtils.buildPrefixSuffixQuery(prefix);
         // \prefix \prefix* *\prefix
         assertEquals("\\" + prefix + " \\" + prefix + "* *\\" + prefix, request.queryString());
     }
-
 
 }

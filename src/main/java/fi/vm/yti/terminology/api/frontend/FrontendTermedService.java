@@ -358,11 +358,9 @@ public class FrontendTermedService {
     }
 
     @NotNull
-    JsonNode getNodeListWithoutReferencesOrReferrersV2(NodeType nodeType, String language) {
-        final String[] validLanguages = {"fi", "en", "sv"};
-
+    JsonNode getNodeListWithoutReferencesOrReferrersV2(NodeType nodeType, String language, String[] validLanguages) {
         if (!Arrays.asList(validLanguages).contains(language)) {
-            language = "fi";
+            language = "en";
         }
 
         String key = nodeType.name() + language;
