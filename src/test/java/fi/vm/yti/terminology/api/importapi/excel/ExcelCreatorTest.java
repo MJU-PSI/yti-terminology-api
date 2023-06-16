@@ -2,6 +2,9 @@ package fi.vm.yti.terminology.api.importapi.excel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import fi.vm.yti.terminology.api.config.UriProperties;
+
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ExcelCreatorTest {
     List<JSONWrapper> wrappers;
+    private final String uriHost = "uri.suomi.fi";
 
     @BeforeEach
     void setUp() throws IOException {
@@ -24,7 +28,7 @@ public class ExcelCreatorTest {
         JsonNode json = mapper.readTree(new File("src/test/resources/importapi/excel/data.json"));
 
         wrappers = new ArrayList<>();
-        json.forEach(node -> wrappers.add(new JSONWrapper(node, wrappers)));
+        json.forEach(node -> wrappers.add(new JSONWrapper(node, wrappers, uriHost)));
     }
 
     @Test

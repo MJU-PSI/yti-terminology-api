@@ -2,10 +2,8 @@ package fi.vm.yti.terminology.api.importapi.excel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import fi.vm.yti.terminology.api.config.UriProperties;
 
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -29,17 +27,19 @@ public class JSONWrapper {
     @NotNull
     private final List<JSONWrapper> others;
 
+    @NotNull
+    private String uriHost;
+
     /**
      * Internal memo. This is used by concept links when fetching uri of the linked concept in other vocabulary.
      */
     private String memo;
 
-    @Autowired
-    private UriProperties uriProperties;
 
-    public JSONWrapper(@NotNull JsonNode json, @NotNull List<JSONWrapper> others) {
+    public JSONWrapper(@NotNull JsonNode json, @NotNull List<JSONWrapper> others, @NotNull String uriHost) {
         this.json = json;
         this.others = others;
+        this.uriHost = uriHost;
     }
 
     public String getID() {
@@ -72,7 +72,7 @@ public class JSONWrapper {
 
     public String getNamespace() {
         String uri = this.json.get("uri").textValue();
-        Pattern p = Pattern.compile(this.uriProperties.getHost() + "/terminology/(\\w+)/");
+        Pattern p = Pattern.compile(this.uriHost + "/terminology/(\\w+)/");
         Matcher m = p.matcher(uri);
         if (m.find()) {
             return m.group(1);
@@ -134,7 +134,7 @@ public class JSONWrapper {
 
         JsonNode reference = this.json.get("references").get(name);
         if (reference != null) {
-            reference.forEach(node -> result.add(new JSONWrapper(node, this.others)));
+            reference.forEach(node -> result.add(new JSONWrapper(node, this.others, this.uriHost)));
         }
 
         return result;
@@ -148,7 +148,7 @@ public class JSONWrapper {
 
         JsonNode referrer = this.json.get("referrers").get(name);
         if (referrer != null) {
-            referrer.forEach(node -> result.add(new JSONWrapper(node, this.others)));
+            referrer.forEach(node -> result.add(new JSONWrapper(node, this.others, this.uriHost)));
         }
 
         return result;

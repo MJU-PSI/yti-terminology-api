@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -78,6 +79,7 @@ public class ImportService {
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final YtiMQService ytiMQService;
+    private final UriProperties uriProperties;
 
     /**
      * Map containing metadata types. used  when creating nodes.
@@ -93,6 +95,7 @@ public class ImportService {
                          AuthenticatedUserProvider userProvider,
                          AuthorizationManager authorizationManager,
                          YtiMQService ytiMQService,
+                         UriProperties uriProperties,
                          @Value("${mq.active.subsystem}") String subSystem,
                          @Value("${mq.batch.size:100}") Integer batchSize) {
         this.groupManagementService = groupManagementService;
@@ -102,6 +105,7 @@ public class ImportService {
         this.subSystem = subSystem;
         this.ytiMQService = ytiMQService;
         this.batchSize = batchSize;
+        this.uriProperties = uriProperties;
     }
 
     ResponseEntity<String> getStatus(UUID jobtoken, boolean full){
@@ -259,7 +263,7 @@ public class ImportService {
 
     public UUID handleExcelImport(InputStream is) {
         ZipSecureFile.setMinInflateRatio(0.0001);
-        ExcelParser parser = new ExcelParser();
+        ExcelParser parser = new ExcelParser(this.uriProperties.getUriHostAddress());
         try {
             // Map information domain names with uuid
             Map<String, String> groupMap = getGroupMap();

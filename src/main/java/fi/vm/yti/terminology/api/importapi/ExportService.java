@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
 
@@ -45,13 +46,16 @@ public class ExportService {
     private static final Logger logger = LoggerFactory.getLogger(ExportService.class);
     private AuthenticatedUserProvider userProvider;
     private AuthorizationTermedService authorizationTermedService;
+    private UriProperties uriProperties;
 
     @Autowired
     public ExportService(TermedRequester termedRequester, AuthenticatedUserProvider userProvider,
-                         AuthorizationTermedService authorizationTermedService) {
+                         AuthorizationTermedService authorizationTermedService,
+                         UriProperties uriProperties) {
         this.termedRequester = termedRequester;
         this.userProvider = userProvider;
         this.authorizationTermedService = authorizationTermedService;
+        this.uriProperties = uriProperties;
     }
 
     private Parameters constructFullVocabularyQuery() {
@@ -177,7 +181,7 @@ public class ExportService {
     ExcelCreator getFullVocabularyXLSX(UUID id) {
         JsonNode json = this.getFullVocabulary(id);
         List<JSONWrapper> wrappers = new ArrayList<>();
-        json.forEach(node -> wrappers.add(new JSONWrapper(node, wrappers)));
+        json.forEach(node -> wrappers.add(new JSONWrapper(node, wrappers, this.uriProperties.getHost())));
 
         this.fetchConceptsFromOtherGraphs(wrappers);
 
@@ -219,7 +223,7 @@ public class ExportService {
                 .forEach(graphId -> {
                     JsonNode json = this.getConceptURIFromVocabulary(UUID.fromString(graphId));
                     json.forEach(node -> {
-                        JSONWrapper wrapper = new JSONWrapper(node, List.of());
+                        JSONWrapper wrapper = new JSONWrapper(node, List.of(), this.uriProperties.getHost());
                         result.put(graphId + "/" + wrapper.getID(), wrapper.getURI());
                     });
                 });

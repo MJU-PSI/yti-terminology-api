@@ -15,8 +15,9 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ExcelParserTest {
+    private final String uriHostAddress = "http://uri.suomi.fi";
 
-    ExcelParser parser = new ExcelParser();
+    ExcelParser parser = new ExcelParser(uriHostAddress);
 
     @Test
     public void buildNewTerminologyNode() {
@@ -63,7 +64,7 @@ public class ExcelParserTest {
     public void buildTermNodes() {
         XSSFWorkbook workbook = getWorkbook("excel_export.xlsx");
         UUID terminologyId = UUID.randomUUID();
-        ExcelParser parser = new ExcelParser();
+        ExcelParser parser = new ExcelParser("http://uri.suomi.fi");
 
         var genericNodes = parser.buildTermNodes(
                 workbook,
@@ -107,7 +108,7 @@ public class ExcelParserTest {
     public void buildConceptAndConceptLinkNodes() {
         XSSFWorkbook workbook = getWorkbook("excel_export.xlsx");
         UUID terminologyId = UUID.randomUUID();
-        ExcelParser parser = new ExcelParser();
+        ExcelParser parser = new ExcelParser("http://uri.suomi.fi");
 
         List<GenericNode> nodes = parser.buildConceptNodes(workbook,
                 "testdev",
@@ -166,7 +167,7 @@ public class ExcelParserTest {
     public void buildCollectionNodes() {
         XSSFWorkbook workbook = getWorkbook("excel_export.xlsx");
         UUID terminologyId = UUID.randomUUID();
-        ExcelParser parser = new ExcelParser();
+        ExcelParser parser = new ExcelParser("http://uri.suomi.fi");
 
         List<GenericNode> nodes = parser.buildCollectionNodes(workbook, "testdev", terminologyId, List.of("fi"));
 

@@ -15,7 +15,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,9 +36,12 @@ public class ExcelParser {
     public static final String SHEET_COLLECTIONS = "Collections";
     public static final String SHEET_CONCEPT_LINKS = "Concept links";
 
-    @Autowired
-    private UriProperties uriProperties;
+    private String uriHostAddress;
 
+    public ExcelParser(String uriHostAddress) {
+        this.uriHostAddress = uriHostAddress;
+    }
+   
     public XSSFWorkbook getWorkbook(InputStream is) throws IOException {
         try {
             return new XSSFWorkbook(is);
@@ -414,7 +416,7 @@ public class ExcelParser {
 
     private String getURI(String identifier, String namespace) {
         return String.format("%s/%s/%s",
-                this.uriProperties.getUriHostAddress()  + URI_CONTEXT_PATH,
+                 this.uriHostAddress  + URI_CONTEXT_PATH,
                 namespace,
                 identifier
         );
