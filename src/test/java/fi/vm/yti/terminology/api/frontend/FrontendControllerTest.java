@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.ExceptionHandlerAdvice;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.hamcrest.Matcher;
@@ -63,6 +64,9 @@ public class FrontendControllerTest {
 
     @MockBean
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private UriProperties uriProperties;
 
     private LocalValidatorFactoryBean localValidatorFactory;
 

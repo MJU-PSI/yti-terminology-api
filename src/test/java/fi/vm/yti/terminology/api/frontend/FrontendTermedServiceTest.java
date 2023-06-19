@@ -7,6 +7,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.AuthorizationException;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.TermedRequester;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionDTO;
@@ -64,6 +65,9 @@ class FrontendTermedServiceTest {
 
     @MockBean
     TermedRequester termedRequester;
+    
+    @MockBean
+    UriProperties uriProperties;
 
     @Autowired
     FrontendTermedService frontEndTermedService;
@@ -506,10 +510,12 @@ class FrontendTermedServiceTest {
     }
 
     @Test
-    public void testCreateNewVersion() throws Exception {
+    public void testCreateNewVersion() throws Exception {        
         UUID vocabularyId = UUID.randomUUID();
         UUID organizationId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
+
+        when(uriProperties.getUriHostPathAddress()).thenReturn("http://uri.suomi.fi/terminology/");
 
         mockTermedGetGraphs();
         mockAuthorization();
