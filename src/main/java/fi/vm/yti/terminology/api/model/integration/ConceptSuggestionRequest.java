@@ -2,6 +2,8 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import java.util.Objects;
 
+import org.springframework.web.util.HtmlUtils;
+
 public class ConceptSuggestionRequest {
 
     /*
@@ -58,7 +60,7 @@ public class ConceptSuggestionRequest {
     }
 
     public void setTerminologyUri(String terminologyUri) {
-        this.terminologyUri = terminologyUri;
+        this.terminologyUri = HtmlUtils.htmlEscape(terminologyUri);
     }
 
     @Override

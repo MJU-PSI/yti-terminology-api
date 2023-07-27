@@ -2,6 +2,8 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import java.util.Objects;
 
+import org.springframework.web.util.HtmlUtils;
+
 public final class PrivateConceptSuggestionRequest extends ConceptSuggestionRequest {
 
     private String creator = null;
@@ -20,7 +22,7 @@ public final class PrivateConceptSuggestionRequest extends ConceptSuggestionRequ
     public PrivateConceptSuggestionRequest(ConceptSuggestionRequest request,
                                            String creator) {
         super(request.getPrefLabel(), request.getDefinition());
-        this.creator = creator;
+        this.creator = HtmlUtils.htmlEscape(creator);
     }
 
     public static PrivateConceptSuggestionRequest placeholder() {
@@ -32,7 +34,7 @@ public final class PrivateConceptSuggestionRequest extends ConceptSuggestionRequ
     }
 
     public void setCreator(String creator) {
-        this.creator = creator;
+        this.creator = HtmlUtils.htmlEscape(creator);
     }
 
     @Override

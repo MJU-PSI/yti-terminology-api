@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +47,7 @@ public class ImportController {
     ResponseEntity<String> importTerms(@Parameter(description = "The ID of the terminology to import concepts to") @PathVariable("terminology") UUID terminologyId,
                                        @Parameter(required = true, description = "The NTRF (XML) document containing the concepts to be imported", style = ParameterStyle.FORM)
                                        @RequestPart(value = "file") MultipartFile file) {
+        terminologyId = UUID.fromString(HtmlUtils.htmlEscape(terminologyId.toString()));
         return importService.handleNtrfDocumentAsync("ntrf", terminologyId, file);
     }
 
