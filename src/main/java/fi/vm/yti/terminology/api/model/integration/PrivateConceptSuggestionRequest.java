@@ -22,7 +22,7 @@ public final class PrivateConceptSuggestionRequest extends ConceptSuggestionRequ
     public PrivateConceptSuggestionRequest(ConceptSuggestionRequest request,
                                            String creator) {
         super(request.getPrefLabel(), request.getDefinition());
-        this.creator = HtmlUtils.htmlEscape(creator);
+        this.creator = creator;
     }
 
     public static PrivateConceptSuggestionRequest placeholder() {
@@ -30,11 +30,11 @@ public final class PrivateConceptSuggestionRequest extends ConceptSuggestionRequ
     }
 
     public String getCreator() {
-        return creator;
+        return HtmlUtils.htmlEscape(creator);
     }
 
     public void setCreator(String creator) {
-        this.creator = HtmlUtils.htmlEscape(creator);
+        this.creator = creator;
     }
 
     @Override

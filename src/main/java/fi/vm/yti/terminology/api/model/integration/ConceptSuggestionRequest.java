@@ -56,11 +56,11 @@ public class ConceptSuggestionRequest {
     }
 
     public String getTerminologyUri() {
-        return terminologyUri;
+        return HtmlUtils.htmlEscape(terminologyUri);
     }
 
     public void setTerminologyUri(String terminologyUri) {
-        this.terminologyUri = HtmlUtils.htmlEscape(terminologyUri);
+        this.terminologyUri = terminologyUri;
     }
 
     @Override
