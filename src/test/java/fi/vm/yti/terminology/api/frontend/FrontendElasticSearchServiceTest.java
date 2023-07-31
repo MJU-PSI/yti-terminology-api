@@ -8,6 +8,7 @@ import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.config.JsonConfig;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
 import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
 import fi.vm.yti.terminology.api.util.RestHighLevelClientWrapper;
@@ -62,6 +63,9 @@ public class FrontendElasticSearchServiceTest {
     // service under test
     @Autowired
     FrontendElasticSearchService service;
+
+    @MockBean
+    UriProperties uriProperties;
 
     private ListAppender<ILoggingEvent> logWatcher;
 

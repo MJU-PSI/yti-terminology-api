@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
 import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
@@ -54,6 +55,8 @@ public class ImportServiceTest {
     AuthorizationManager authorizationManager;
     @MockBean
     YtiMQService ytiMQService;
+    @MockBean
+    UriProperties uriProperties;
 
     @Autowired
     ImportService importService;
@@ -93,6 +96,7 @@ public class ImportServiceTest {
         Map<String, List<Attribute>> nodeProperties = Map.of("language", List.of(new Attribute("", "fi"), new Attribute("", "sv")));
         when(termedService.getVocabulary(any())).thenReturn(new GenericNodeInlined(UUID.fromString(TEMPLATE_GRAPH_ID), "test", "http://uri.suomi.fi/terminology/test", 0l, "", new Date(), "", new Date(), TypeId.placeholder(), nodeProperties, emptyMap(), emptyMap()));
         when(authorizationManager.canModifyNodes(anyList())).thenReturn(true);
+        when(uriProperties.getUriHostAddress()).thenReturn("http://uri.suomi.fi");
 
         Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
         rolesInOrganizations.put(organizationId, Set.of(Role.TERMINOLOGY_EDITOR));

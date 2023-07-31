@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.ExceptionHandlerAdvice;
+import fi.vm.yti.terminology.api.config.UriProperties;
 import fi.vm.yti.terminology.api.model.termed.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIEL
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
@@ -61,6 +63,9 @@ public class FrontEndControllerInternalNodeTests {
 
     @MockBean
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private UriProperties uriProperties;
 
     @BeforeEach
     public void setup() {
