@@ -1,9 +1,9 @@
 package fi.vm.yti.terminology.api.model.integration;
 
-import fi.vm.yti.terminology.api.model.termed.*;
-
 import java.util.Date;
 import java.util.Objects;
+
+import org.springframework.web.util.HtmlUtils;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -64,15 +64,15 @@ public final class ConceptSuggestionResponse {
     }
 
     public String getCreator() {
-        return creator;
+        return HtmlUtils.htmlEscape(creator);
     }
 
     public String getTerminologyUri() {
-        return terminologyUri;
+        return HtmlUtils.htmlEscape(terminologyUri);
     }
 
     public String getUri() {
-        return uri;
+        return HtmlUtils.htmlEscape(uri);
     }
 
     @Override

@@ -2,6 +2,8 @@ package fi.vm.yti.terminology.api.model.integration;
 
 import java.util.Objects;
 
+import org.springframework.web.util.HtmlUtils;
+
 import fi.vm.yti.terminology.api.model.termed.Attribute;
 
 public class LocalizedString {
@@ -25,7 +27,7 @@ public class LocalizedString {
     }
 
     public String getValue() {
-        return value;
+        return HtmlUtils.htmlEscape(value);
     }
 
     public void setValue(final String value) {
@@ -33,7 +35,7 @@ public class LocalizedString {
     }
 
     public String getLang() {
-        return lang;
+        return HtmlUtils.htmlEscape(lang);
     }
 
     public void setLang(final String lang) {
