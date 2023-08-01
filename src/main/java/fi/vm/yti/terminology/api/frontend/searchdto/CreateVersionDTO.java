@@ -3,8 +3,8 @@ package fi.vm.yti.terminology.api.frontend.searchdto;
 import java.util.UUID;
 
 public class CreateVersionDTO {
-    UUID graphId;
-    String newCode;
+    private UUID graphId;
+    private String newCode;
 
     public UUID getGraphId() {
         return graphId;
