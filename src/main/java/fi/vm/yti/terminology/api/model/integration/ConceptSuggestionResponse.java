@@ -56,10 +56,16 @@ public final class ConceptSuggestionResponse {
     }
 
     public LocalizedString getPrefLabel() {
+        if (prefLabel != null) {
+            return new LocalizedString(HtmlUtils.htmlEscape(prefLabel.getValue()), HtmlUtils.htmlEscape(prefLabel.getLang()));
+        }
         return prefLabel;
     }
 
     public LocalizedString getDefinition() {
+        if (definition != null) {
+            return new LocalizedString(HtmlUtils.htmlEscape(definition.getValue()), HtmlUtils.htmlEscape(definition.getLang()));
+        }
         return definition;
     }
 
