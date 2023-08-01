@@ -5,6 +5,8 @@ import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.model.termed.*;
+
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -27,6 +29,8 @@ public class ExcelParser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelParser.class);
 
+    private static final int MAX_ROWS = 1048576;
+    private static final int MAX_COLUMNS = 16384;
     private static final String SEPARATOR = ";";
     private static final String URI_CONTEXT_PATH = "/terminology";
 
@@ -125,6 +129,9 @@ public class ExcelParser {
 
     public List<GenericNode> buildTermNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = getSheet(workbook, SHEET_TERMS);
+        if (sheet.getLastRowNum() > MAX_ROWS) {
+            throw new ExcelParseException("too many rows");
+        }
 
         var columnMap = mapColumnNames(getRow(sheet, 0));
 
@@ -176,6 +183,9 @@ public class ExcelParser {
 
     public List<GenericNode> buildConceptNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = getSheet(workbook, SHEET_CONCEPTS);
+        if (sheet.getLastRowNum() > MAX_ROWS) {
+            throw new ExcelParseException("too many rows");
+        }
 
         var columnMap = mapColumnNames(getRow(sheet, 0));
 
@@ -272,6 +282,10 @@ public class ExcelParser {
 
     public Map<UUID, Set<ConceptLinkImportDTO>> buildConceptLinkNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = workbook.getSheet(SHEET_CONCEPT_LINKS);
+        if (sheet.getLastRowNum() > MAX_ROWS) {
+            throw new ExcelParseException("too many rows");
+        }
+
         var columnMap = mapColumnNames(getRow(sheet, 0, false));
 
         if (columnMap.isEmpty()) {
@@ -329,6 +343,9 @@ public class ExcelParser {
 
     public List<GenericNode> buildCollectionNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = getSheet(workbook, SHEET_COLLECTIONS);
+        if (sheet.getLastRowNum() > MAX_ROWS) {
+            throw new ExcelParseException("too many rows");
+        }
 
         var columnMap = mapColumnNames(getRow(sheet, 0, false));
 
@@ -530,6 +547,9 @@ public class ExcelParser {
 
         List<String> values = new ArrayList<>();
         int lastColumnIndex = range != null ? range.getLastColumn() : columnIndex;
+        if (lastColumnIndex > MAX_COLUMNS) {
+            throw new ExcelParseException("too many columns");
+        }
 
         for (int i = columnIndex; i <= lastColumnIndex; i++) {
             Cell cell = row.getCell(i);
@@ -589,6 +609,9 @@ public class ExcelParser {
         }
         Map<String, Integer> columnMap = new HashMap<>();
         Iterator<Cell> iterator = row.iterator();
+        if (IterableUtils.size((Iterable<?>) iterator) > MAX_COLUMNS) {
+            throw new ExcelParseException("too many columns");
+        }
         while(iterator.hasNext()) {
             Cell cell = iterator.next();
             columnMap.put(cell.getStringCellValue(), cell.getColumnIndex());

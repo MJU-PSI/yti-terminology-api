@@ -23,6 +23,7 @@ public class SimpleExcelParser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleExcelParser.class);
 
+    private static final int MAX_ROWS = 1048576;
     private static final String HEADER_SEPARATOR = "_";
     private static final String CONCEPT_TYPE_URI = "http://www.w3.org/2004/02/skos/core#Concept";
     private static final String TERM_TYPE_URI = "http://www.w3.org/2008/05/skos-xl#Label";
@@ -55,6 +56,10 @@ public class SimpleExcelParser {
      */
     public List<GenericNode> buildNodes(XSSFWorkbook workbook, UUID terminologyId, List<String> languages) {
         XSSFSheet sheet = workbook.getSheetAt(0);
+        if (sheet.getLastRowNum() > MAX_ROWS) {
+            throw new ExcelParseException("too many rows");
+        }
+
         var headers = mapColumnNames(sheet.getRow(0), languages);
         //there needs to be at least 1 prefLabel column
         if(headers.keySet().stream().noneMatch(key -> key.contains("prefLabel"))){

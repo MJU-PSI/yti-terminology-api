@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.elasticsearch.client.Response;
@@ -134,6 +135,9 @@ public final class ElasticRequestUtils {
         Map<String, String> ret = new HashMap<>();
         if (labelNode != null) {
             Iterator<Map.Entry<String, JsonNode>> labelIter = labelNode.fields();
+            if (IterableUtils.size((Iterable<?>) labelIter) > Integer.MAX_VALUE) {
+                throw new RuntimeException("too many nodes");
+            }
             while (labelIter.hasNext()) {
                 Map.Entry<String, JsonNode> entry = labelIter.next();
                 JsonNode value = entry.getValue();
