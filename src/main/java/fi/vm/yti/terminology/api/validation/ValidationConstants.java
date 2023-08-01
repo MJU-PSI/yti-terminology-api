@@ -13,7 +13,7 @@ public class ValidationConstants {
     public static final int TEXT_FIELD_MAX_LENGTH = 150;
     public static final int TEXT_AREA_MAX_LENGTH = 1500;
     public static final int EMAIL_MAX_LENGTH = 320;
-    public static final int MAX_LOOP = 1000;
+    public static final int MAX_ITEMS = 1000;
 
     public static final String PREFIX_REGEX = "[a-z0-9\\-_]*";
 }

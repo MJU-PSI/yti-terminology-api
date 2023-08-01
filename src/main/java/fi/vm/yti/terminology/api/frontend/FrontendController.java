@@ -46,7 +46,7 @@ import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.PREFIX_REGEX;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
-import static fi.vm.yti.terminology.api.validation.ValidationConstants.MAX_LOOP;
+import static fi.vm.yti.terminology.api.validation.ValidationConstants.MAX_ITEMS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -358,13 +358,16 @@ public class FrontendController {
                                       @ValidGenericDeleteAndSave
                                       @RequestBody GenericDeleteAndSave deleteAndSave) {
         logger.info("POST /modify requested with deleteAndSave: delete ids: ");
-        if (deleteAndSave.getDelete().size() > MAX_LOOP)
-            throw new RuntimeException("Max loop count reached: " + MAX_LOOP);
+        if (deleteAndSave.getDelete().size() > MAX_ITEMS)
+            throw new RuntimeException("Max items for delete: " + MAX_ITEMS);
 
         for (int i = 0; i < deleteAndSave.getDelete().size(); i++) {
             logger.info(deleteAndSave.getDelete().get(i).getId().toString());
         }
         logger.info("and save ids: ");
+        if (deleteAndSave.getSave().size() > MAX_ITEMS)
+            throw new RuntimeException("Max items for delete: " + MAX_ITEMS);
+
         for (int i = 0; i < deleteAndSave.getSave().size(); i++) {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
         }
