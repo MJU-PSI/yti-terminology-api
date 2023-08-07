@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -48,7 +49,7 @@ public class ResolveService {
     ResolvedResource resolveResource(String uri) {
 
         if (!uri.startsWith(this.uriProperties.getUriHostPathAddress())) {
-            logger.error("Unsupported URI namespace URI: " + uri);
+            logger.error("Unsupported URI namespace URI: " + StringUtils.normalizeSpace(uri));
             throw new RuntimeException("Unsupported URI namespace: " + uri);
         }
 
@@ -85,11 +86,11 @@ public class ResolveService {
                 }
             }
 
-            logger.error("Resource not found URI: " + uri);
+            logger.error("Resource not found URI: " + StringUtils.normalizeSpace(uri));
             throw new ResourceNotFoundException(prefix, resource);
         }
 
-        logger.error("Unsupported URI: " + uri);
+        logger.error("Unsupported URI: " + StringUtils.normalizeSpace(uri));
         throw new RuntimeException("Unsupported URI: " + uri);
     }
 

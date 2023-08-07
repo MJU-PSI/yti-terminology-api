@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -96,7 +97,7 @@ public class PublicApiElasticSearchService {
             }
         } else {
             if (language != null && !language.isEmpty()) {
-                logger.warn("Rejected concept search language specifier: '" + language + "'");
+                logger.warn("Rejected concept search language specifier: '" + StringUtils.normalizeSpace(language) + "'");
             }
             if (!terminologyGiven) {
                 queryBuilder.append("{\"query\":{\"bool\":{\"must\":[{\"multi_match\":{\"query\":\"");

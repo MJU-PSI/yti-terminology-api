@@ -137,7 +137,7 @@ public final class JsonUtils {
 		try {
 			LOGGER.debug(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node));
 		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-			e.printStackTrace();
+			LOGGER.error("Error on prettyPrintJson", e);
 		}
 	}
 
@@ -148,7 +148,7 @@ public final class JsonUtils {
 		try {
 			return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
 		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-			e.printStackTrace();
+			LOGGER.error("Error on prettyPrintJsonAsString", e);
 		}
 		return "";
 	}
@@ -190,7 +190,7 @@ public final class JsonUtils {
 						((ObjectNode)node.get("properties")).replace("prefLabel", mapper.readTree(newPrefLabel));
 						break;
 					} catch (JsonProcessingException e) {
-						e.printStackTrace();
+						LOGGER.error("Error on sortedFromTermedProperties", e);
 					}
 				} else if (nodePrefLabels.get(lang) != null) {
 					String newPrefLabel = "{\"lang\":\"" + lang
@@ -200,7 +200,7 @@ public final class JsonUtils {
 						((ObjectNode)node.get("properties")).replace("prefLabel", mapper.readTree(newPrefLabel));
 						break;
 					} catch (JsonProcessingException e) {
-						e.printStackTrace();
+						LOGGER.error("Error on sortedFromTermedProperties", e);
 					}
 				}
 			}

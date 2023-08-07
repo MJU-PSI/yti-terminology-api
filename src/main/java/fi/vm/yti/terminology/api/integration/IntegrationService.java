@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -167,8 +168,7 @@ public class IntegrationService {
         try {
             return new ResponseEntity<>(mapper.writeValueAsString(wrapper), HttpStatus.OK);
         } catch (JsonProcessingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            logger.error("Error on handleContainers", e);
         }
         return new ResponseEntity<>("{}", HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -207,7 +207,7 @@ public class IntegrationService {
                 if (namespacePattern.matcher(uriFromRequest).matches()) {
                     uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
                 } else {
-                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    logger.warn("URI is probably invalid: " + StringUtils.normalizeSpace(uriFromRequest));
                     uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
                 }
                 terminologyNsUris.add(uriFromRequest);
@@ -469,8 +469,7 @@ public class IntegrationService {
         try {
             return new ResponseEntity<>(mapper.writeValueAsString(wrapper), HttpStatus.OK);
         } catch (JsonProcessingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            logger.error("Error on handleResources", e);
         }
         return new ResponseEntity<>("{}", HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -503,7 +502,7 @@ public class IntegrationService {
                 if (namespacePattern.matcher(uriFromRequest).matches()) {
                     uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
                 } else {
-                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    logger.warn("URI is probably invalid: " + StringUtils.normalizeSpace(uriFromRequest));
                     uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
                 }
                 terminologyNsUris.add(uriFromRequest);
@@ -568,7 +567,7 @@ public class IntegrationService {
 
         // if search-term is given, match for all labels
         if (request.getSearchTerm() != null && !request.getSearchTerm().isEmpty()) {
-            logger.info("Additional SearchTerm=" + request.getSearchTerm());
+            logger.info("Additional SearchTerm=" + StringUtils.normalizeSpace(request.getSearchTerm()));
             QueryStringQueryBuilder labelQuery = ElasticRequestUtils.buildPrefixSuffixQuery(request.getSearchTerm())
                     .field("label.*");
             mustList.add(labelQuery);
@@ -585,7 +584,7 @@ public class IntegrationService {
 
         // Exclude filter. Filter out given uris
         if (request.getFilter() != null) {
-            logger.info("Exclude filter:" + request.getFilter());
+            logger.info("Exclude filter:" + StringUtils.normalizeSpace(request.getFilter().toString()));
             mustNotList.add(QueryBuilders.termsQuery("uri", request.getFilter()));
         }
 
@@ -874,8 +873,8 @@ public class IntegrationService {
      */
     private class IdCode {
 
-        String code;
-        UUID id;
+        private String code;
+        private UUID id;
 
         public IdCode(String code, UUID id) {
             this.code = code;

@@ -7,6 +7,8 @@ import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import fi.vm.yti.terminology.api.util.Parameters;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,12 +38,12 @@ public class ExcelImportJmsListener {
     }
 
     // Cache to hold status information for particular job token
-    Cache<String, ImportStatusResponse> statusResponseCache = CacheBuilder
+    private Cache<String, ImportStatusResponse> statusResponseCache = CacheBuilder
             .newBuilder()
             .expireAfterAccess(10, TimeUnit.MINUTES)
             .build();
 
-    Cache<String, Set<String>> nodeIdCache = CacheBuilder
+    private Cache<String, Set<String>> nodeIdCache = CacheBuilder
             .newBuilder()
             .expireAfterAccess(10, TimeUnit.MINUTES)
             .build();
@@ -57,8 +59,7 @@ public class ExcelImportJmsListener {
                             @Header Integer totalBatchCount,
                             @Header String vocabularyId) {
 
-        LOGGER.info("Handling batch {}/{}, jobtoken {}, size {}. Sent by user {}", currentBatch, totalBatchCount,
-                jobtoken, message.getPayload().size(), userId);
+        LOGGER.info("Handling batch {}/{}, jobtoken {}, size {}. Sent by user {}", currentBatch, totalBatchCount, StringUtils.normalizeSpace(jobtoken), message.getPayload().size(), StringUtils.normalizeSpace(userId));
 
         Parameters params = new Parameters();
         params.add("changeset", "true");
@@ -77,7 +78,7 @@ public class ExcelImportJmsListener {
 
             if (response.getStatus() == ImportStatusResponse.ImportStatus.FAILURE) {
                 // Previous batch failed. Do not handle rest of batches
-                LOGGER.info("Skip batch due to previous error, {}", jobtoken);
+                LOGGER.info("Skip batch due to previous error, {}", StringUtils.normalizeSpace(jobtoken));
                 return;
             }
 
@@ -88,8 +89,7 @@ public class ExcelImportJmsListener {
             requester.exchange("/nodes", POST, params, String.class,
                     payload, userId, "user");
 
-            LOGGER.info("Batch {}/{} handled, jobtoken {}. Imported {} nodes in {}ms",
-                    currentBatch, totalBatchCount, jobtoken, message.getPayload().size(), sw.getTime());
+            LOGGER.info("Batch {}/{} handled, jobtoken {}. Imported {} nodes in {}ms", currentBatch, totalBatchCount, StringUtils.normalizeSpace(jobtoken), message.getPayload().size(), sw.getTime());
 
             response.setProcessingProgress(currentBatch);
             response.setProcessingTotal(totalBatchCount);
@@ -116,7 +116,7 @@ public class ExcelImportJmsListener {
                             String.format("Termed error, reference: %s", jobtoken)));
             status = YtiMQService.STATUS_FAILED;
 
-            LOGGER.error(String.format("Error saving nodes: jobtoken %s, message: %s", jobtoken, e.getMessage()), e);
+            LOGGER.error(String.format("Error saving nodes: jobtoken %s, message: %s", StringUtils.normalizeSpace(jobtoken), e.getMessage()), e);
         }
         statusResponseCache.put(jobtoken, response);
         mqService.setStatus(status, jobtoken, userId, uri, response.toString());

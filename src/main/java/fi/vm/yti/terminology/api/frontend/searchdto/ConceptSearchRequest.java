@@ -24,11 +24,62 @@ public class ConceptSearchRequest {
     public static class Options {
         public enum OperationMode {ALL_INCOMPLETE, CONTRIBUTOR_CHECK, NO_INCOMPLETE};
 
-        public OperationMode operationMode;
-        public Boolean onlyCheckTerminologyState;
-        public Boolean doNotCheckTerminologyStateForGivenTerminologies;
-        public Boolean doNotCheckTerminologyStateForGivenConcepts;
-        public Boolean doNotCheckConceptStateForGivenConcepts;
+        private OperationMode operationMode;
+        private Boolean onlyCheckTerminologyState;
+        private Boolean doNotCheckTerminologyStateForGivenTerminologies;
+        private Boolean doNotCheckTerminologyStateForGivenConcepts;
+        private Boolean doNotCheckConceptStateForGivenConcepts;
+
+        public Options(OperationMode operationMode, Boolean onlyCheckTerminologyState,
+                Boolean doNotCheckTerminologyStateForGivenTerminologies,
+                Boolean doNotCheckTerminologyStateForGivenConcepts, Boolean doNotCheckConceptStateForGivenConcepts) {
+            this.operationMode = operationMode;
+            this.onlyCheckTerminologyState = onlyCheckTerminologyState;
+            this.doNotCheckTerminologyStateForGivenTerminologies = doNotCheckTerminologyStateForGivenTerminologies;
+            this.doNotCheckTerminologyStateForGivenConcepts = doNotCheckTerminologyStateForGivenConcepts;
+            this.doNotCheckConceptStateForGivenConcepts = doNotCheckConceptStateForGivenConcepts;
+        }
+
+        public OperationMode getOperationMode() {
+            return operationMode;
+        }
+
+        public void setOperationMode(OperationMode operationMode) {
+            this.operationMode = operationMode;
+        }
+
+        public Boolean getOnlyCheckTerminologyState() {
+            return onlyCheckTerminologyState;
+        }
+
+        public void setOnlyCheckTerminologyState(Boolean onlyCheckTerminologyState) {
+            this.onlyCheckTerminologyState = onlyCheckTerminologyState;
+        }
+
+        public Boolean getDoNotCheckTerminologyStateForGivenTerminologies() {
+            return doNotCheckTerminologyStateForGivenTerminologies;
+        }
+
+        public void setDoNotCheckTerminologyStateForGivenTerminologies(
+                Boolean doNotCheckTerminologyStateForGivenTerminologies) {
+            this.doNotCheckTerminologyStateForGivenTerminologies = doNotCheckTerminologyStateForGivenTerminologies;
+        }
+
+        public Boolean getDoNotCheckTerminologyStateForGivenConcepts() {
+            return doNotCheckTerminologyStateForGivenConcepts;
+        }
+
+        public void setDoNotCheckTerminologyStateForGivenConcepts(Boolean doNotCheckTerminologyStateForGivenConcepts) {
+            this.doNotCheckTerminologyStateForGivenConcepts = doNotCheckTerminologyStateForGivenConcepts;
+        }
+
+        public Boolean getDoNotCheckConceptStateForGivenConcepts() {
+            return doNotCheckConceptStateForGivenConcepts;
+        }
+
+        public void setDoNotCheckConceptStateForGivenConcepts(Boolean doNotCheckConceptStateForGivenConcepts) {
+            this.doNotCheckConceptStateForGivenConcepts = doNotCheckConceptStateForGivenConcepts;
+        }
 
         @Override
         public String toString() {

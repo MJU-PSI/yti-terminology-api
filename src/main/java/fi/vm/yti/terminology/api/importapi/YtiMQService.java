@@ -3,6 +3,8 @@ package fi.vm.yti.terminology.api.importapi;
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,7 +143,7 @@ public class YtiMQService {
                     }
                 }
                 case YtiMQService.STATUS_PREPROCESSING: {
-                    logger.warn("Import operation already started for {}", jobtoken);
+                    logger.warn("Import operation already started for {}", StringUtils.normalizeSpace(jobtoken.toString()));
                     return HttpStatus.NOT_ACCEPTABLE;
                 }
                 case YtiMQService.STATUS_FAILED: {
@@ -150,15 +152,15 @@ public class YtiMQService {
             }
         }
 
-        logger.debug("Processing {}", jobtoken);
+        logger.debug("Processing {}", StringUtils.normalizeSpace(jobtoken.toString()));
 
         if (getJobState(jobtoken, subSystem+"Ready")) {
-            logger.debug("Import done for {}", jobtoken);
+            logger.debug("Import done for {}", StringUtils.normalizeSpace(jobtoken.toString()));
             payload.append(getJobPayload(jobtoken, subSystem+"Ready"));
             logger.debug("Payload={}", payload);
             return HttpStatus.OK;
         } else if (getJobState(jobtoken, subSystem+"Incoming")) {
-            logger.warn("Import operation already started for "+jobtoken);
+            logger.warn("Import operation already started for {}", StringUtils.normalizeSpace(jobtoken.toString()));
             return  HttpStatus.NOT_ACCEPTABLE;
         } else if (getJobState(jobtoken, subSystem+"Status")) {
             payload.append(getJobPayload(jobtoken, subSystem+"Status"));
@@ -308,10 +310,14 @@ public class YtiMQService {
             } finally {
                 try {
                     session.close();
-                } catch (Exception e) { /* NOP */ }
+                } catch (Exception e) {
+                    logger.error("Session close error", e);
+                }
                 try {
                     connection.close();
-                } catch (Exception e) { /* NOP */ }
+                } catch (Exception e) {
+                    logger.error("Connection close error", e);
+                }
             }
         } else {
             logger.debug("Can't find status message to delete");

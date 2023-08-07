@@ -3,9 +3,9 @@ package fi.vm.yti.terminology.api.importapi.excel;
 import java.util.UUID;
 
 public class ExcelImportResponseDTO {
-    UUID jobToken;
-    String message;
-    ErrorDetails errorDetails;
+    private UUID jobToken;
+    private String message;
+    private ErrorDetails errorDetails;
 
     public ExcelImportResponseDTO(UUID jobToken, String message) {
         this(jobToken, message, null);
@@ -42,9 +42,9 @@ public class ExcelImportResponseDTO {
     }
 
     public static class ErrorDetails {
-        String sheet;
-        Integer row;
-        String column;
+        private String sheet;
+        private Integer row;
+        private String column;
 
         public ErrorDetails(String sheet, Integer row, String column) {
             this.sheet = sheet;

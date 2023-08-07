@@ -249,7 +249,7 @@ public class MigrationService {
                 findGraphIdsForVocabularyType(vocabularyNodeType).forEach(graphId -> deleteType(graphId, typeName));
             }
         } catch (IllegalArgumentException iaex) {
-            System.out.println("id not UUID " + vocabularyNodeType.toString());
+            log.error("id not UUID " + vocabularyNodeType.toString());
         }
     }
 

@@ -9,6 +9,8 @@ import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
 import fi.vm.yti.terminology.api.frontend.searchdto.*;
 import fi.vm.yti.terminology.api.validation.ValidGenericDeleteAndSave;
 import fi.vm.yti.terminology.api.validation.ValidVocabularyNode;
+
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +114,7 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "True if prefix is reserved, false if it is free for use with new terminology")
     @GetMapping(path = "/namespaceInUse", produces = APPLICATION_JSON_VALUE)
     boolean isNamespaceInUse(@Parameter(description = "Freely selectable namespace part of a terminology, here called \"prefix\"") @RequestParam String prefix) {
-        logger.info("GET /namespaceInUse requested with prefix: " + prefix);
+        logger.info("GET /namespaceInUse requested with prefix: " + StringUtils.normalizeSpace(prefix));
         return termedService.isNamespaceInUse(prefix);
     }
 
@@ -148,7 +150,7 @@ public class FrontendController {
     void sendRequest(
             @Parameter(description = "UUID for the organization") @RequestParam UUID organizationId,
             @Parameter(description = "Comma separated list of roles for organisation") @RequestParam(required = false) String[] roles) {
-        logger.info("POST /request requested with organizationID: " + organizationId.toString());
+        logger.info("POST /request requested with organizationID: " + StringUtils.normalizeSpace(organizationId.toString()));
         groupManagementService.sendRequest(organizationId, roles);
     }
 
@@ -156,7 +158,7 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "The requested terminology node data")
     @GetMapping(path = "/vocabulary", produces = APPLICATION_JSON_VALUE)
     GenericNodeInlined getVocabulary(@Parameter(description = "ID for the requested terminology") @RequestParam UUID graphId) {
-        logger.info("GET /vocabulary requested with graphId: " + graphId.toString());
+        logger.info("GET /vocabulary requested with graphId: " + StringUtils.normalizeSpace(graphId.toString()));
         return termedService.getVocabulary(graphId);
     }
 
@@ -201,8 +203,7 @@ public class FrontendController {
             @RequestBody GenericNode vocabularyNode) {
 
         try {
-            logger.info("POST /vocabulary requested with params: templateGraphId: " +
-                templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+            logger.info("POST /vocabulary requested with params: templateGraphId: " + StringUtils.normalizeSpace(templateGraphId.toString()) + ", prefix: " + StringUtils.normalizeSpace(prefix) + ", vocabularyNode.id: " + StringUtils.normalizeSpace(vocabularyNode.getId().toString()));
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 
@@ -241,8 +242,7 @@ public class FrontendController {
             @RequestBody GenericNode vocabularyNode) {
 
         try {
-            logger.info("POST /validatedVocabulary requested with params: templateGraphId: " +
-                    templateGraphId.toString() + ", prefix: " + prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+            logger.info("POST /validatedVocabulary requested with params: templateGraphId: " + StringUtils.normalizeSpace(templateGraphId.toString()) + ", prefix: " + StringUtils.normalizeSpace(prefix) + ", vocabularyNode.id: " + StringUtils.normalizeSpace(vocabularyNode.getId().toString()));
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 
@@ -276,9 +276,7 @@ public class FrontendController {
             @ValidVocabularyNode
             @RequestBody GenericNode vocabularyNode) {
 
-        logger.info("POST /vocabulary/validate requested with params: templateGraphId: " +
-                templateGraphId.toString() + ", prefix: " +
-                prefix + ", vocabularyNode.id: " + vocabularyNode.getId().toString());
+        logger.info("POST /vocabulary/validate requested with params: templateGraphId: " + StringUtils.normalizeSpace(templateGraphId.toString()) + ", prefix: " + StringUtils.normalizeSpace(prefix) + ", vocabularyNode.id: " + StringUtils.normalizeSpace(vocabularyNode.getId().toString()));
         // if we got this far, the validation was successful
         return "OK";
     }
@@ -296,7 +294,7 @@ public class FrontendController {
     @GetMapping(path = "/concept", produces = APPLICATION_JSON_VALUE)
     @Nullable GenericNodeInlined getConcept(@Parameter(description = "Terminology ID") @RequestParam UUID graphId,
                                             @Parameter(description = "Concept ID") @RequestParam UUID conceptId) {
-        logger.info("GET /concept requested with params: graphId: " + graphId.toString() + ", conceptId: " + conceptId.toString());
+        logger.info("GET /concept requested with params: graphId: " + StringUtils.normalizeSpace(graphId.toString()) + ", conceptId: " + StringUtils.normalizeSpace(conceptId.toString()));
         return termedService.getConcept(graphId, conceptId);
     }
 
@@ -305,7 +303,7 @@ public class FrontendController {
     @GetMapping(path = "/collection", produces = APPLICATION_JSON_VALUE)
     GenericNodeInlined getCollection(@Parameter(description = "Terminology ID") @RequestParam UUID graphId,
                                      @Parameter(description = "Concept collection ID") @RequestParam UUID collectionId) {
-        logger.info("GET /collection requested with params: graphId: " + graphId.toString() + ", collectionId: " + collectionId.toString());
+        logger.info("GET /collection requested with params: graphId: " + StringUtils.normalizeSpace(graphId.toString()) + ", collectionId: " + StringUtils.normalizeSpace(collectionId.toString()));
         return termedService.getCollection(graphId, collectionId);
     }
 
@@ -362,14 +360,14 @@ public class FrontendController {
             throw new RuntimeException("Max items for delete: " + MAX_ITEMS);
 
         for (int i = 0; i < deleteAndSave.getDelete().size(); i++) {
-            logger.info(deleteAndSave.getDelete().get(i).getId().toString());
+            logger.info(StringUtils.normalizeSpace(deleteAndSave.getDelete().get(i).getId().toString()));
         }
         logger.info("and save ids: ");
         if (deleteAndSave.getSave().size() > MAX_ITEMS)
             throw new RuntimeException("Max items for delete: " + MAX_ITEMS);
 
         for (int i = 0; i < deleteAndSave.getSave().size(); i++) {
-            logger.info(deleteAndSave.getSave().get(i).getId().toString());
+            logger.info(StringUtils.normalizeSpace(deleteAndSave.getSave().get(i).getId().toString()));
         }
 
         termedService.bulkChange(deleteAndSave, sync);
@@ -382,9 +380,9 @@ public class FrontendController {
     public String validateInternalNodes(@ValidGenericDeleteAndSave
                                       @RequestBody GenericDeleteAndSave deleteAndSave) {
         logger.info("POST /validate requested with deleteAndSave: delete ids: ");
-        deleteAndSave.getDelete().forEach(e -> logger.info(e.getId().toString()));
+        deleteAndSave.getDelete().forEach(e -> logger.info(StringUtils.normalizeSpace(e.getId().toString())));
         logger.info("and save ids: ");
-        deleteAndSave.getSave().forEach(e -> logger.info(e.getId().toString()));
+        deleteAndSave.getSave().forEach(e -> logger.info(StringUtils.normalizeSpace(e.getId().toString())));
 
         return "OK";
     }
@@ -399,7 +397,7 @@ public class FrontendController {
                      @RequestBody List<Identifier> identifiers) {
         logger.info("DELETE /remove requested with params: sync: " + sync + ", disconnect: " + disconnect + ", identifier ids: ");
         for (final Identifier ident : identifiers) {
-            logger.info(ident.getId().toString());
+            logger.info(StringUtils.normalizeSpace(ident.getId().toString()));
         }
         termedService.removeNodes(sync, disconnect, identifiers);
     }
@@ -452,7 +450,7 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "Basic info for a graph")
     @GetMapping(path = "/graphs/{id}", produces = APPLICATION_JSON_VALUE)
     Graph getGraph(@Parameter(description = "Id for the graph") @PathVariable("id") UUID graphId) {
-        logger.info("GET /graphs/{id} requested with graphId: " + graphId.toString());
+        logger.info("GET /graphs/{id} requested with graphId: " + StringUtils.normalizeSpace(graphId.toString()));
         return termedService.getGraph(graphId);
     }
 
@@ -461,7 +459,7 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "Concept search response container object as JSON")
     @PostMapping(path = "/searchConcept", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     ConceptSearchResponse searchConceptNg(@RequestBody ConceptSearchRequest request) {
-        logger.info("POST /searchConcept requested with query: " + request.toString());
+        logger.info("POST /searchConcept requested with query: " + StringUtils.normalizeSpace(request.toString()));
         return elasticSearchService.searchConcept(request);
     }
 
@@ -470,7 +468,7 @@ public class FrontendController {
     @ApiResponse(responseCode = "200", description = "Terminology search response container object as JSON")
     @RequestMapping(value = "/searchTerminology", method = POST, produces = APPLICATION_JSON_VALUE)
     TerminologySearchResponse searchTerminology(@RequestBody TerminologySearchRequest request) {
-        logger.info("POST /searchTerminology requested with query: " + request.toString());
+        logger.info("POST /searchTerminology requested with query: " + StringUtils.normalizeSpace(request.toString()));
         return elasticSearchService.searchTerminology(request);
     }
 

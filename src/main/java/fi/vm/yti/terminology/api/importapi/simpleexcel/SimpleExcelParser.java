@@ -283,6 +283,7 @@ public class SimpleExcelParser {
                 Status.valueOf(propertyValue);
                 return true;
             } catch (IllegalArgumentException iae) {
+                LOGGER.error("Error parsing value 'status'", iae);
                 return false;
             }
         }

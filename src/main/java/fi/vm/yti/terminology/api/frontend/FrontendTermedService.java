@@ -19,6 +19,8 @@ import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
+
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -55,7 +57,6 @@ public class FrontendTermedService {
     private static final String USER_PASSWORD = "user";
     private static final Pattern UUID_PATTERN = Pattern
             .compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-    private static final Logger LOGGER = LoggerFactory.getLogger(FrontendTermedService.class);
     private static final Object USER_LOCK = new Object();
 
     private final TermedRequester termedRequester;
@@ -496,8 +497,7 @@ public class FrontendTermedService {
     }
 
     public CreateVersionResponse createVersion(CreateVersionDTO createVersionDTO) throws Exception {
-        logger.info("Creating new version from vocabulary {}. New prefix {}",
-                createVersionDTO.getGraphId(), createVersionDTO.getNewCode());
+        logger.info("Creating new version from vocabulary {}. New prefix {}", StringUtils.normalizeSpace(createVersionDTO.getGraphId().toString()), StringUtils.normalizeSpace(createVersionDTO.getNewCode().toString()));
 
         check(authorizationManager.canCreateNewVersion(createVersionDTO.getGraphId()));
 

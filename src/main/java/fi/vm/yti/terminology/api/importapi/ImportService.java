@@ -18,6 +18,8 @@ import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
 import fi.vm.yti.terminology.api.model.termed.*;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -175,12 +177,12 @@ public class ImportService {
             vocabulary = termedService.getGraph(vocabularyId);
             // Import running for given vocabulary, drop it
             if(ytiMQService.checkIfImportIsRunning(vocabulary.getUri())){
-                LOGGER.error("Import running for Vocabulary:<{}>", vocabularyId);
+                LOGGER.error("Import running for Vocabulary:<{}>", StringUtils.normalizeSpace(vocabularyId.toString()));
                 return new ResponseEntity<>("Import running for Vocabulary:<" + vocabularyId+">", HttpStatus.CONFLICT);
             }
         } catch ( NullPointerException nex){
             // Vocabularity not found
-            LOGGER.error("Vocabulary:<{}> not found", vocabularyId);
+            LOGGER.error("Vocabulary:<{}> not found", StringUtils.normalizeSpace(vocabularyId.toString()));
             return new ResponseEntity<>("Vocabulary:<" + vocabularyId + "> not found\n", HttpStatus.NOT_FOUND);
         }
 
@@ -224,11 +226,11 @@ public class ImportService {
                 System.out.println("Import failed code:"+stat);
             }
         } catch (IOException ioe){
-            System.out.println("Incoming transform error=" + ioe);
+            LOGGER.error("Incoming transform error" + ioe);
         } catch (XMLStreamException se) {
-            System.out.println("Incoming transform error=" + se);
+            LOGGER.error("Incoming transform error" + se);
         } catch (JAXBException je){
-            System.out.println("Incoming transform error=" + je);
+            LOGGER.error("Incoming transform error" + je);
         }
         return new ResponseEntity<>( rv, HttpStatus.OK);
     }
@@ -346,7 +348,7 @@ public class ImportService {
             termedService.getGraph(graphId);
             return true;
         } catch (NullPointerException ne) {
-            // NullPointerException is thrown if graph doesn't exist
+            LOGGER.error("Terminology graph not found for id {}", StringUtils.normalizeSpace(graphId.toString()));
         }
         return false;
     }

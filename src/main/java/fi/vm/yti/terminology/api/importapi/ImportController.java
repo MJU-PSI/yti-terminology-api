@@ -4,6 +4,9 @@ import java.util.UUID;
 
 import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.importapi.excel.ExcelImportResponseDTO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
+import fi.vm.yti.terminology.api.frontend.FrontendController;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +35,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @Tag(name = "Import-Export")
 public class ImportController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ImportController.class);
     private final ImportService importService;
 
     public ImportController(FrontendTermedService termedService,
@@ -63,6 +68,7 @@ public class ImportController {
             UUID jobToken = importService.handleExcelImport(file.getInputStream());
             return ResponseEntity.ok(new ExcelImportResponseDTO(jobToken, "SUCCESS"));
         } catch (ExcelParseException e) {
+            logger.error("Error parsing excel", e);
             return ResponseEntity
                     .badRequest()
                     .body(
@@ -89,6 +95,7 @@ public class ImportController {
             UUID jobId = importService.handleSimpleExcelImport(terminologyId, file.getInputStream());
             return ResponseEntity.ok(new ExcelImportResponseDTO(jobId, "SUCCESS"));
         } catch (ExcelParseException e) {
+            logger.error("Error parsing excel", e);
             return ResponseEntity
                     .badRequest()
                     .body(

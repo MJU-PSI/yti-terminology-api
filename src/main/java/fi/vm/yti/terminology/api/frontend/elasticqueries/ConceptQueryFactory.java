@@ -116,12 +116,12 @@ public class ConceptQueryFactory {
         }
 
         // Checks regarding data in INCOMPLETE state. Basic idea is to show INCOMPLETE things only to the contributors. But.
-        if (options.operationMode == ConceptSearchRequest.Options.OperationMode.CONTRIBUTOR_CHECK && !superUser) {
-            final boolean doNotCheckTerminologyState = (directTerminologiesGiven && options.doNotCheckTerminologyStateForGivenTerminologies) ||
-                ((directConceptsGiven || directBroaderGiven) && options.doNotCheckTerminologyStateForGivenConcepts);
+        if (options.getOperationMode() == ConceptSearchRequest.Options.OperationMode.CONTRIBUTOR_CHECK && !superUser) {
+            final boolean doNotCheckTerminologyState = (directTerminologiesGiven && options.getDoNotCheckTerminologyStateForGivenTerminologies()) ||
+                ((directConceptsGiven || directBroaderGiven) && options.getDoNotCheckTerminologyStateForGivenConcepts());
             final boolean checkTerminologyState = !doNotCheckTerminologyState;
-            final boolean doNotCheckConceptState = options.onlyCheckTerminologyState ||
-                ((directConceptsGiven || directBroaderGiven) && options.doNotCheckConceptStateForGivenConcepts);
+            final boolean doNotCheckConceptState = options.getOnlyCheckTerminologyState() ||
+                ((directConceptsGiven || directBroaderGiven) && options.getDoNotCheckConceptStateForGivenConcepts());
             final boolean checkConceptState = !doNotCheckConceptState;
             if (checkConceptState || checkTerminologyState) {
                 Collection<String> incompleteFromTerminologies = matchingTerminologyResolver.resolveMatchingTerminologies(directTerminologiesGiven ? Arrays.asList(request.getTerminologyId()) : null);
@@ -135,7 +135,7 @@ public class ConceptQueryFactory {
                 }
                 mustParts.add(QueryBuilders.boolQuery().should(contributorQuery).should(statusQuery).minimumShouldMatch(1));
             }
-        } else if (options.operationMode == ConceptSearchRequest.Options.OperationMode.NO_INCOMPLETE) {
+        } else if (options.getOperationMode() == ConceptSearchRequest.Options.OperationMode.NO_INCOMPLETE) {
             mustNotParts.add(QueryBuilders.termQuery("status", "INCOMPLETE"));
             mustNotParts.add(QueryBuilders.termQuery("vocabulary.status", "INCOMPLETE"));
         }
@@ -271,29 +271,29 @@ public class ConceptQueryFactory {
     }
 
     private ConceptSearchRequest.Options resolveOptions(ConceptSearchRequest request) {
-        ConceptSearchRequest.Options ret = new ConceptSearchRequest.Options();
-
-        ret.operationMode = ConceptSearchRequest.Options.OperationMode.CONTRIBUTOR_CHECK;
-        ret.onlyCheckTerminologyState = CONFIG_ONLY_CHECK_TERMINOLOGY_STATE;
-        ret.doNotCheckTerminologyStateForGivenTerminologies = CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES;
-        ret.doNotCheckTerminologyStateForGivenConcepts = CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS;
-        ret.doNotCheckConceptStateForGivenConcepts = CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS;
+        ConceptSearchRequest.Options ret = new ConceptSearchRequest.Options(
+            ConceptSearchRequest.Options.OperationMode.CONTRIBUTOR_CHECK, 
+            CONFIG_ONLY_CHECK_TERMINOLOGY_STATE, 
+            CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_TERMINOLOGIES,
+            CONFIG_DO_NOT_CHECK_TERMINOLOGY_STATE_FOR_GIVEN_CONCEPTS,
+            CONFIG_DO_NOT_CHECK_CONCEPT_STATE_FOR_GIVEN_CONCEPTS
+        );
 
         if (request.getOptions() != null) {
-            if (request.getOptions().operationMode != null) {
-                ret.operationMode = request.getOptions().operationMode;
+            if (request.getOptions().getOperationMode() != null) {
+                ret.setOperationMode(request.getOptions().getOperationMode());
             }
-            if (request.getOptions().onlyCheckTerminologyState != null) {
-                ret.onlyCheckTerminologyState = request.getOptions().onlyCheckTerminologyState;
+            if (request.getOptions().getOnlyCheckTerminologyState() != null) {
+                ret.setOnlyCheckTerminologyState(request.getOptions().getOnlyCheckTerminologyState());
             }
-            if (request.getOptions().doNotCheckTerminologyStateForGivenTerminologies != null) {
-                ret.doNotCheckTerminologyStateForGivenTerminologies = request.getOptions().doNotCheckTerminologyStateForGivenTerminologies;
+            if (request.getOptions().getDoNotCheckTerminologyStateForGivenTerminologies() != null) {
+                ret.setDoNotCheckTerminologyStateForGivenTerminologies(request.getOptions().getDoNotCheckTerminologyStateForGivenTerminologies());
             }
-            if (request.getOptions().doNotCheckTerminologyStateForGivenConcepts != null) {
-                ret.doNotCheckTerminologyStateForGivenConcepts = request.getOptions().doNotCheckTerminologyStateForGivenConcepts;
+            if (request.getOptions().getDoNotCheckTerminologyStateForGivenConcepts() != null) {
+                ret.setDoNotCheckTerminologyStateForGivenConcepts(request.getOptions().getDoNotCheckTerminologyStateForGivenConcepts());
             }
-            if (request.getOptions().doNotCheckConceptStateForGivenConcepts != null) {
-                ret.doNotCheckConceptStateForGivenConcepts = request.getOptions().doNotCheckConceptStateForGivenConcepts;
+            if (request.getOptions().getDoNotCheckConceptStateForGivenConcepts() != null) {
+                ret.setDoNotCheckConceptStateForGivenConcepts(request.getOptions().getDoNotCheckConceptStateForGivenConcepts());
             }
         }
 

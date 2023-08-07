@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.LocaleUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -77,8 +78,7 @@ public class IntegrationController {
     @PostMapping(path = "/terminology/conceptSuggestion", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(HttpServletRequest req,
                                              @RequestBody ConceptSuggestionRequest incomingConcept) {
-        logger.info("POST /api/v1/integration/terminology/conceptSuggestion from "
-            + (req != null ? req.getRemoteHost() : "N/A"));
+        logger.info("POST /api/v1/integration/terminology/conceptSuggestion from " + (req != null ? StringUtils.normalizeSpace(req.getRemoteHost()) : "N/A"));
         YtiUser user = userProvider.getUser();
         if (!user.isAnonymous()) {
             return integrationService.handleConceptSuggestion(new PrivateConceptSuggestionRequest(incomingConcept, user.getId().toString()));
@@ -253,6 +253,7 @@ public class IntegrationController {
                 Locale l = LocaleUtils.toLocale(containersRequest.getLanguage());
                 System.out.println("Locale present");
             } catch (IllegalArgumentException iae) {
+                logger.error("Error parsing locale", iae);
                 rv.add("Illegal language:" + containersRequest.getLanguage());
             }
         }
@@ -276,6 +277,7 @@ public class IntegrationController {
             try {
                 Date d = dateFormat.parse(containersRequest.getAfter());
             } catch (ParseException e) {
+                logger.error("Error parsing date", e);
                 rv.add("Parsing After date from string failed: " + containersRequest.getAfter());
             }
         }
@@ -284,6 +286,7 @@ public class IntegrationController {
             try {
                 Date d = dateFormat.parse(containersRequest.getBefore());
             } catch (ParseException e) {
+                logger.error("Error parsing date", e);
                 rv.add("Parsing Before date from string failed: " + containersRequest.getBefore());
             }
         }
@@ -307,6 +310,7 @@ public class IntegrationController {
                 Locale l = LocaleUtils.toLocale(containersRequest.getLanguage());
                 System.out.println("Locale present");
             } catch (IllegalArgumentException iae) {
+                logger.error("Error parsing locale", iae);
                 rv.add("Illegal language:" + containersRequest.getLanguage());
             }
         }
@@ -330,6 +334,7 @@ public class IntegrationController {
             try {
                 Date d = dateFormat.parse(containersRequest.getAfter());
             } catch (ParseException e) {
+                logger.error("Error parsing date", e);
                 rv.add("Parsing After date from string failed: " + containersRequest.getAfter());
             }
         }
@@ -338,6 +343,7 @@ public class IntegrationController {
             try {
                 Date d = dateFormat.parse(containersRequest.getBefore());
             } catch (ParseException e) {
+                logger.error("Error parsing date", e);
                 rv.add("Parsing Before date from string failed: " + containersRequest.getBefore());
             }
         }

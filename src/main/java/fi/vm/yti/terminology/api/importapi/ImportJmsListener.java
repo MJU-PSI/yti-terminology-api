@@ -14,6 +14,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jms.annotation.JmsListener;
@@ -55,7 +56,7 @@ public class ImportJmsListener {
                                           @Header String userId,
                                           @Header String vocabularyId) throws JMSException {
 	    // Consume incoming
-        logger.info("Process message {}, session {}, user id {}", message.getHeaders(), session, userId);
+        logger.info("Process message {}, session {}, user id {}", StringUtils.normalizeSpace(message.getHeaders().toString()), StringUtils.normalizeSpace(session.toString()), StringUtils.normalizeSpace(userId));
 
         String payload = "{}";
 
@@ -69,7 +70,7 @@ public class ImportJmsListener {
             logger.error(je.getMessage(), je);
         }
 
-        logger.info("Import handled: {}", payload);
+        logger.info("Import handled: {}", StringUtils.normalizeSpace(payload));
 
         MessageHeaderAccessor accessor = new MessageHeaderAccessor();
         accessor.copyHeaders(message.getHeaders());

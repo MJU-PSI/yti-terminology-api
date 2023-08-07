@@ -6,14 +6,38 @@ import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 
-@SuppressWarnings("WeakerAccess")
 public class TermedNotification {
 
     public static class Body {
-        @NotNull public String user;
-        @NotNull public Date date;
-        @NotNull public List<Identifier> nodes;
-        public boolean sync;
+        @NotNull private String user;
+        @NotNull private Date date;
+        @NotNull private List<Identifier> nodes;
+        private boolean sync;
+
+        public String getUser() {
+            return user;
+        }
+        public void setUser(String user) {
+            this.user = user;
+        }
+        public Date getDate() {
+            return date;
+        }
+        public void setDate(Date date) {
+            this.date = date;
+        }
+        public List<Identifier> getNodes() {
+            return nodes;
+        }
+        public void setNodes(List<Identifier> nodes) {
+            this.nodes = nodes;
+        }
+        public boolean isSync() {
+            return sync;
+        }
+        public void setSync(boolean sync) {
+            this.sync = sync;
+        }
     }
 
     public enum EventType {
@@ -23,6 +47,19 @@ public class TermedNotification {
         ApplicationShutdownEvent
     }
 
-    @NotNull public EventType type;
-    @NotNull public Body body;
+    @NotNull private EventType type;
+    @NotNull private Body body;
+
+    public EventType getType() {
+        return type;
+    }
+    public void setType(EventType type) {
+        this.type = type;
+    }
+    public Body getBody() {
+        return body;
+    }
+    public void setBody(Body body) {
+        this.body = body;
+    }
 }

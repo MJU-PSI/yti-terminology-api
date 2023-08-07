@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.elasticsearch.client.Response;
@@ -67,12 +68,12 @@ public final class ElasticRequestUtils {
                         parsedQuery = parser.parse(parsedQuery, "").toString();
                         return QueryBuilders.queryStringQuery(parsedQuery);
                     } catch (final QueryNodeException e) {
-                        // nop
+                        LOG.error("Query node error", e);
                     }
                 }
             }
         }
-        LOG.warn("Search term string disqualified: '{}'", searchTerm);
+        LOG.warn("Search term string disqualified: '{}'", StringUtils.normalizeSpace(searchTerm));
         throw new InvalidQueryException();
     }
     public static MatchQueryBuilder buildStatusQuery(final String[] statuses, final String field) {
@@ -108,7 +109,7 @@ public final class ElasticRequestUtils {
                     field,
                     parser.parse(filteredStatusQuery, "").toString());
         } catch (final QueryNodeException e) {
-            LOG.warn("status filter disqualified: '{}'", String.join(", ", statuses));
+            LOG.warn("status filter disqualified: '{}'", StringUtils.normalizeSpace(String.join(", ", statuses)));
             throw new InvalidQueryException();
         }
     }
@@ -124,8 +125,9 @@ public final class ElasticRequestUtils {
 
     public static @NotNull String responseContentAsString(@NotNull Response response) {
         try (InputStream is = response.getEntity().getContent()) {
-            return new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
-                .collect(Collectors.joining("\n"));
+            return StringUtils.normalizeSpace(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)).lines()
+                .collect(Collectors.joining("\n"))
+                .toString());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

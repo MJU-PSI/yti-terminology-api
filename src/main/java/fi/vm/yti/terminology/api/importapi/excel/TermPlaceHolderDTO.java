@@ -3,8 +3,8 @@ package fi.vm.yti.terminology.api.importapi.excel;
 import java.util.UUID;
 
 public class TermPlaceHolderDTO {
-    UUID uuid;
-    String language;
+    private UUID uuid;
+    private String language;
 
     public TermPlaceHolderDTO(UUID uuid, String language) {
         this.uuid = uuid;

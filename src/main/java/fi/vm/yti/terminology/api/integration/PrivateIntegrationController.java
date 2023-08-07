@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.integration;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,7 @@ public class PrivateIntegrationController {
     @PostMapping(path = "/terminology/conceptSuggestion", produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     ResponseEntity<String> conceptSuggestion(HttpServletRequest req,
                                              @RequestBody PrivateConceptSuggestionRequest incomingConcept) {
-        logger.info("POST /private/v1/integration/terminology/conceptSuggestion from " + (req != null ? req.getRemoteHost() : "N/A"));
+        logger.info("POST /private/v1/integration/terminology/conceptSuggestion from " + (req != null ? StringUtils.normalizeSpace(req.getRemoteHost()) : "N/A"));
         return integrationService.handleConceptSuggestion(incomingConcept);
     }
 }

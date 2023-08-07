@@ -21,6 +21,8 @@ import jakarta.xml.bind.JAXBElement;
 
 import com.google.common.escape.Escaper;
 import com.google.common.escape.Escapers;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +88,7 @@ public class NtrfMapper {
     private String currentRecord;
     private List<StatusMessage> statusList = new ArrayList<>();
 
-    int errorCount = 0;
+    private int errorCount = 0;
 
     private static final Logger logger = LoggerFactory.getLogger(ImportService.class);
 
@@ -141,7 +143,7 @@ public class NtrfMapper {
      * @return
      */
     public String mapNtrfDocument(String jobtoken, UUID vocabularyId, VOCABULARY ntrfDocument, UUID userId) {
-        logger.info("mapNtRfDocument: Vocabulary Id: {}", vocabularyId);
+        logger.info("mapNtRfDocument: Vocabulary Id: {}", StringUtils.normalizeSpace(vocabularyId.toString()));
 
         Graph vocabulary;
         Long startTime = new Date().getTime();
@@ -338,8 +340,7 @@ public class NtrfMapper {
                 try {
                     gn = termedService.getConceptNode(vocabulary.getId(), sourceId);
                 } catch (NullPointerException nex) {
-                    logger.warn("Can't found concept node: {} id: {} in vocabulary {}", key, sourceId,
-                            vocabulary.getId().toString());
+                    logger.warn("Can't found concept node: {} id: {} in vocabulary {}", key, sourceId, StringUtils.normalizeSpace(vocabulary.getId().toString()));
                 }
                 if (gn != null) {
                     Map<String, List<Identifier>> refMap = gn.getReferences();
@@ -410,8 +411,7 @@ public class NtrfMapper {
                     // Add it back to termed
                     addNodeList.add(gn);
                 } else {
-                    logger.warn("Cant' resolve following! {} type: {} = {} -- vocab={}",key, connType, sourceId,
-                            vocabulary.getId());
+                    logger.warn("Cant' resolve following! {} type: {} = {} -- vocab={}", key, connType, sourceId, StringUtils.normalizeSpace(vocabulary.getId().toString()));
                     statusList.add(new StatusMessage(currentRecord, connType + " reference match failed. for " + key));
                 }
             } else {
@@ -524,7 +524,7 @@ public class NtrfMapper {
                         li.getHref(),
                         parseHrefText(li.getContent()));
 
-                logger.warn(msg);
+                logger.warn(StringUtils.normalizeSpace(msg));
                 statusList.add(new StatusMessage(currentRecord, msg));
             }
 
@@ -606,7 +606,7 @@ public class NtrfMapper {
      * Remove orphan terms under given concept and graph
      */
     private void cleanTerms(UUID graphId, UUID conceptId,  List<Identifier> deleteNodeList) {
-        logger.info("clearTerm from: {} concept: {}", graphId, conceptId.toString());
+        logger.info("clearTerm from: {} concept: {}", StringUtils.normalizeSpace(graphId.toString()), conceptId.toString());
         // Get concept
         GenericNode node = termedService.getConceptNode(graphId, conceptId);
         // get references and delete terms and synonyms
@@ -696,7 +696,7 @@ public class NtrfMapper {
         // Default creator is importing user
         createdBy = userProvider.getUser().getUsername();
 
-        logger.info("Record id: {}", code);
+        logger.info("Record id: {}", StringUtils.normalizeSpace(code));
         // Add info to editorial note
         String editorialNote = "";
 
@@ -943,10 +943,10 @@ public class NtrfMapper {
                 handleGRAM((GRAM) li, properties);
                 String prefLabel = ((GRAM) li).getContent();
                 // Add actual pref-label for term
-                logger.info("Handle Term with GRAM: {}", prefLabel);
+                logger.info("Handle Term with GRAM: {}", StringUtils.normalizeSpace(prefLabel));
                 termName = termName.concat(prefLabel+" ");
             } else {
-                logger.error(" TERM: unhandled contentclass=" + li.getClass().getName() + " value=" + li);
+                logger.error(" TERM: unhandled contentclass=" + li.getClass().getName() + " value=" + StringUtils.normalizeSpace(li.toString()));
             }
         }
         if (!termName.isEmpty()) {
@@ -1160,8 +1160,7 @@ public class NtrfMapper {
             brefId = o.getHref().substring(1);
         }
 
-        logger.info("handleBCON add item from source record: {} --> target: {} Type {}",
-                currentRecord, brefId, o.getTypr());
+        logger.info("handleBCON add item from source record: {} --> target: {} Type {}", StringUtils.normalizeSpace(currentRecord), StringUtils.normalizeSpace(brefId), StringUtils.normalizeSpace(o.getTypr()));
         ConnRef conRef = new ConnRef();
         // Use delayed resolving, so save record id for logging purposes
         conRef.setCode(currentRecord);
@@ -1196,7 +1195,7 @@ public class NtrfMapper {
             brefId = o.getHref().substring(1);
         }
 
-        logger.info("handleRCON add item from source record:" + currentRecord + "--> target:" + brefId);
+        logger.info("handleRCON add item from source record: {} --> target: {}", StringUtils.normalizeSpace(currentRecord), StringUtils.normalizeSpace(brefId));
         ConnRef conRef = new ConnRef();
         // Use delayed resolving, so save record id for logging purposes
         conRef.setCode(currentRecord);
@@ -1340,7 +1339,7 @@ public class NtrfMapper {
             if (nrefId.startsWith("#")) {
                 nrefId = o.getHref().substring(1);
             }
-            logger.info("handleNCON add item from source record:" + currentRecord + "--> target:" + nrefId);
+            logger.info("handleNCON add item from source record: {} --> target: {}", StringUtils.normalizeSpace(currentRecord), StringUtils.normalizeSpace(nrefId));
             ConnRef conRef = new ConnRef();
             // Use delayed resolving, so save record id for logging purposes
             conRef.setCode(currentRecord);
@@ -1963,7 +1962,7 @@ public class NtrfMapper {
             try {
                 status = Status.valueOf(value.toUpperCase());
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid status provided {}", value);
+                logger.warn("Invalid status provided {}", StringUtils.normalizeSpace(value));
             }
         }
         addProperty("status", properties, new Attribute("", status.name()));
@@ -1972,11 +1971,11 @@ public class NtrfMapper {
      * Can be used in with BCON, NCON and RCON references
      */
     private class ConnRef {
-        String code;
-        String referenceString;
-        String type;
-        UUID id;
-        UUID targetId;
+        private String code;
+        private String referenceString;
+        private String type;
+        private UUID id;
+        private UUID targetId;
 
         public String getCode() {
             return code;
@@ -2020,9 +2019,9 @@ public class NtrfMapper {
     }
 
     private class StatusMessage {
-        Level level;
-        String record;
-        List<String> message = new ArrayList<>();
+        private Level level;
+        private String record;
+        private List<String> message = new ArrayList<>();
 
         public StatusMessage(String record, String msg) {
             this.level = Level.WARNING;

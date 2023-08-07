@@ -8,6 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.Serializable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "level",
@@ -16,6 +19,7 @@ import java.io.Serializable;
 })
 public class ImportStatusMessage implements Serializable
 {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ImportStatusMessage.class);
     private static ObjectMapper mapper = new ObjectMapper();
 
     public enum Level {
@@ -106,7 +110,7 @@ public class ImportStatusMessage implements Serializable
         try {
             return mapper.readValue(objStr, ImportStatusMessage.class);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            e.printStackTrace();
+            LOGGER.error("Error on fromString", e);
         }
         return null;
     }

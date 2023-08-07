@@ -3,8 +3,8 @@ package fi.vm.yti.terminology.api.frontend.searchdto;
 import java.util.UUID;
 
 public class CreateVersionResponse {
-    UUID newGraphId;
-    String uri;
+    private UUID newGraphId;
+    private String uri;
 
     public CreateVersionResponse(UUID newGraphId, String uri) {
         this.newGraphId = newGraphId;

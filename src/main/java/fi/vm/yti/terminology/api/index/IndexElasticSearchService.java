@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.terminology.api.exception.ElasticEndpointException;
 import fi.vm.yti.terminology.api.util.RestHighLevelClientWrapper;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -152,8 +154,7 @@ public class IndexElasticSearchService {
                     log.debug("reindex line:" + line);
                 }
             } catch (JsonProcessingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                log.error("Error on reindexVocabularies", e);
             }
         });
         String index = indexLines.stream().collect(Collectors.joining("\n"));
@@ -188,7 +189,7 @@ public class IndexElasticSearchService {
         // Get vocabulary
         JsonNode jn = termedApiService.getTerminologyVocabularyNode(vocId);
         if (jn == null) {
-            log.warn("Missing vocabulary during elasticsearch reindexing  :" + vocId.toString());
+            log.warn("Missing vocabulary during elasticsearch reindexing: " + StringUtils.normalizeSpace(vocId.toString()));
             return false;
         }
 
@@ -209,15 +210,14 @@ public class IndexElasticSearchService {
 
             long end = System.currentTimeMillis();
             if (isSuccess(response)) {
-                log.info("Successfully added/updated documents to elasticsearch index: " + vocId.toString()+" in "+(end-start)+"ms" );
+                log.info("Successfully added/updated documents to elasticsearch index: " + StringUtils.normalizeSpace(vocId.toString()) + " in "+(end-start)+"ms" );
             } else {
-                log.warn("Unable to add or update document to elasticsearch index: " + vocId.toString()+" in "+(end-start)+"ms");
+                log.warn("Unable to add or update document to elasticsearch index: " + StringUtils.normalizeSpace(vocId.toString()) + " in "+(end-start)+"ms");
                 log.info(responseContentAsString(response));
                 rv = false;
             }        
         } catch (JsonProcessingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error("Error on reindexGivenVocabulary", e);
         }
         return rv;
     }
@@ -243,7 +243,7 @@ public class IndexElasticSearchService {
                 // Update vocabulary index
                 // reindexVocabularies();
                 nodes.getVocabularyIds().forEach(id -> {
-                    log.info("reindexVocabulary:" + id);
+                    log.info("reindexVocabulary: {}", StringUtils.normalizeSpace(id.toString()));
                     reindexGivenVocabulary(voc);
                 });
             }
@@ -303,7 +303,7 @@ public class IndexElasticSearchService {
         bulkUpdateAndDeleteDocumentsToIndex(graphId, concepts, emptyList(), waitForRefresh);
             long end = System.currentTimeMillis();
 
-            log.info("Graph:" + graphId + " Indexed " + concepts.size() + " concepts in "+(end-start)+"ms");
+            log.info("Graph:" + StringUtils.normalizeSpace(graphId.toString()) + " Indexed " + concepts.size() + " concepts in "+(end-start)+"ms");
         }
     }
 
@@ -445,7 +445,7 @@ public class IndexElasticSearchService {
 
         if (isSuccess(response)) {
             log.info(responseContentAsString(response));
-            log.info("Successfully deleted documents from elasticsearch index from graph: " + graphId);
+            log.info("Successfully deleted documents from elasticsearch index from graph: " + StringUtils.normalizeSpace(graphId.toString()));
         } else {
             log.warn("Unable to delete documents from elasticsearch index");
         }
@@ -599,6 +599,7 @@ public class IndexElasticSearchService {
         try {
             return supplier.get();
         } catch (ResponseException e) {
+            log.error("Error on alsoUnsuccessful", e);
             return e.getResponse();
         } catch (IOException e) {
             throw new ElasticEndpointException(e);

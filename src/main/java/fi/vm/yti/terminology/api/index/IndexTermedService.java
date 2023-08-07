@@ -6,6 +6,8 @@ import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
 import fi.vm.yti.terminology.api.model.termed.*;
+
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -199,7 +201,7 @@ public class IndexTermedService {
         if (json != null) {
             return json;
         } else {
-            log.info("Vocabulary for graph " + graphId + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
+            log.info("Vocabulary for graph " + StringUtils.normalizeSpace(graphId.toString()) + " was not found as type " + VocabularyType.TerminologicalVocabulary.name() + ". Trying to find as type " + VocabularyType.Vocabulary.name());
             return getVocabularyNode(graphId, VocabularyType.Vocabulary);
         }
     }

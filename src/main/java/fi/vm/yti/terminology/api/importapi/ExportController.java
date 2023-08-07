@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -74,7 +75,6 @@ public class ExportController {
             id = this.resolveCode(terminologyId);
         } catch (Exception e) {
             logger.error("Error fetching vocabulary id", e.getMessage());
-            e.printStackTrace();
         }
         // Id resolved, go fetch data
         if (id != null) {
@@ -163,7 +163,7 @@ public class ExportController {
         if (!idlist.isEmpty() && idlist.size() == 1) {
             rv = idlist.get(0);
         } else {
-            logger.error("Several matches for " + code);
+            logger.error("Several matches for " + StringUtils.normalizeSpace(code));
         }
         return rv;
     }
