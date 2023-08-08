@@ -53,8 +53,8 @@ public class FrontendElasticSearchService {
     private final UriProperties uriProperties;
 
     @Autowired
-    public FrontendElasticSearchService(@Value("${search.index.name}") String indexName,
-                                        @Value("${search.index.mapping.type}") String indexMappingType,
+    public FrontendElasticSearchService(@Value("${elasticsearch.index.name}") String indexName,
+                                        @Value("${elasticsearch.index.mapping.type}") String indexMappingType,
                                         UriProperties uriProperties,
                                         RestHighLevelClientWrapper esRestClient,
                                         ObjectMapper objectMapper,

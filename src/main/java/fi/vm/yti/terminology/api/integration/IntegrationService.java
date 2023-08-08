@@ -104,7 +104,7 @@ public class IntegrationService {
     @Autowired
     public IntegrationService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             FrontendTermedService frontendTermedService, IndexElasticSearchService elasticSearchService,
-            AuthenticatedUserProvider userProvider, @Value("${search.index.name}") String indexName,
+            AuthenticatedUserProvider userProvider, @Value("${elasticsearch.index.name}") String indexName,
             UriProperties uriProperties) {
         this.termedService = frontendTermedService;
         this.elasticSearchService = elasticSearchService;
