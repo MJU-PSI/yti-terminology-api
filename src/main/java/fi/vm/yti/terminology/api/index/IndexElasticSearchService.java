@@ -62,13 +62,12 @@ public class IndexElasticSearchService {
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public IndexElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
-            @Value("${search.host.port}") int searchHostPort, @Value("${search.host.scheme}") String searchHostScheme,
-            @Value("${search.index.file}") String createIndexFilename,
-            @Value("${search.index.mapping.file}") String createMappingsFilename,
-            @Value("${search.index.name}") String indexName,
-            @Value("${search.index.mapping.type}") String indexMappingType,
-            @Value("${search.index.deleteIndexOnAppRestart}") boolean deleteIndexOnAppRestart,
+    public IndexElasticSearchService(
+            @Value("${elasticsearch.index.file}") String createIndexFilename,
+            @Value("${elasticsearch.index.mapping.file}") String createMappingsFilename,
+            @Value("${elasticsearch.index.name}") String indexName,
+            @Value("${elasticsearch.index.mapping.type}") String indexMappingType,
+            @Value("${elasticsearch.index.deleteIndexOnAppRestart}") boolean deleteIndexOnAppRestart,
             IndexTermedService termedApiService,
             ObjectMapper objectMapper,
             final RestHighLevelClientWrapper esHiLvClient) {

@@ -49,15 +49,15 @@ public class PublicApiElasticSearchService {
     private static Set<String> uniqueNonNullLanguages;
 
     @Autowired
-    public PublicApiElasticSearchService(@Value("${search.host.url}") String searchHostUrl,
-                                         @Value("${search.host.port}") int searchHostPort,
-                                         @Value("${search.host.scheme}") String searchHostScheme,
-                                         @Value("${search.index.name}") String indexName,
-                                         @Value("${search.index.mapping.type}") String indexMappingType,
+    public PublicApiElasticSearchService(@Value("${elasticsearch.host}") String elasticsearchHost,
+                                         @Value("${elasticsearch.port}") int elasticsearchPort,
+                                         @Value("${elasticsearch.scheme}") String elasticsearchScheme,
+                                         @Value("${elasticsearch.index.name}") String indexName,
+                                         @Value("${elasticsearch.index.mapping.type}") String indexMappingType,
                                          IndexTermedService indexTermedService) {
         this.indexName = indexName;
         this.indexMappingType = indexMappingType;
-        this.esRestClient = RestClient.builder(new HttpHost(searchHostUrl, searchHostPort, searchHostScheme)).build();
+        this.esRestClient = RestClient.builder(new HttpHost(elasticsearchHost, elasticsearchPort, elasticsearchScheme)).build();
         this.indexTermedService = indexTermedService;
     }
 
