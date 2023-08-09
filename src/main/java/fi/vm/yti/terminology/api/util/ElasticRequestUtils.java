@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
@@ -137,10 +136,11 @@ public final class ElasticRequestUtils {
         Map<String, String> ret = new HashMap<>();
         if (labelNode != null) {
             Iterator<Map.Entry<String, JsonNode>> labelIter = labelNode.fields();
-            if (IterableUtils.size((Iterable<?>) labelIter) > Integer.MAX_VALUE) {
-                throw new RuntimeException("too many nodes");
-            }
+            int i = 0;
             while (labelIter.hasNext()) {
+                if (++i == Integer.MAX_VALUE) {
+                    throw new RuntimeException("too many nodes");
+                }
                 Map.Entry<String, JsonNode> entry = labelIter.next();
                 JsonNode value = entry.getValue();
                 if (value.isTextual()) {

@@ -6,7 +6,6 @@ import fi.vm.yti.terminology.api.frontend.Status;
 import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.model.termed.*;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -609,10 +608,11 @@ public class ExcelParser {
         }
         Map<String, Integer> columnMap = new HashMap<>();
         Iterator<Cell> iterator = row.iterator();
-        if (IterableUtils.size((Iterable<?>) iterator) > MAX_COLUMNS) {
-            throw new ExcelParseException("too many columns");
-        }
+        int i = 0;
         while(iterator.hasNext()) {
+            if (++i == MAX_COLUMNS) {
+                throw new ExcelParseException("too many columns");
+            }
             Cell cell = iterator.next();
             columnMap.put(cell.getStringCellValue(), cell.getColumnIndex());
         }
