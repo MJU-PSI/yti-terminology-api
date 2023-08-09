@@ -39,12 +39,7 @@ public class ElasticHighLevelClientConfig {
     @Bean
     @SuppressWarnings("resource")
     protected RestHighLevelClientWrapper elasticSearchRestHighLevelClient() {
-        final RestClientBuilder builder = RestClient.builder(
-            new HttpHost(elasticsearchHost, elasticsearchPort, elasticsearchScheme))
-            .setRequestConfigCallback(
-                requestConfigBuilder -> requestConfigBuilder
-                    .setConnectTimeout(ES_CONNECTION_TIMEOUT)
-                    .setSocketTimeout(ES_CONNECTION_TIMEOUT));
+        final RestClientBuilder builder = RestClient.builder(new HttpHost(elasticsearchHost, elasticsearchPort, elasticsearchScheme));
         return new RestHighLevelClientWrapperImpl(new RestHighLevelClient(builder));
     }
 }
