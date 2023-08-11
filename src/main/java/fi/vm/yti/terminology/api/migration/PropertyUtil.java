@@ -26,6 +26,16 @@ public final class PropertyUtil {
         return singletonMap(propertyName, localizations(fi, en, sv));
     }
 
+    public static Map<String, List<Property>> localizable(String propertyName, Property property) {
+        return singletonMap(propertyName, localizations(property));
+    }
+
+    public static Map<String, List<Property>> localizable(String propertyName, List<Property> properties) {
+        return singletonMap(propertyName, properties);
+    }
+
+
+
     public static List<Property> localizations(String fi) {
         return singletonList(new Property("fi", fi));
     }
@@ -36,6 +46,10 @@ public final class PropertyUtil {
 
     public static List<Property> localizations(String fi, String en, String sv) {
         return asList(new Property("fi", fi), new Property("en", en), new Property("sv", sv));
+    }
+
+    public static List<Property> localizations(Property property) {
+        return singletonList(property);
     }
 
     public static Map<String, List<Property>> literal(String propertyName, String value) {
@@ -58,6 +72,14 @@ public final class PropertyUtil {
         return localizable("prefLabel", fi, en, sv);
     }
 
+    public static Map<String, List<Property>> prefLabel(Property property) {
+        return localizable("prefLabel", property);
+    }
+
+    public static Map<String, List<Property>> prefLabel(List<Property> properties) {
+        return localizable("prefLabel", properties);
+    }
+
     public static Map<String, List<Property>> description(String fi) {
         return localizable("description", fi);
     }
@@ -68,6 +90,14 @@ public final class PropertyUtil {
 
     public static Map<String, List<Property>> description(String fi, String en, String sv) {
         return localizable("description", fi, en, sv);
+    }
+
+    public static Map<String, List<Property>> description(Property property) {
+        return localizable("description", property);
+    }
+
+    public static Map<String, List<Property>> description(List<Property> properties) {
+        return localizable("description", properties);
     }
 
     public static Map<String, List<Property>> type(String value) {
