@@ -7,7 +7,6 @@ plugins {
     id 'org.sonarqube' version '3.3'
     id 'org.owasp.dependencycheck' version '6.1.6'
     id 'com.github.ben-manes.versions' version '0.39.0'
-    id 'com.gorylenko.gradle-git-properties' version '2.3.1'
 }
 
 artifactoryPublish.skip = true
@@ -68,8 +67,8 @@ dependencies {
 
     implementation 'org.springdoc:springdoc-openapi-ui:1.5.9'
 
-    implementation 'fi.vm.yti:yti-spring-security:0.2.2-SNAPSHOT'
-    implementation 'fi.vm.yti:yti-spring-migration:0.2.0'
+    implementation 'fi.vm.yti:yti-spring-security:1.0.0'
+    implementation 'fi.vm.yti:yti-spring-migration:1.0.0'
 
     implementation 'org.apache.activemq:activemq-broker'
     implementation 'org.elasticsearch:elasticsearch:6.8.22'

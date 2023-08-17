@@ -1,4 +1,2 @@
 #!/bin/bash
-
-./gradlew build
-docker build -t yti-terminology-api .
+docker build -t yti-terminology-api:latest .
