@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -23,7 +22,6 @@ import java.util.function.Supplier;
 public class TermedRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(TermedRequester.class);
-    private static final String API_PW = "API_PW";
     private static TermedContentType DEFAULT_CONTENT_TYPE = TermedContentType.JSON;
 
     private final String termedUser;
@@ -32,18 +30,12 @@ public class TermedRequester {
     private final RestTemplate restTemplate;
 
     @Autowired
-    TermedRequester(@Value("${api.user}") String termedUser,
-                    @Value("${api.pw: #{null}}") @Nullable String termedPassword,
+    TermedRequester(@Value("${api.username}") String termedUser,
+                    @Value("${api.password: #{null}}") @Nullable String termedPassword,
                     @Value("${api.url}") String termedUrl,
-                    RestTemplate restTemplate,
-                    Environment environment) {
+                    RestTemplate restTemplate) {
         this.termedUser = termedUser;
-        final String termedApiPassword = environment.getProperty(API_PW);
-        if (termedApiPassword != null) {
-            this.termedPassword = termedApiPassword;
-        } else {
-            this.termedPassword = termedPassword;
-        }
+        this.termedPassword = termedPassword;
         this.termedUrl = termedUrl;
         this.restTemplate = restTemplate;
     }

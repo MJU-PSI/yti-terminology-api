@@ -54,7 +54,6 @@ public class FrontendTermedService {
 
     private static final Logger logger = LoggerFactory.getLogger(FrontendTermedService.class);
 
-    private static final String USER_PASSWORD = "user";
     private static final Pattern UUID_PATTERN = Pattern
             .compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     private static final Object USER_LOCK = new Object();
@@ -466,8 +465,7 @@ public class FrontendTermedService {
 
         UUID username = ensureTermedUser(null);
 
-        termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(),
-                USER_PASSWORD);
+        termedRequester.exchange("/nodes", HttpMethod.DELETE, params, String.class, identifiers, username.toString(), "");
     }
 
     public @NotNull List<MetaNode> getTypes(UUID graphId) {
@@ -559,8 +557,7 @@ public class FrontendTermedService {
 
         try {
             UUID username = ensureTermedUser(null);
-            termedRequester.exchange("/dump", POST, Parameters.empty(), String.class,
-                    newVersion, username.toString(), USER_PASSWORD);
+            termedRequester.exchange("/dump", POST, Parameters.empty(), String.class, newVersion, username.toString(), "");
         } catch (Exception e) {
             logger.error("Error creating new version", e);
 
@@ -659,8 +656,7 @@ public class FrontendTermedService {
 
         UUID username = ensureTermedUser(externalUserId);
 
-        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(),
-                USER_PASSWORD);
+        this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, username.toString(), "");
     }
 
     private void deleteGraph(UUID graphId) {
@@ -718,7 +714,7 @@ public class FrontendTermedService {
     private void createTermedUser(YtiUser user, UUID externalUserId) {
         Parameters params = Parameters.single("sync", "true");
         String userIdForTermedUser = externalUserId == null ? user.getId().toString() : externalUserId.toString();
-        TermedUser termedUser = new TermedUser(userIdForTermedUser, USER_PASSWORD, "ADMIN");
+        TermedUser termedUser = new TermedUser(userIdForTermedUser, "", "ADMIN");
         termedRequester.exchange("/users", POST, params, String.class, termedUser);
     }
 

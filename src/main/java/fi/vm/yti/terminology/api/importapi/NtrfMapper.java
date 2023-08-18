@@ -47,7 +47,6 @@ import fi.vm.yti.terminology.api.util.Parameters;
 @Component
 public class NtrfMapper {
 
-    private static final String USER_PASSWORD = "user";
     private final UUID NULL_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final TermedRequester termedRequester;
@@ -110,8 +109,7 @@ public class NtrfMapper {
         params.add("changeset", "true");
         params.add("sync", String.valueOf(sync));
         try {
-            this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(),
-                    USER_PASSWORD);
+            this.termedRequester.exchange("/nodes", POST, params, String.class, deleteAndSave, userId.toString(), "");
         } catch (HttpServerErrorException ex) {
             logger.error(ex.getResponseBodyAsString());
             String error = ex.getResponseBodyAsString();
