@@ -703,7 +703,7 @@ public final class AttributeIndex {
                 emptyMap(),
                 merge(
                         PropertyUtil.prefLabel(labelList),
-                        type("primary:single")
+                        type("primary:single,required")
                 )
         );
     }
