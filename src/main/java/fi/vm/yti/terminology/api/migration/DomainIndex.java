@@ -33,6 +33,9 @@ public final class DomainIndex {
     public static final TypeId TERMINOLOGICAL_CONCEPT_LINK_TEMPLATE_DOMAIN =
             new TypeId(NodeType.ConceptLink, new GraphId(TERMINOLOGICAL_VOCABULARY_TEMPLATE_GRAPH_ID));
 
+    public static final TypeId TERMINOLOGICAL_ANNOTATION_TEMPLATE_DOMAIN =
+            new TypeId(NodeType.Annotation, new GraphId(TERMINOLOGICAL_VOCABULARY_TEMPLATE_GRAPH_ID));
+
     public static final TypeId TERMINOLOGICAL_VOCABULARY_TEMPLATE_DOMAIN =
             new TypeId(NodeType.TerminologicalVocabulary, new GraphId(TERMINOLOGICAL_VOCABULARY_TEMPLATE_GRAPH_ID));
 

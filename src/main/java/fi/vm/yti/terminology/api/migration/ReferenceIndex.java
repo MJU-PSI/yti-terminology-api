@@ -1,7 +1,9 @@
 package fi.vm.yti.terminology.api.migration;
 
 import fi.vm.yti.terminology.api.config.DatamodelProperties;
+import fi.vm.yti.terminology.api.model.termed.MetaNode;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
+import fi.vm.yti.terminology.api.model.termed.Property;
 import fi.vm.yti.terminology.api.model.termed.ReferenceMeta;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 
@@ -15,6 +17,10 @@ import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAI
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Collections.emptyMap;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 @Service
 public final class ReferenceIndex {
 
@@ -27,6 +33,10 @@ public final class ReferenceIndex {
 
     private final TypeId termDomainFromConceptDomain(TypeId conceptDomain) {
         return new TypeId(NodeType.Term, conceptDomain.getGraph());
+    }
+
+   private final TypeId annotationDomainFromConceptDomain(TypeId conceptDomain) {
+        return new TypeId(NodeType.Annotation, conceptDomain.getGraph());
     }
 
     @NotNull
@@ -285,6 +295,39 @@ public final class ReferenceIndex {
                         "Hakutermi",
                         "Search term"
                 )
+        );
+    }
+
+        @NotNull
+    public ReferenceMeta annotation(TypeId domain, long index, MetaNode meta) {
+        List<Property> prefLabelList = new ArrayList<>();
+        prefLabelList.add(new Property("en", "Annotation"));
+        prefLabelList.add(new Property("sl", "Anotacija"));
+
+        List<Property> descriptionList = new ArrayList<>();
+        if(meta.isOfType(NodeType.Concept)){
+          descriptionList.add(new Property("en", "Annotation that is assigned for the concept"));
+          descriptionList.add(new Property("sl", "Anotacija, ki je dodeljena pojmu"));   
+        } else if(meta.isOfType(NodeType.Collection)) {
+          descriptionList.add(new Property("en", "Annotation that is assigned for this collection"));
+          descriptionList.add(new Property("sl", "Anotacija, ki je dodeljena zbirki"));
+        } else if(meta.isOfType(NodeType.TerminologicalVocabulary)) {
+          descriptionList.add(new Property("en", "Annotation that is assigned for the terminology"));
+          descriptionList.add(new Property("sl", "Anotacija, ki je dodeljena terminologiji"));
+        }
+
+        HashMap<String, List<Property>> map = new HashMap<String, List<Property>>();
+        map.put("prefLabel", prefLabelList);
+        map.put("description", descriptionList);
+
+        return new ReferenceMeta(
+                annotationDomainFromConceptDomain(domain),
+                "annotation",
+                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#annotation",
+                index,
+                domain,
+                emptyMap(),
+                map
         );
     }
 }

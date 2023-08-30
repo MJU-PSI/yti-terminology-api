@@ -12,7 +12,8 @@ public enum NodeType implements Serializable {
     Collection,
     Group,
     Organization,
-    Schema;
+    Schema,
+    Annotation;
 
     public static NodeType placeholder() {
         return Vocabulary;

@@ -2,6 +2,7 @@ package fi.vm.yti.terminology.api.migration;
 
 import fi.vm.yti.terminology.api.config.DatamodelProperties;
 import fi.vm.yti.terminology.api.model.termed.AttributeMeta;
+import fi.vm.yti.terminology.api.model.termed.Property;
 import fi.vm.yti.terminology.api.model.termed.TypeId;
 
 import org.elasticsearch.common.inject.Inject;
@@ -10,6 +11,9 @@ import org.springframework.stereotype.Service;
 
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Collections.emptyMap;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public final class AttributeIndex {
@@ -680,6 +684,46 @@ public final class AttributeIndex {
                                 "Term equivalency is related to"
                         ),
                         type("string:single")
+                )
+        );
+    }
+
+    @NotNull
+    public AttributeMeta annotationId(TypeId domain, long index) {
+
+        List<Property> labelList = new ArrayList<>();
+        labelList.add(new Property("en", "Annotation ID"));
+        labelList.add(new Property("sl", "ID anotacije"));
+
+        return new AttributeMeta(
+                "annotationId",
+                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#annotationId",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(labelList),
+                        type("primary:single")
+                )
+        );
+    }
+
+    @NotNull
+    public AttributeMeta annotationValue(TypeId domain, long index) {
+
+        List<Property> labelList = new ArrayList<>();
+        labelList.add(new Property("en", "Annotation value"));
+        labelList.add(new Property("sl", "Vrednost anotacije"));
+
+        return new AttributeMeta(
+                "annotationValue",
+                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#annotationValue",
+                index,
+                domain,
+                emptyMap(),
+                merge(
+                        PropertyUtil.prefLabel(labelList),
+                        type("localizable:single,area")
                 )
         );
     }

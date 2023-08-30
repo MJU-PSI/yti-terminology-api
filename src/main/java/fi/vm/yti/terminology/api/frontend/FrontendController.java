@@ -46,6 +46,7 @@ import javax.validation.constraints.Size;
 
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
 import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static fi.vm.yti.terminology.api.model.termed.NodeType.Annotation;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.PREFIX_REGEX;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
 import static fi.vm.yti.terminology.api.validation.ValidationConstants.MAX_ITEMS;
@@ -330,6 +331,15 @@ public class FrontendController {
         logger.info("GET /groups requested");
         return termedService.getNodeListWithoutReferencesOrReferrers(Group);
     }
+
+    @Operation(summary = "Get annotation list")
+    @ApiResponse(responseCode = "200", description = "Annotation list in unprocessed Termed JSON format")
+    @GetMapping(path = "/annotations", produces = APPLICATION_JSON_VALUE)
+    JsonNode getAnnotationList() {
+        logger.info("GET /annotations requested");
+        return termedService.getNodeListWithoutReferencesOrReferrers(Annotation);
+    }
+
 
     @Operation(summary = "Get organization list for v2", description = "Get organizations available at YTI Group Management Service")
     @ApiResponse(responseCode = "200", description = "The basic info for organizations in unprocessed Termed JSON format")

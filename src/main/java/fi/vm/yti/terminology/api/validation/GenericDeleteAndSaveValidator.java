@@ -51,7 +51,7 @@ public class GenericDeleteAndSaveValidator extends BaseValidator implements
         final var properties = node.getProperties();
         if (properties.isEmpty() ) {
             this.addConstraintViolation(context, MISSING_VALUE,"properties");
-        }else if(!node.getType().getId().equals(NodeType.Concept)
+        }else if((!node.getType().getId().equals(NodeType.Concept) && !node.getType().getId().equals(NodeType.Annotation))
                 && (properties.get(prefLabel) == null || properties.get(prefLabel).isEmpty())){
             this.addConstraintViolation(context, MISSING_VALUE, prefLabel);
         }
