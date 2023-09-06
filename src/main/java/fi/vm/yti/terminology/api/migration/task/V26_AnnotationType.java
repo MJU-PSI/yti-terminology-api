@@ -54,7 +54,7 @@ public class V26_AnnotationType implements MigrationTask {
 
             MetaNode newMetaNode = new MetaNode(
                     "Annotation",
-                    this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#annotation",
+                    "http://uri.suomi.fi/datamodel/ns/st#annotation",
                     5L,
                     domain.getGraph(),
                     emptyMap(),

@@ -239,7 +239,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "altLabelXl",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#synonym",
+                "http://uri.suomi.fi/datamodel/ns/st#synonym",
                 index,
                 domain,
                 emptyMap(),
@@ -255,7 +255,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "notRecommendedSynonym",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#notRecommendedSynonym",
+                "http://uri.suomi.fi/datamodel/ns/st#notRecommendedSynonym",
                 index,
                 domain,
                 emptyMap(),
@@ -271,7 +271,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "hiddenTerm",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#hiddenTerm",
+                "http://uri.suomi.fi/datamodel/ns/st#hiddenTerm",
                 index,
                 domain,
                 emptyMap(),
@@ -287,7 +287,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 termDomainFromConceptDomain(domain),
                 "searchTerm",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#searchTerm",
+                "http://uri.suomi.fi/datamodel/ns/st#searchTerm",
                 index,
                 domain,
                 emptyMap(),
@@ -323,7 +323,7 @@ public final class ReferenceIndex {
         return new ReferenceMeta(
                 annotationDomainFromConceptDomain(domain),
                 "annotation",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#annotation",
+                "http://uri.suomi.fi/datamodel/ns/st#annotation",
                 index,
                 domain,
                 emptyMap(),

@@ -29,6 +29,9 @@ public class DatamodelProperties {
         @NotNull
         private String host;
 
+        @NotNull
+        private String contextPath;
+
         public String getScheme() {
             return scheme;
         }
@@ -44,9 +47,17 @@ public class DatamodelProperties {
         public void setHost(final String host) {
             this.host = host;
         }
+
+        public String getContextPath() {
+            return "/" + this.contextPath.replaceAll("^/|/$", "") + "/";
+        }
     
-        public String getUriHostAddress() {
-            return this.scheme + "://" + this.host;
+        public void setContextPath(final String contextPath) {
+            this.contextPath = contextPath;
+        }
+    
+        public String getUriHostPathAddress() {
+            return this.scheme + "://" + this.host + getContextPath();
         }
     }
 }

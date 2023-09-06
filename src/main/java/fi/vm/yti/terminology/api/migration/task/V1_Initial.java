@@ -170,7 +170,7 @@ public class V1_Initial implements MigrationTask {
                         this.attributeIndex.prefLabel(domain, 0, "Suositettava termi", "Preferred label"),
                         new AttributeMeta(
                                 "vocabularyLabel",
-                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#vocabularyLabel",
+                                "http://uri.suomi.fi/datamodel/ns/st#vocabularyLabel",
                                 1L,
                                 domain,
                                 emptyMap(),
@@ -185,7 +185,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetId",
-                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#targetId",
+                                "http://uri.suomi.fi/datamodel/ns/st#targetId",
                                 2L,
                                 domain,
                                 emptyMap(),
@@ -200,7 +200,7 @@ public class V1_Initial implements MigrationTask {
                         ),
                         new AttributeMeta(
                                 "targetGraph",
-                                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#targetUri",
+                                "http://uri.suomi.fi/datamodel/ns/st#targetUri",
                                 3L,
                                 domain,
                                 emptyMap(),

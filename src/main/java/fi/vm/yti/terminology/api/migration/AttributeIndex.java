@@ -242,7 +242,7 @@ public final class AttributeIndex {
     public AttributeMeta scope(TypeId domain, long index) {
         return new AttributeMeta(
                 "scope",
-                this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/iow#scope",
+                "http://uri.suomi.fi/datamodel/ns/iow#scope",
                 index,
                 domain,
                 emptyMap(),
@@ -260,7 +260,7 @@ public final class AttributeIndex {
     public AttributeMeta conceptScope(TypeId domain, long index) {
         return new AttributeMeta(
                 "conceptScope",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#conceptScope",
+                "http://uri.suomi.fi/datamodel/ns/iow#conceptScope",
                 index,
                 domain,
                 emptyMap(),
@@ -278,7 +278,7 @@ public final class AttributeIndex {
     public AttributeMeta conceptClass(TypeId domain, long index) {
         return new AttributeMeta(
                 "conceptClass",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#conceptClass",
+                "http://uri.suomi.fi/datamodel/ns/iow#conceptClass",
                 index,
                 domain,
                 emptyMap(),
@@ -296,7 +296,7 @@ public final class AttributeIndex {
     public AttributeMeta priority(TypeId domain, long index) {
         return new AttributeMeta(
                 "priority",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#priority",
+                "http://uri.suomi.fi/datamodel/ns/iow#priority",
                 index,
                 domain,
                 emptyMap(),
@@ -437,7 +437,7 @@ public final class AttributeIndex {
     public AttributeMeta conceptWordClass(TypeId domain, long index) {
         return new AttributeMeta(
                 "wordClass",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#conceptWordClass",
+                "http://uri.suomi.fi/datamodel/ns/st#conceptWordClass",
                 index,
                 domain,
                 emptyMap(),
@@ -455,7 +455,7 @@ public final class AttributeIndex {
     public AttributeMeta termWordClass(TypeId domain, long index) {
         return new AttributeMeta(
                 "wordClass",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termWordClass",
+                "http://uri.suomi.fi/datamodel/ns/st#termWordClass",
                 index,
                 domain,
                 emptyMap(),
@@ -473,7 +473,7 @@ public final class AttributeIndex {
     public AttributeMeta termStyle(TypeId domain, long index) {
         return new AttributeMeta(
                 "termStyle",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termStyle",
+                "http://uri.suomi.fi/datamodel/ns/st#termStyle",
                 index,
                 domain,
                 emptyMap(),
@@ -491,7 +491,7 @@ public final class AttributeIndex {
     public AttributeMeta termFamily(TypeId domain, long index) {
         return new AttributeMeta(
                 "termFamily",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termFamily",
+                "http://uri.suomi.fi/datamodel/ns/st#termFamily",
                 index,
                 domain,
                 emptyMap(),
@@ -509,7 +509,7 @@ public final class AttributeIndex {
     public AttributeMeta termConjugation(TypeId domain, long index) {
         return new AttributeMeta(
                 "termConjugation",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termConjugation",
+                "http://uri.suomi.fi/datamodel/ns/st#termConjugation",
                 index,
                 domain,
                 emptyMap(),
@@ -527,7 +527,7 @@ public final class AttributeIndex {
     public AttributeMeta termEquivalency(TypeId domain, long index) {
         return new AttributeMeta(
                 "termEquivalency",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termEquivalency",
+                "http://uri.suomi.fi/datamodel/ns/st#termEquivalency",
                 index,
                 domain,
                 emptyMap(),
@@ -546,7 +546,7 @@ public final class AttributeIndex {
     public AttributeMeta termInfo(TypeId domain, long index) {
         return new AttributeMeta(
                 "termInfo",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termInfo",
+                "http://uri.suomi.fi/datamodel/ns/st#termInfo",
                 index,
                 domain,
                 emptyMap(),
@@ -566,7 +566,7 @@ public final class AttributeIndex {
     public AttributeMeta termHomographNumber(TypeId domain, long index) {
         return new AttributeMeta(
                 "termHomographNumber",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#termHomographNumber",
+                "http://uri.suomi.fi/datamodel/ns/st#termHomographNumber",
                 index,
                 domain,
                 emptyMap(),
@@ -584,7 +584,7 @@ public final class AttributeIndex {
     public AttributeMeta contact(TypeId domain, long index) {
         return new AttributeMeta(
                 "contact",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#contact",
+                "http://uri.suomi.fi/datamodel/ns/st#contact",
                 index,
                 domain,
                 emptyMap(),
@@ -602,7 +602,7 @@ public final class AttributeIndex {
     public AttributeMeta origin(TypeId domain, long index) {
         return new AttributeMeta(
                 "origin",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/st#origin",
+                "http://uri.suomi.fi/datamodel/ns/st#origin",
                 index,
                 domain,
                 emptyMap(),
@@ -620,7 +620,7 @@ public final class AttributeIndex {
     public AttributeMeta terminologyType(TypeId domain, long index) {
         return new AttributeMeta(
                 "terminologyType",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/term/#terminologyType",
+                "http://uri.suomi.fi/datamodel/ns/term/#terminologyType",
                 index,
                 domain,
                 emptyMap(),
@@ -638,7 +638,7 @@ public final class AttributeIndex {
     public AttributeMeta externalLink(TypeId domain, long index) {
         return new AttributeMeta(
                 "externalLink",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/term#ExternalLink",
+                "http://uri.suomi.fi/datamodel/ns/term#ExternalLink",
                 index,
                 domain,
                 emptyMap(),
@@ -656,7 +656,7 @@ public final class AttributeIndex {
     public AttributeMeta subjectArea(TypeId domain, long index) {
         return new AttributeMeta(
                 "subjectArea",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/term#subjectArea",
+                "http://uri.suomi.fi/datamodel/ns/term#subjectArea",
                 index,
                 domain,
                 emptyMap(),
@@ -674,7 +674,7 @@ public final class AttributeIndex {
     public AttributeMeta termEquivalencyRelation(TypeId domain, long index) {
         return new AttributeMeta(
                 "termEquivalencyRelation",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/term#termEquivalencyRelation",
+                "http://uri.suomi.fi/datamodel/ns/term#termEquivalencyRelation",
                 index,
                 domain,
                 emptyMap(),
@@ -697,7 +697,7 @@ public final class AttributeIndex {
 
         return new AttributeMeta(
                 "annotationId",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#annotationId",
+                "http://uri.suomi.fi/datamodel/ns/iow#annotationId",
                 index,
                 domain,
                 emptyMap(),
@@ -717,7 +717,7 @@ public final class AttributeIndex {
 
         return new AttributeMeta(
                 "annotationValue",
-                this.datamodelProperties.getUri().getUriHostAddress()  + "/datamodel/ns/iow#annotationValue",
+                "http://uri.suomi.fi/datamodel/ns/iow#annotationValue",
                 index,
                 domain,
                 emptyMap(),

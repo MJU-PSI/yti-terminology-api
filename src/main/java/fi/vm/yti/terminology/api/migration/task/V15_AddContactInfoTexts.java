@@ -53,7 +53,7 @@ public class V15_AddContactInfoTexts implements MigrationTask {
         String domainName = meta.getDomain().getId().name();
         if (domainName.equals("TerminologicalVocabulary")) {
             // meta.addAttribute(AttributeIndex.contact(meta.getDomain(), 20));
-            updateTextAttributeDescription(meta, this.datamodelProperties.getUri().getUriHostAddress() + "/datamodel/ns/st#contact",
+            updateTextAttributeDescription(meta, "http://uri.suomi.fi/datamodel/ns/st#contact",
                     "Palautekanavan kuvaus. Älä käytä henkilökohtaista sähköpostiosoitetta."
                             + " Suositeltava muoto esimerkiksi: \"Sanastotyöryhmän ylläpito: yllapito@example.org\"",
                     "Description for the feedback channel. Do not use personal email addresses."
