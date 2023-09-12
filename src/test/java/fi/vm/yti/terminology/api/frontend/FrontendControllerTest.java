@@ -97,7 +97,7 @@ public class FrontendControllerTest {
                 .createVocabulary(
                         any(UUID.class),
                         any(String.class),
-                        any(GenericNode.class),
+                        any(GenericDeleteAndSave.class),
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);
@@ -129,7 +129,7 @@ public class FrontendControllerTest {
                     .createVocabulary(
                             any(UUID.class),
                             any(String.class),
-                            any(GenericNode.class),
+                            any(GenericDeleteAndSave.class),
                             any(UUID.class),
                             eq(true));
 
@@ -172,7 +172,7 @@ public class FrontendControllerTest {
                 .createVocabulary(
                         any(UUID.class),
                         any(String.class),
-                        any(GenericNode.class),
+                        any(GenericDeleteAndSave.class),
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);
@@ -197,7 +197,7 @@ public class FrontendControllerTest {
                 .createVocabulary(
                         any(UUID.class),
                         any(String.class),
-                        any(GenericNode.class),
+                        any(GenericDeleteAndSave.class),
                         any(UUID.class),
                         eq(true));
         verifyNoMoreInteractions(this.termedService);

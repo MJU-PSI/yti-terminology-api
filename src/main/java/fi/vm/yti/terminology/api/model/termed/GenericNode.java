@@ -187,7 +187,42 @@ public final class GenericNode implements Node, Serializable {
 
         TypeId newType = type.copyToGraph(graphId);
 
-        return new GenericNode(id, code, uri, number, createdBy, createdDate, lastModifiedBy, lastModifiedDate, newType, properties, references, referrers);
+        // Create a temporary map to store the updated values
+        Map<String, List<Identifier>> newReferences = new HashMap<>();
+
+        // Iterate through the original map
+        for (Map.Entry<String, List<Identifier>> entry : references.entrySet()) {
+            String key = entry.getKey();
+            List<Identifier> oldIdentifiers = entry.getValue();
+
+            // Create a new list to store the updated identifiers
+            List<Identifier> newIdentifiers = new ArrayList<>();
+
+            // Iterate through the old identifiers and update them to NewIdentifier
+            for (Identifier oldIdentifier : oldIdentifiers) {
+                UUID id = oldIdentifier.getId();
+                TypeId oldTypeId = oldIdentifier.getType();
+
+                Identifier newIdentifier = oldIdentifier;
+                if(oldTypeId.getGraphId().equals(type.getGraphId())) {
+                    // Convert the old TypeId to NewTypeId
+                    TypeId newTypeId = oldTypeId.copyToGraph(graphId);
+                    // TypeId newTypeId = new TypeId(oldTypeId.getId(), new GraphId(oldTypeId.getGraphId()), oldTypeId.getUri());
+
+                    // Create a new NewIdentifier object
+                    newIdentifier = new Identifier(id, newTypeId);
+                }
+            
+                // Add the updated identifier to the list
+                newIdentifiers.add(newIdentifier);
+            }
+
+            // Put the updated list in the temporary map
+            newReferences.put(key, newIdentifiers);
+        }
+
+
+        return new GenericNode(id, code, uri, number, createdBy, createdDate, lastModifiedBy, lastModifiedDate, newType, properties, newReferences, referrers);
     }
 
     /**

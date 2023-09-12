@@ -185,9 +185,20 @@ public class FrontendTermedService {
         return requireNonNull(mapper.convertValue(nodes,JsonNode.class));
     }
 
-    public void createVocabulary(UUID templateGraphId, String prefix, GenericNode vocabularyNode, UUID graphId, boolean sync) {
+    public void createVocabulary(UUID templateGraphId, String prefix, GenericDeleteAndSave deleteAndSave, UUID graphId, boolean sync) {
+
+        GenericNode vocabularyNode = deleteAndSave.getSave().stream()
+            .filter(item -> item.getType().getId().equals(NodeType.TerminologicalVocabulary))
+            .collect(Collectors.toList()).get(0);
 
         check(authorizationManager.canCreateVocabulary(vocabularyNode));
+
+        List<GenericNode> newVocabularyNodeList= new ArrayList<GenericNode>();
+        List<GenericNode> vocabularyNodeList = deleteAndSave.getSave();
+        for(GenericNode node : vocabularyNodeList) {
+            GenericNode newNode = node.copyToGraph(graphId);
+            newVocabularyNodeList.add(newNode);
+        }
 
         try {
             List<MetaNode> templateMetaNodes = getTypes(templateGraphId);
@@ -202,7 +213,7 @@ public class FrontendTermedService {
             updateTypes(graphId, graphMetaNodes);
             logger.debug("Handling nodes for \"" + prefix + "\"");
             updateAndDeleteInternalNodes(
-                    new GenericDeleteAndSave(emptyList(), singletonList(vocabularyNode.copyToGraph(graphId))), sync, null);
+                    new GenericDeleteAndSave(emptyList(), newVocabularyNodeList), sync, null);
             logger.debug("Finished for \"" + prefix + "\"");
         } catch (Exception e) {
             logger.error("Error occurred while creating terminology " + graphId, e);

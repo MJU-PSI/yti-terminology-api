@@ -48,6 +48,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static fi.vm.yti.security.AuthorizationException.check;
+import static java.util.Collections.*;
 
 @Service
 @EnableJms
@@ -291,7 +292,7 @@ public class ImportService {
                 termedService.createVocabulary(
                         DomainIndex.TERMINOLOGICAL_VOCABULARY_TEMPLATE_GRAPH_ID,
                         dto.getNamespace(),
-                        dto.getTerminologyNode(),
+                        new GenericDeleteAndSave(emptyList(), singletonList(dto.getTerminologyNode())),
                         graphId,
                         true
                 );

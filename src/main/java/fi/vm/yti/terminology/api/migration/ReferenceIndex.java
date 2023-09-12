@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import static fi.vm.yti.terminology.api.migration.DomainIndex.GROUP_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.DomainIndex.ORGANIZATION_DOMAIN;
+// import static fi.vm.yti.terminology.api.migration.DomainIndex.ANNOTATION_DOMAIN;
 import static fi.vm.yti.terminology.api.migration.PropertyUtil.*;
 import static java.util.Collections.emptyMap;
 

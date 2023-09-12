@@ -36,6 +36,7 @@ import fi.vm.yti.terminology.api.model.termed.GenericNodeInlined;
 import fi.vm.yti.terminology.api.model.termed.Graph;
 import fi.vm.yti.terminology.api.model.termed.Identifier;
 import fi.vm.yti.terminology.api.model.termed.MetaNode;
+import fi.vm.yti.terminology.api.model.termed.NodeType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -54,6 +55,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static fi.vm.yti.terminology.api.util.CollectionUtils.mapToSet;
+import static java.util.Collections.*;
 
 @RestController
 @RequestMapping("/api/v1/frontend")
@@ -201,14 +203,19 @@ public class FrontendController {
             @Parameter(description = "Whether to do synchronous creation, i.e., wait for the result. This is recommended.")
             @RequestParam(required = false, defaultValue = "true") boolean sync,
 
-            @RequestBody GenericNode vocabularyNode) {
+            @RequestBody GenericDeleteAndSave deleteAndSave) {
 
         try {
+
+            GenericNode vocabularyNode = deleteAndSave.getSave().stream()
+            .filter(node -> node.getType().getId().equals(NodeType.TerminologicalVocabulary))
+            .collect(Collectors.toList()).get(0);
+
             logger.info("POST /vocabulary requested with params: templateGraphId: " + StringUtils.normalizeSpace(templateGraphId.toString()) + ", prefix: " + StringUtils.normalizeSpace(prefix) + ", vocabularyNode.id: " + StringUtils.normalizeSpace(vocabularyNode.getId().toString()));
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 
-            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            termedService.createVocabulary(templateGraphId, prefix, deleteAndSave, predefinedOrGeneratedGraphId, sync);
             logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
 
             return predefinedOrGeneratedGraphId;
@@ -247,7 +254,7 @@ public class FrontendController {
 
             UUID predefinedOrGeneratedGraphId = graphId != null ? graphId : UUID.randomUUID();
 
-            termedService.createVocabulary(templateGraphId, prefix, vocabularyNode, predefinedOrGeneratedGraphId, sync);
+            termedService.createVocabulary(templateGraphId, prefix, new GenericDeleteAndSave(emptyList(), null, singletonList(vocabularyNode)), predefinedOrGeneratedGraphId, sync);
             logger.debug("Vocabulary with prefix \"" + prefix + "\" created");
 
             return predefinedOrGeneratedGraphId;

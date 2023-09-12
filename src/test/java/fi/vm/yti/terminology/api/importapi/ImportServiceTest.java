@@ -28,6 +28,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -66,6 +67,9 @@ public class ImportServiceTest {
 
     @Captor
     ArgumentCaptor<GenericNode> nodeCaptor;
+
+    @Captor
+    ArgumentCaptor<GenericDeleteAndSave> deleteAndSaveCaptor;
 
     @Captor
     ArgumentCaptor<UUID> uuidCaptor;
@@ -155,13 +159,17 @@ public class ImportServiceTest {
         verify(termedService).createVocabulary(
                 any(UUID.class),
                 stringCaptor.capture(),
-                nodeCaptor.capture(),
+                deleteAndSaveCaptor.capture(),
                 uuidCaptor.capture(),
                 anyBoolean());
+        
+        GenericNode vocabularyNode = deleteAndSaveCaptor.getValue().getSave().stream()
+            .filter(node -> node.getType().getId().equals(NodeType.TerminologicalVocabulary))
+            .collect(Collectors.toList()).get(0);
 
         assertEquals("testdev", stringCaptor.getValue());
         assertEquals("3aa764fc-6b32-4a87-b64e-887caab128b1", uuidCaptor.getValue().toString());
-        assertEquals("Test terminology fi", nodeCaptor.getValue().getProperties().get("prefLabel").get(0).getValue());
+        assertEquals("Test terminology fi", vocabularyNode.getProperties().get("prefLabel").get(0).getValue());
     }
 
     @Test
