@@ -792,6 +792,8 @@ public class IntegrationService {
             outgoingResponse.setTerminologyUri(vocabularyNode.getUri());
             if (userProvider.getUser() != null && userProvider.getUser().getId() != null) {
                 outgoingResponse.setCreator(userProvider.getUser().getId().toString());
+            } else if (incomingConcept.getCreator() != null) {
+                outgoingResponse.setCreator(incomingConcept.getCreator().toString());
             }
             // Publish them to server
             List<GenericNode> addNodeList = new ArrayList<>();
