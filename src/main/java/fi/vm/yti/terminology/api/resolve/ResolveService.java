@@ -47,14 +47,15 @@ public class ResolveService {
     }
 
     ResolvedResource resolveResource(String uri) {
+        String uriNoScheme = uri.replaceFirst("https?://", "");
 
-        if (!uri.startsWith(this.uriProperties.getUriHostPathAddress())) {
+        if (!uriNoScheme.startsWith(this.uriProperties.getHost() + this.uriProperties.getContextPath())) {
             logger.error("Unsupported URI namespace URI: " + StringUtils.normalizeSpace(uri));
             throw new RuntimeException("Unsupported URI namespace: " + uri);
         }
-
-        String uriWithoutParameters = uri.replaceFirst("\\?.*$", "");
-        String path = uriWithoutParameters.substring(this.uriProperties.getUriHostPathAddress().length());
+        
+        String uriNoSchemeNoParams = uriNoScheme.replaceFirst("\\?.*$", "");
+        String path = uriNoSchemeNoParams.replaceFirst(this.uriProperties.getHost() + this.uriProperties.getContextPath(), "");
 
         Matcher prefixMatcher = PREFIX_PATTERN.matcher(path);
         if (prefixMatcher.matches()) {
